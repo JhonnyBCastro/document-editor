@@ -4,7 +4,7 @@ import { DecorationSet } from '@tiptap/pm/view';
 import { TableMap } from '@tiptap/pm/tables';
 import { BreakCandidate, BreakDecision, LayoutConfig, LayoutSnapshot, LayoutDiagnostic } from './types';
 import { getVisualLines } from './measurement';
-import { evaluateLinearPolicies, evaluateTablePolicies } from './policies';
+import { evaluateLinearPolicies, evaluateTablePolicies, checkProgressRule } from './policies';
 import { createDecorationFromDecision } from './decorations';
 import { calculatePageProjections } from './projection';
 import { updateChromeLayer } from './chrome';
@@ -117,7 +117,7 @@ export class PaginationController {
         });
         let nextManualIdx = 0;
         
-        let pos = 1;
+        let pos = 0;
         let failsafe = 0;
         let blockedRegionStart = -1;
         let blockedRegionEnd = -1;
@@ -129,16 +129,24 @@ export class PaginationController {
                 continue;
             }
             
-            while (nextManualIdx < manualBreaks.length && pos > manualBreaks[nextManualIdx]) {
-                nextManualIdx++;
+            while (nextManualIdx < manualBreaks.length) {
+                const bPos = manualBreaks[nextManualIdx];
+                const bNode = this.view.state.doc.nodeAt(bPos);
+                const bSize = bNode ? bNode.nodeSize : 2;
+                if (pos > bPos + bSize - 1) {
+                    nextManualIdx++;
+                } else {
+                    break;
+                }
             }
             const nextManualPos = nextManualIdx < manualBreaks.length ? manualBreaks[nextManualIdx] : Infinity;
+            const manualNode = nextManualPos !== Infinity ? this.view.state.doc.nodeAt(nextManualPos) : null;
+            const manualNodeSize = manualNode ? manualNode.nodeSize : 2;
             
             let coords;
             try {
-                coords = this.view.coordsAtPos(pos);
+                coords = this.view.coordsAtPos(Math.max(1, pos));
             } catch (e) {
-                console.log(`coordsAtPos failed at ${pos}`);
                 let jump = 20;
                 if (pos + jump > nextManualPos) {
                     jump = Math.max(1, nextManualPos - pos);
@@ -151,6 +159,31 @@ export class PaginationController {
             const cumulativeDisplacement = widgetsBefore.reduce((acc, w) => acc + (w.spec.effectiveDisplacement || totalGapSize), 0);
             
             const neutralY = coords.top - cumulativeDisplacement;
+
+            // Check if we hit the manual break
+            if (pos >= nextManualPos && pos < nextManualPos + manualNodeSize && neutralY <= targetNeutralY) {
+                const spaceLeft = targetNeutralY - neutralY;
+                const decision: BreakDecision = {
+                    status: 'accepted',
+                    origin: 'manual',
+                    pos: nextManualPos + manualNodeSize,
+                    effectiveDisplacement: totalGapSize + Math.max(0, spaceLeft),
+                    reasons: ['manual_page_break'],
+                    renderer: 'manual-spacer'
+                };
+                
+                // Regra de progresso também para manual?
+                // lastBreakPos
+                const { isStale } = checkProgressRule(decision, breaks);
+                if (!isStale) {
+                    breaks.push(decision);
+                    currentPage++;
+                    targetNeutralY = startY + (usableHeight * currentPage);
+                    pos = decision.pos; 
+                    nextManualIdx++;
+                    continue;
+                }
+            }
 
             if (neutralY > targetNeutralY) {
                 let exactPos = pos;
@@ -272,10 +305,8 @@ export class PaginationController {
                 }
                 
                 // ── Regra de Progresso ───────────────────────────────────────────────
-                // Uma decisão aceita deve sempre avançar em relação à ÚLTIMA quebra.
-                // Se não avançar, emite diagnóstico e avança `pos` forçadamente para evitar loop infinito.
-                const lastBreakPos = breaks.length > 0 ? breaks[breaks.length - 1].pos : 0;
-                if (decision.pos <= lastBreakPos) {
+                const { isStale, lastBreakPos } = checkProgressRule(decision, breaks);
+                if (isStale) {
                     diagnostics.push({
                         code: 'STALE_BREAK',
                         pos,
@@ -284,6 +315,7 @@ export class PaginationController {
                     pos += 1;
                     continue;
                 }
+
 
                 const coordsBefore = this.view.coordsAtPos(decision.pos);
                 const dispBefore = this.currentDecorations.find(0, decision.pos).reduce((acc, w) => acc + (w.spec.effectiveDisplacement || totalGapSize), 0);
@@ -302,29 +334,6 @@ export class PaginationController {
             if (pos + jump > nextManualPos) {
                 jump = Math.max(1, nextManualPos - pos);
             }
-            
-            if (pos === nextManualPos && neutralY <= targetNeutralY) {
-                const manualNode = this.view.state.doc.nodeAt(nextManualPos);
-                const nodeSize = manualNode ? manualNode.nodeSize : 1;
-                
-                const spaceLeft = targetNeutralY - neutralY;
-                const decision: BreakDecision = {
-                    status: 'accepted',
-                    origin: 'manual',
-                    pos: nextManualPos + nodeSize,
-                    effectiveDisplacement: totalGapSize + Math.max(0, spaceLeft),
-                    reasons: ['manual_page_break'],
-                    renderer: 'manual-spacer'
-                };
-                
-                breaks.push(decision);
-                currentPage++;
-                targetNeutralY = startY + (usableHeight * currentPage);
-                pos = decision.pos; 
-                nextManualIdx++;
-                continue;
-            }
-            
             pos += jump;
         }
         

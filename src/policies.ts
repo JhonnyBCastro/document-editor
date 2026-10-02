@@ -224,3 +224,11 @@ export function evaluateTablePolicies(candidate: BreakCandidate, view: EditorVie
         colspan: map.width
     };
 }
+
+export function checkProgressRule(decision: BreakDecision, breaks: BreakDecision[]): { isStale: boolean, lastBreakPos: number } {
+    const lastBreakPos = breaks.length > 0 ? breaks[breaks.length - 1].pos : 0;
+    return {
+        isStale: decision.pos <= lastBreakPos,
+        lastBreakPos
+    };
+}
