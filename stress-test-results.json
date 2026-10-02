@@ -1,0 +1,48 @@
+{
+  "PE-S": {
+    "duration": 121,
+    "pages": 2,
+    "autoBreaks": 0,
+    "manualBreaks": 1,
+    "diagnostics": [],
+    "geom": {
+      "chromeHeaders": 2
+    },
+    "tableCheck": {},
+    "semanticDiff": -1289
+  },
+  "PE-M": {
+    "duration": 116,
+    "pages": 3,
+    "autoBreaks": 0,
+    "manualBreaks": 2,
+    "diagnostics": [],
+    "geom": {
+      "chromeHeaders": 3
+    },
+    "tableCheck": {},
+    "semanticDiff": -8728
+  },
+  "PE-L": {
+    "duration": 156,
+    "pages": 10,
+    "autoBreaks": 7,
+    "manualBreaks": 2,
+    "diagnostics": [],
+    "geom": {
+      "chromeHeaders": 10
+    },
+    "tableCheck": {
+      "ok": true,
+      "dataRows": 151,
+      "spacers": 6
+    },
+    "semanticDiff": -57066
+  },
+  "PE-L-Edit": {},
+  "Rollback": {
+    "success": true,
+    "domCleared": true,
+    "jsonSizeSaved": 98902
+  }
+}

@@ -1,0 +1,58 @@
+/* src/pagination/style.css */
+
+/* Regras essenciais para o Chrome Layer e Paginador Virtual */
+#pages-layer {
+  position: absolute;
+  top: 20px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#chrome-layer {
+  position: absolute;
+  top: 20px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Os widgets e quebras virtuais */
+.page-chrome-gap {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.page-chrome-header, .page-chrome-footer {
+  width: 100%;
+}
+
+/* Na hora de imprimir o PDF */
+@media print {
+  @page { 
+    size: 8.5in 11in; 
+    margin: 0; 
+  }
+  
+  body, html { 
+    margin: 0; 
+    padding: 0; 
+    background: white; 
+  }
+  
+  /* Remove margens e ajusta os overlays virtualizados */
+  #pages-layer, #chrome-layer {
+    top: 0 !important;
+  }
+  
+  /* Oculta os placeholders decorativos do gap da paginação virtual, pois viraram 0 */
+  .page-chrome-gap { 
+    display: none !important; 
+  }
+  
+  .ProseMirror { 
+    box-shadow: none !important; 
+    border: none !important; 
+  }
+}

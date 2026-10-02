@@ -1,0 +1,38 @@
+{
+  "name": "document-editor",
+  "version": "0.1.0-alpha.0",
+  "description": "Pagination extension for Tiptap",
+  "type": "module",
+  "main": "dist/pagination.umd.js",
+  "module": "dist/pagination.es.js",
+  "types": "dist/index.d.ts",
+  "style": "dist/document-editor.css",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/pagination.es.js",
+      "require": "./dist/pagination.umd.js"
+    },
+    "./style.css": "./dist/document-editor.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build -c vite.config.lib.ts",
+    "test:e2e": "node tests/e2e/pagination-stress.spec.cjs"
+  },
+  "devDependencies": {
+    "@tiptap/core": "^2.11.0",
+    "@tiptap/pm": "^2.11.0",
+    "puppeteer": "^25.12.0",
+    "puppeteer-core": "^23.6.0",
+    "typescript": "^5.0.0",
+    "vite": "^6.4.3",
+    "vite-plugin-dts": "^4.2.1"
+  },
+  "peerDependencies": {
+    "@tiptap/core": "^2.0.0",
+    "@tiptap/pm": "^2.0.0"
+  }
+}
