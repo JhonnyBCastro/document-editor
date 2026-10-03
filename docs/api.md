@@ -17,11 +17,12 @@ const editor = new Editor({
   ]
 });
 
-// Exemplo B — Schema personalizado
+// Exemplo B — Schema e Montagem Personalizados
 const editorCustom = new Editor({
   extensions: [
     PaginationExtension.configure({
       manualBreakNodeName: 'documentBreak', // O document-editor mapeará as quebras em cima desse nó registrado pelo host
+      chromeLayerElement: document.getElementById('meu-overlay'), // [Opcional] Container injetado manualmente para o ChromeLayer
       onLayoutStable: (snap) => {
         console.log('Total pages:', snap.pages.length);
       }

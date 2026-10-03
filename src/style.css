@@ -8,7 +8,7 @@
   z-index: 1;
 }
 
-#chrome-layer {
+#chrome-layer, .document-editor-chrome-layer {
   position: absolute;
   top: 20px;
   pointer-events: none;
@@ -42,7 +42,7 @@
   }
   
   /* Remove margens e ajusta os overlays virtualizados */
-  #pages-layer, #chrome-layer {
+  #pages-layer, #chrome-layer, .document-editor-chrome-layer {
     top: 0 !important;
   }
   

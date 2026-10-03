@@ -35,7 +35,7 @@ Foi consolidado o build para ES e UMD contendo as novas assinaturas tipadas para
 Versão promovida para **`document-editor@0.1.0-alpha.4`** e compactada no ambiente.
 
 ## 8. Commit
-Foi gerado o release respectivo da iteração arquitetural (a ser commitado).
+Foi gerado o release respectivo da iteração arquitetural no commit `98cae7a`.
 
 ## 9. Recomendação de Backlog (CONS-008)
 Com o desacoplamento do Schema estabelecido, recomenda-se iniciar os trabalhos em torno das restrições DOM. Como prioridade de arquitetura atual, a P2 sugere uma **evolução do contrato DOM do host** (o fato da extensão anexar estilos à instância `document.body` invés do contêiner isolado do editor impacta eventuais consumidores multi-instância). Extensão dos testes unitários matemáticos (P1) e fragmentação intralinha em tabelas (Research) seguem como candidatas viáveis.

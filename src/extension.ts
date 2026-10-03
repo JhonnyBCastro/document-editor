@@ -38,7 +38,7 @@ export const PaginationExtension = Extension.create<PaginationOptions, { control
             new Plugin({
                 key: PaginationPluginKey,
                 view: (view) => {
-                    controller = new PaginationController(view, this.options.layout, this.options.onLayoutStable, this.options.manualBreakNodeName || 'pageBreak');
+                    controller = new PaginationController(view, this.options.layout, this.options.onLayoutStable, this.options.manualBreakNodeName || 'pageBreak', this.options.chromeLayerElement);
                     this.storage.controller = controller;
                     (window as any).paginationController = controller;
                     controller.scheduleRender();

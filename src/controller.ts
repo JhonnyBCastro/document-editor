@@ -19,12 +19,31 @@ export class PaginationController {
     private stableListeners: Array<(snapshot: LayoutSnapshot) => void> = [];
     private revision: number = 0;
     private manualBreakNodeName: string;
+    private chromeLayer: HTMLElement;
+    private isChromeLayerOwner: boolean;
     
-    constructor(view: EditorView, layout: LayoutConfig, onLayoutStable?: (snapshot: LayoutSnapshot) => void, manualBreakNodeName: string = 'pageBreak') {
+    constructor(view: EditorView, layout: LayoutConfig, onLayoutStable?: (snapshot: LayoutSnapshot) => void, manualBreakNodeName: string = 'pageBreak', chromeLayerElement?: HTMLElement) {
         this.view = view;
         this.layout = layout;
         this.onLayoutStable = onLayoutStable;
         this.manualBreakNodeName = manualBreakNodeName;
+        
+        if (chromeLayerElement) {
+            this.chromeLayer = chromeLayerElement;
+            this.isChromeLayerOwner = false;
+        } else {
+            this.chromeLayer = document.createElement('div');
+            this.chromeLayer.className = 'document-editor-chrome-layer';
+            const parent = this.view.dom.parentElement;
+            if (parent) {
+                const style = window.getComputedStyle(parent);
+                if (style.position === 'static') {
+                    parent.style.position = 'relative';
+                }
+                parent.insertBefore(this.chromeLayer, this.view.dom);
+            }
+            this.isChromeLayerOwner = true;
+        }
     }
     
     public getLayout(): LayoutConfig {
@@ -64,8 +83,14 @@ export class PaginationController {
     public destroy() {
         if (this.renderTimeout) clearTimeout(this.renderTimeout);
         this.currentDecorations = DecorationSet.empty;
-        const chromeLayer = document.getElementById('chrome-layer');
-        if (chromeLayer) chromeLayer.innerHTML = '';
+        
+        if (this.isChromeLayerOwner) {
+            if (this.chromeLayer.parentNode) {
+                this.chromeLayer.parentNode.removeChild(this.chromeLayer);
+            }
+        } else if (this.chromeLayer) {
+            this.chromeLayer.innerHTML = '';
+        }
     }
     
     private renderVirtualPages() {
@@ -358,9 +383,8 @@ export class PaginationController {
         }
         
         const projections = calculatePageProjections(breaks, this.layout);
-        const chromeLayer = document.getElementById('chrome-layer');
-        if (chromeLayer) {
-            updateChromeLayer(chromeLayer, projections, this.layout);
+        if (this.chromeLayer) {
+            updateChromeLayer(this.chromeLayer, projections, this.layout);
         }
         
         editorEl.style.background = 'white';
