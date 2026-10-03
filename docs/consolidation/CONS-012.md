@@ -12,28 +12,32 @@ Esta etapa consistiu em identificar as causas da recusa de conexão da API na po
   - Inicialização manual do Spring Boot via `./mvnw spring-boot:run`.
   - Tratamento do conflito de portas (uma instância estava travada).
   - Preenchimento da base com os dados sintéticos via `./dev.sh seed`.
-  - **Correção Crítica no Seed (Hibernate NPE)**: Identificou-se que a inserção de planos via script SQL deixava a coluna `version` como `NULL`, o que causava um `NullPointerException` (HTTP 500) do Hibernate no momento de persistir o documento. Foi executado um `UPDATE` no banco descartável setando `version = 0`.
+  - **Correção Permanente no Seed (Hibernate NPE)**: Identificou-se que a inserção de planos via script SQL `04-teaching-plans.sql` omitia a coluna `version` (mapeada via `@Version` na entidade `TeachingPlan`), o que causava um `NullPointerException` (HTTP 500) do Hibernate. A correção foi aplicada de forma permanente no script-fonte `04-teaching-plans.sql`, onde a coluna `version` e o valor inicial `0` foram adicionados aos inserts. Uma reinicialização isolada do seed via `./dev.sh seed` demonstrou funcionamento liso das atualizações (PATCH) sem qualquer intervenção posterior manual.
 
 ## 3. Portão M: Persistência e Fluxo Institucional
-- **Abordagem**: Utilização de um script de integração (`test_workflow.cjs`) consumindo diretamente a API com tokens JWT via HttpOnly Cookies.
-- **Teste Realizado**:
-  1. Login como Professor (`2000`).
+- **Abordagem**: Utilização de scripts locais de integração (`integration_test.js` e `test_workflow.cjs`) consumindo diretamente a API com tokens JWT via HttpOnly Cookies.
+- **Importante (Delimitação da Evidência)**: **Nenhuma tela ou operação do frontend Angular foi exercitada nesta fase**. Os testes limitaram-se exclusivamente a chamadas REST diretas à API.
+- **Teste Realizado (REST)**:
+  1. Login como Professor (papel `2000`).
   2. Recuperação da alocação via `/api/professor/disciplinas`.
-  3. Recuperação do plano (`/api/professor/planos/gerar`).
-  4. Atualização via `PATCH /api/professor/planos/{id}/valores`, enviando um JSON semântico contendo o novo identificador de quebra (`pageBreak`).
-  5. Re-recuperação do plano via API e verificação da integridade do JSON salvo.
-- **Resultado (APROVADO)**: O JSON foi persistido exatamente conforme produzido pelo editor experimental. Nenhuma estrutura transitória (como o `ChromeLayer`) poluiu o documento armazenado. O ciclo de submissão (Professor) e revisão/aprovação (Coordenador) funcionou perfeitamente.
+  3. Recuperação do plano de ensino (`/api/professor/planos/gerar`).
+  4. Atualização via `PATCH /api/professor/planos/{id}/valores`, enviando um JSON semântico sintético que inclui o identificador de quebra (`pageBreak`).
+  5. Verificação da integridade do JSON salvo através de uma nova busca.
+- **Evolução de Estados e Permissões**: A sequência real de estados atestada na API foi `DRAFT -> PENDING_REVIEW -> UNDER_REVIEW -> APPROVED`. O sistema exigiu adequadamente que o Coordenador (papel `4000`) chamasse o endpoint `/iniciar` antes de `/aprovar`, conforme a modelagem institucional. Não foram testadas funcionalidades de comentários em célula, devoluções/recusas, ou papéis além de Professor (2000) e Coordenador (4000).
+- **Resultado (APROVADO)**: O JSON foi persistido exatamente conforme modelado pelo editor experimental.
 
 ## 4. Portão O: OpenPDF
-- **Abordagem**: Recuperação do binário originado pela persistência do Portão M.
-- **Teste Realizado**:
-  - Requisição para `GET /api/pdf/planos/{id}`.
-  - Verificação de metadados (`pdfinfo`) e extração de texto (`pdftotext`).
-- **Resultado (APROVADO)**: O PDF gerado foi bem-sucedido e produziu um documento de **2 páginas**. O renderizador backend `OpenPdfRenderer` identificou adequadamente a Decoration convertida em node semântico `pageBreak`, forçando a quebra de página de forma fiel à interface visual.
+- **Abordagem**: Requisição para `GET /api/pdf/planos/{id}` consumindo o binário resultante da persistência do documento sintético configurado no Portão M.
+- **Teste Realizado e Resultado (APROVADO)**:
+  O PDF gerado resultou num documento de exatamente **2 páginas**.
+  - Na primeira página, verificou-se através de extração de texto a string: `"--- TEXTO ANTERIOR AO PAGEBREAK ---"`.
+  - Na segunda página, confirmou-se a presença de: `"--- TEXTO POSTERIOR AO PAGEBREAK ---"`.
+  **Detalhe Técnico Restrito:** O renderizador institucional (`OpenPdfRenderer`) reconheceu fielmente o nó semântico manual `pageBreak`. O editor exporta exclusivamente os nós intencionais (estruturais manuais); *Decorations* automáticas transitórias oriundas do paginador visual não são convertidas em nós, e consequentemente o JSON armazenado encontra-se integralmente livre de quaisquer estruturas de renderização UI ou artefatos (`ChromeLayer`, *spacers*).
 
 ## 5. Portão Q: Qualidade E2E
-- **Investigação**: Realizado inventário buscando arquivos Cypress no `package.json` ou diretórios `cypress/`.
-- **Resultado (DESCARTADO)**: A infraestrutura Cypress não está instalada ou configurada no projeto `appe-web`. Conforme diretriz, o portão foi ignorado e o teste via script de integração com Puppeteer (na etapa anterior) mais o teste de API atual servem de validação principal de qualidade.
+- **Investigação**: Realizado inventário buscando arquivos Cypress no `package.json` ou diretórios `cypress/` do repositório `appe-web`.
+- **Resultado:** `ADIADO / NOT RUN — Cypress institucional`.
+  A infraestrutura Cypress não está instalada ou configurada no projeto `appe-web`. Conforme as restrições arquiteturais da etapa, o portão foi postergado. O script Puppeteer desenvolvido anteriormente (smoke test) e os scripts de integração REST de API servem como evidências suplementares pontuais, mas não foram registrados artificialmente como uma execução de suíte de testes Cypress.
 
 ## Conclusão
 A biblioteca `document-editor@0.1.0-rc.1` foi adotada com sucesso pelo APPE. Tanto a persistência semântica no banco relacional quanto a transcrição final para o OpenPDF demonstram conformidade total com a nova arquitetura independente (Rota B). O artefato `rc.1` demonstrou plena estabilidade para evolução à `1.0.0`.
