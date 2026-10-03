@@ -1,7 +1,7 @@
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { PaginationExtension } from 'document-editor';
-import 'document-editor/style.css';
+import { PaginationExtension } from '@jhonny_bcastro/document-editor';
+import '@jhonny_bcastro/document-editor/style.css';
 
 const fixture = {
   type: 'doc',
@@ -45,6 +45,15 @@ function createEditor() {
       TableCell,
       PageBreak,
       PaginationExtension.configure({
+        layout: {
+          page: { width: 816, height: 1056, marginTop: 96, marginRight: 96, marginBottom: 96, marginLeft: 96, pageGap: 20 },
+          policies: { keepWithNext: true, widowOrphan: true, minLinesBeforeBreak: 2, minLinesAfterBreak: 2, keepWithNextMinLines: 2 },
+          runningContent: {
+            header: { enabled: true, text: 'Document Editor Lab — Documento de Teste', align: 'center' },
+            footer: { enabled: true, text: 'Página {page} de {total}', align: 'right' },
+            differentFirstPage: false
+          }
+        },
         onLayoutStable: (snap: any) => {
           (window as any).__appeLastSnapshot = snap;
           updateDiagnostics();

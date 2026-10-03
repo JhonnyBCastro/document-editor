@@ -1,36 +1,36 @@
 {
   "PE-S": {
-    "duration": 121,
+    "duration": 118,
     "pages": 2,
     "autoBreaks": 0,
     "manualBreaks": 1,
     "diagnostics": [],
     "geom": {
-      "chromeHeaders": 2
+      "chromeHeaders": 0
     },
     "tableCheck": {},
     "semanticDiff": -1289
   },
   "PE-M": {
-    "duration": 117,
+    "duration": 115,
     "pages": 3,
     "autoBreaks": 0,
     "manualBreaks": 2,
     "diagnostics": [],
     "geom": {
-      "chromeHeaders": 3
+      "chromeHeaders": 0
     },
     "tableCheck": {},
     "semanticDiff": -8728
   },
   "PE-L": {
-    "duration": 163,
+    "duration": 143,
     "pages": 10,
     "autoBreaks": 7,
     "manualBreaks": 2,
     "diagnostics": [],
     "geom": {
-      "chromeHeaders": 10
+      "chromeHeaders": 0
     },
     "tableCheck": {
       "ok": true,

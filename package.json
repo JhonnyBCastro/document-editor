@@ -1,7 +1,24 @@
 {
-  "name": "document-editor",
-  "version": "0.1.0-rc.1",
+  "name": "@jhonny_bcastro/document-editor",
+  "version": "0.1.0-rc.2",
+  "author": "Jhonny B. Castro",
+  "license": "MIT",
   "description": "Pagination extension for Tiptap",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JhonnyBCastro/document-editor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JhonnyBCastro/document-editor/issues"
+  },
+  "homepage": "https://github.com/JhonnyBCastro/document-editor#readme",
+  "keywords": [
+    "tiptap",
+    "prosemirror",
+    "pagination",
+    "print",
+    "editor"
+  ],
   "type": "module",
   "main": "dist/pagination.umd.js",
   "module": "dist/pagination.es.js",

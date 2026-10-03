@@ -15,7 +15,7 @@ export const PaginationExtension = Extension.create<PaginationOptions, { control
                 page: { width: 816, height: 1056, marginTop: 96, marginRight: 96, marginBottom: 96, marginLeft: 96, pageGap: 20 },
                 policies: { keepWithNext: true, widowOrphan: true, minLinesBeforeBreak: 2, minLinesAfterBreak: 2, keepWithNextMinLines: 2 },
                 runningContent: {
-                    header: { enabled: true, text: 'Document Editor Lab — Documento de Teste', align: 'center' },
+                    header: { enabled: false, text: '', align: 'center' },
                     footer: { enabled: true, text: 'Página {page} de {total}', align: 'right' },
                     differentFirstPage: false
                 }

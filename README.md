@@ -25,15 +25,17 @@ This library explicitly distinguishes between:
 - **Isolated ChromeLayer mounting**: Automatically injects visual page boundaries independent of the semantic DOM, or allows custom container assignment.
 
 ## Installation
-The current version (`0.1.0-rc.1`) is distributed as a local tarball. 
+The current version (`0.1.0-rc.2`) is distributed as a local tarball. 
 
 **Requirements:**
 - A modern bundler (Vite, Webpack, etc.).
 - Peer dependencies: `@tiptap/core` and `@tiptap/pm` (v2 or v3).
 
 ```bash
-npm install ./document-editor-0.1.0-rc.1.tgz
+npm install ./jhonny_bcastro-document-editor-0.1.0-rc.2.tgz
 ```
+
+> **Note**: This repository is currently private. The links to the repository, bugs, and homepage are not accessible to the public yet.
 
 ## Quick Start
 Initialize your Tiptap Editor by passing the `PaginationExtension`. The library relies on its CSS for geometry, so the stylesheet must be explicitly imported.
@@ -41,8 +43,8 @@ Initialize your Tiptap Editor by passing the `PaginationExtension`. The library 
 ```typescript
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { PaginationExtension } from 'document-editor';
-import 'document-editor/style.css'; // Mandatory for geometry calculations
+import { PaginationExtension } from '@jhonny_bcastro/document-editor';
+import '@jhonny_bcastro/document-editor/style.css'; // Mandatory for geometry calculations
 
 const element = document.querySelector('#editor');
 
@@ -66,7 +68,7 @@ The `manualBreakNodeName` option allows you to bind the pagination engine to you
 import { Node } from '@tiptap/core';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { PaginationExtension } from 'document-editor';
+import { PaginationExtension } from '@jhonny_bcastro/document-editor';
 
 // 1. The host defines its own semantic node for manual breaks.
 const CustomPageBreak = Node.create({
@@ -98,7 +100,7 @@ Calculating page breaks requires DOM layout reads, which are batched using `requ
 You can wait for the engine to finish settling the layout using `whenLayoutStable` or the `onLayoutStable` configuration option.
 
 ```typescript
-import { whenLayoutStable } from 'document-editor';
+import { whenLayoutStable } from '@jhonny_bcastro/document-editor';
 
 // Returns a Promise<LayoutSnapshot>
 const snapshot = await whenLayoutStable(editor);
@@ -120,7 +122,7 @@ It is crucial to distinguish between the two layers of visual intervention:
 The library provides an asynchronous `preparePrintSession` utility that prepares the DOM for browser printing (e.g., neutralizing page gaps) and provides a `restore` callback.
 
 ```typescript
-import { preparePrintSession } from 'document-editor';
+import { preparePrintSession } from '@jhonny_bcastro/document-editor';
 
 // 1. Prepare the layout for printing
 const session = await preparePrintSession(editor);
@@ -153,7 +155,7 @@ The engine follows a linear pipeline:
 |---|---|---|---|
 | `layout.page` | `Object` | `{ width: 816, height: 1056, marginTop: 96, marginRight: 96, marginBottom: 96, marginLeft: 96, pageGap: 20 }` | Page geometry in pixels (US Letter @ 96 DPI by default). |
 | `layout.policies` | `Object` | `{ keepWithNext: true, widowOrphan: true, minLinesBeforeBreak: 2, minLinesAfterBreak: 2, keepWithNextMinLines: 2 }` | Typographic control policies. |
-| `layout.runningContent` | `Object` | `{ header: { enabled: true, text: 'Document Editor Lab — Documento de Teste', align: 'center' }, footer: { enabled: true, text: 'Página {page} de {total}', align: 'right' }, differentFirstPage: false }` | Header and footer configuration. |
+| `layout.runningContent` | `Object` | `{ header: { enabled: false, text: '', align: 'center' }, footer: { enabled: true, text: 'Página {page} de {total}', align: 'right' }, differentFirstPage: false }` | Header and footer configuration. |
 | `onLayoutStable` | `Function` | `undefined` | Callback invoked whenever the layout settles. |
 | `manualBreakNodeName` | `string` | `'pageBreak'` | The Tiptap node name representing semantic manual breaks. |
 | `chromeLayerElement` | `HTMLElement` | `undefined` | Optional external container to host the visual page backgrounds. |
@@ -180,6 +182,6 @@ For more details on why the library separates structural and visual concerns, an
 - [ADR-003: Host DOM Ownership](docs/decisions/ADR-003-host-dom-ownership.md)
 
 ## License and Project Status
-**Version:** Release Candidate `0.1.0-rc.1`
+**Version:** Release Candidate `0.1.0-rc.2`
 **Status:** Local tarball distribution. 
 **License:** MIT License
