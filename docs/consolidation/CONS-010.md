@@ -70,6 +70,7 @@ O pacote foi gerado utilizando `npm pack` sob o nome `document-editor-0.1.0-rc.1
 
 ## 9. Identidade da Versão e Instruções
 - **Versão:** `document-editor@0.1.0-rc.1`
+- **Commit:** `ef239ae`
 - **Hash SHA-256 (Tarball):** `d581e3c939dbc24d4133ce9c43e5e5e466cc4cdc5c762f10d357044501a33d1e`
 - **Decisão:** Release Candidate (RC) **Aprovada**.
 

@@ -23,5 +23,5 @@ Auditar e fortalecer o contrato de preparação, utilização e restauração da
 ## Status
 Concluído com sucesso. Todos os 10 testes E2E rodam de forma determinística e verde, confirmando 100% de estabilidade da funcionalidade de impressão isolada para o produto.
 
-## Próximo Passo
-CONS-010 (Quality Assurance e Final Release Candidate).
+## Próximo Passo (Histórico)
+CONS-010 (Quality Assurance e Final Release Candidate). *(Nota: CONS-010 já foi concluída).*
