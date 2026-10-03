@@ -1,0 +1,29 @@
+# Dependências externas
+node_modules/
+**/node_modules/
+
+# Distribuição gerada
+dist/
+**/dist/
+*.tgz
+
+# Caches
+.vite/
+**/.vite/
+.cache/
+**/.cache/
+coverage/
+**/coverage/
+
+# Resultados e arquivos temporários
+tmp/
+temp/
+*.log
+npm-debug.log*
+test-results/
+playwright-report/
+
+# Artefatos temporários de depuração
+*.trace
+*.cpuprofile
+*.heapprofile
