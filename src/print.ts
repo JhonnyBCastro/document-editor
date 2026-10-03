@@ -16,37 +16,65 @@ export async function preparePrintSession(editor: Editor): Promise<PrintSession>
     }
     
     isPreparingPrint = true;
+    
+    let originalLayout: any = null;
+    let hadPrintMode = false;
+    let controller: PaginationController | null = null;
+    let isRestored = false;
+    
     try {
-        const controller = (editor.storage as any).pagination?.controller as PaginationController | null;
+        controller = (editor.storage as any).pagination?.controller as PaginationController | null;
         if (!controller) {
             throw new Error("PaginationExtension not found or not initialized.");
         }
 
-        const originalLayout = JSON.parse(JSON.stringify(controller.getLayout()));
+        originalLayout = JSON.parse(JSON.stringify(controller.getLayout()));
         
-        // Configura o layout de impressão (pageGap: 0)
+        // Verifica se a classe print-mode já existia no body antes da sessão
+        hadPrintMode = document.body.classList.contains('print-mode');
+        if (!hadPrintMode) {
+            document.body.classList.add('print-mode');
+        }
+        
         const printLayout = JSON.parse(JSON.stringify(originalLayout));
         printLayout.page.pageGap = 0;
         
-        // Adiciona classe no body
-        document.body.classList.add('print-mode');
-        
-        // Inicia o reflow com o novo layout
         controller.setLayout(printLayout);
         
-        // Aguarda o controlador terminar de calcular e estabilizar o DOM
         const snapshot = await controller.whenLayoutStable();
         
         return {
             snapshot,
             restore: async () => {
-                document.body.classList.remove('print-mode');
-                controller.setLayout(originalLayout);
-                await controller.whenLayoutStable();
+                if (isRestored) return; // idempotency
+                isRestored = true;
+                
+                if (!hadPrintMode) {
+                    document.body.classList.remove('print-mode');
+                }
+                
+                if (controller) {
+                    controller.setLayout(originalLayout);
+                    // It's safe to await whenLayoutStable only if editor is not destroyed. 
+                    // However, we shouldn't throw in restore if it is destroyed.
+                    try {
+                        await controller.whenLayoutStable();
+                    } catch (e) {
+                        console.warn("Could not stabilize layout during restore:", e);
+                    }
+                }
+                
                 isPreparingPrint = false;
             }
         };
     } catch (e) {
+        // Safe rollback of side effects if preparation fails
+        if (!hadPrintMode) {
+            document.body.classList.remove('print-mode');
+        }
+        if (controller && originalLayout) {
+            controller.setLayout(originalLayout);
+        }
         isPreparingPrint = false;
         throw e;
     }

@@ -20,6 +20,7 @@ export class PaginationController {
     private revision: number = 0;
     private manualBreakNodeName: string;
     private chromeLayer: HTMLElement;
+    private originalParentPosition?: string;
     
     constructor(view: EditorView, layout: LayoutConfig, onLayoutStable?: (snapshot: LayoutSnapshot) => void, manualBreakNodeName: string = 'pageBreak', chromeLayerElement?: HTMLElement) {
         this.view = view;
@@ -37,6 +38,7 @@ export class PaginationController {
             if (parent) {
                 const style = window.getComputedStyle(parent);
                 if (style.position === 'static') {
+                    this.originalParentPosition = parent.style.position;
                     parent.style.position = 'relative';
                 }
                 parent.insertBefore(this.chromeLayer, this.view.dom);
@@ -83,7 +85,11 @@ export class PaginationController {
         this.currentDecorations = DecorationSet.empty;
         
         if (this.chromeLayer && this.chromeLayer.parentNode) {
-            this.chromeLayer.parentNode.removeChild(this.chromeLayer);
+            const parent = this.chromeLayer.parentNode as HTMLElement;
+            if (this.originalParentPosition !== undefined) {
+                parent.style.position = this.originalParentPosition;
+            }
+            parent.removeChild(this.chromeLayer);
         }
     }
     
