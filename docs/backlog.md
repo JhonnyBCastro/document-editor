@@ -1,6 +1,6 @@
 # Backlog Evolutivo - Document Editor
 
-O pacote encontra-se na baseline funcional 0.1.0-alpha.6 com arquitetura de Rota B (Paginação Visual via Decorations) comprovadamente operante. A tabela abaixo reflete as intenções e manutenções identificadas para futuras iterações.
+O pacote encontra-se na baseline funcional 0.1.0-rc.1 com arquitetura de Rota B (Paginação Visual via Decorations) comprovadamente operante. A tabela abaixo reflete as intenções e manutenções identificadas para futuras iterações.
 
 ## Prioridade 0 (P0) - Funcionalidade Crítica
 *(Nenhuma pendência crítica estrutural neste momento. O layout resolve PE-L sob stress e mantém isolamento semântico).*

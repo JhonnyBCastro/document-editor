@@ -18,7 +18,7 @@ Auditar e fortalecer o contrato de preparação, utilização e restauração da
    - Teste validando vazamento de classes.
    - Teste validando vazamentos de estado DOM.
    - Teste simulando múltiplas sessões.
-   - Teste verificando recuperação de widgets `.page-break-widget` e de quebras manuais na restauração.
+   - Teste verificando recuperação de widgets e cenários de stress de paginação linear (50 parágrafos, gerando dezenas de `page-break-widget`).
    
 ## Status
 Concluído com sucesso. Todos os 10 testes E2E rodam de forma determinística e verde, confirmando 100% de estabilidade da funcionalidade de impressão isolada para o produto.
