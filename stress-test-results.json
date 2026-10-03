@@ -1,6 +1,6 @@
 {
   "PE-S": {
-    "duration": 124,
+    "duration": 121,
     "pages": 2,
     "autoBreaks": 0,
     "manualBreaks": 1,
@@ -12,7 +12,7 @@
     "semanticDiff": -1289
   },
   "PE-M": {
-    "duration": 118,
+    "duration": 117,
     "pages": 3,
     "autoBreaks": 0,
     "manualBreaks": 2,
@@ -24,7 +24,7 @@
     "semanticDiff": -8728
   },
   "PE-L": {
-    "duration": 178,
+    "duration": 163,
     "pages": 10,
     "autoBreaks": 7,
     "manualBreaks": 2,

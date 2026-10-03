@@ -94,6 +94,7 @@ const { spawn } = require('child_process');
             doc.descendants((node, p) => {
                 if (node.type.name === 'pageBreak') manualBreaks.push(p);
             });
+        });
         snap = await page.evaluate(() => window.waitStabilization());
         const manualBreaks3 = snap.breaks.filter(b => b.origin === 'manual');
         if (manualBreaks3.length !== 1 || snap.pages.length !== 2) {
