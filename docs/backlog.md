@@ -26,6 +26,9 @@ O pacote encontra-se na baseline funcional 0.1.0-rc.1 com arquitetura de Rota B 
 - **Generalização gradual de nomenclaturas demonstrativas:**
   - **Motivação:** Fixtures nomeadas sob domínio do APPE (`PE-S`, `PE-L`).
   - **Resultado Esperado:** Nomes neutros descritivos quando couber limpeza.
+- **Neutralidade do Cabeçalho Padrão (runningContent):**
+  - **Motivação:** O cabeçalho automático carrega o vestígio "Document Editor Lab — Documento de Teste", que vazaria para consumidores sem configuração explícita.
+  - **Resultado Esperado:** Modificar o padrão para um texto neutro ou iniciar com a exibição do cabeçalho desativada (`enabled: false`) nas próximas distribuições.
 
 ## Research (Investigação)
 - **Fragmentação Intralinha de Tabelas (TABLE_INTRAROW_UNSUPPORTED):**
