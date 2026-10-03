@@ -1,6 +1,6 @@
 # Backlog Evolutivo - Document Editor
 
-O pacote encontra-se na baseline funcional 0.1.0-alpha.5 com arquitetura de Rota B (Paginação Visual via Decorations) comprovadamente operante. A tabela abaixo reflete as intenções e manutenções identificadas para futuras iterações.
+O pacote encontra-se na baseline funcional 0.1.0-alpha.6 com arquitetura de Rota B (Paginação Visual via Decorations) comprovadamente operante. A tabela abaixo reflete as intenções e manutenções identificadas para futuras iterações.
 
 ## Prioridade 0 (P0) - Funcionalidade Crítica
 *(Nenhuma pendência crítica estrutural neste momento. O layout resolve PE-L sob stress e mantém isolamento semântico).*
@@ -20,9 +20,9 @@ O pacote encontra-se na baseline funcional 0.1.0-alpha.5 com arquitetura de Rota
 - **[CONCLUÍDO - CONS-007] Configuração genérica do nó manual de quebra:**
   - **Motivação:** `controller.ts` possuía hardcode no nome de nó `pageBreak`.
   - **Resultado:** O identificador foi generalizado via `manualBreakNodeName` em `PaginationOptions`, desacoplando o núcleo de formatação do schema do consumidor.
-- **[CONCLUÍDO - CONS-008] Evolução do contrato DOM do host:**
+- **[CONCLUÍDO - CONS-008 e CONS-008-F] Evolução do contrato DOM do host:**
   - **Motivação:** A extensão assume globalmente `document.body` e o `#chrome-layer`.
-  - **Resultado:** O ChromeLayer agora é parametrizado com fallback autogerenciado via ADR-003. Apenas `print-mode` persiste de modo global e documentado.
+  - **Resultado:** O ChromeLayer foi parametrizado com fallback autogerenciado estrito (ADR-003). Componentes gerados pela biblioteca são limitados ao escopo local, pavimentando futuramente o suporte multi-instância.
 - **Generalização gradual de nomenclaturas demonstrativas:**
   - **Motivação:** Fixtures nomeadas sob domínio do APPE (`PE-S`, `PE-L`).
   - **Resultado Esperado:** Nomes neutros descritivos quando couber limpeza.

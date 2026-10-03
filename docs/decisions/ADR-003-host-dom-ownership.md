@@ -12,11 +12,12 @@ Esse acoplamento gerava várias limitações arquiteturais:
 3. Violava a independência do produto (ADR-002), assumindo que o ambiente consumidor adotava a topologia específica estabelecida pelo antigo laboratório experimental.
 
 ## Decisão
-1. **Contrato de Montagem Dinâmico**: A extensão `PaginationExtension` agora gerencia autonomamente o seu contêiner visual de cabeçalho e rodapé. Caso não seja fornecida nenhuma referência externa, o `PaginationController` instancia dinamicamente o `ChromeLayer` como um `div.document-editor-chrome-layer` posicionado adjacente (irmão) ao contêiner `view.dom` associado à respectiva instância `EditorView`.
-2. **Propriedade (Ownership) Clara**:
-   - Elementos criados pelo controlador são removidos definitivamente do DOM durante a execução do método `destroy()`.
-   - Elementos fornecidos explícitamente pelo host (por intermédio da chave opcional `chromeLayerElement` em `PaginationOptions`) **não são removidos** pelo controlador no `destroy()`; apenas o seu conteúdo (innerHTML) é purgado.
-3. **Escopo DOM Local**: Consultas globais (`document.getElementById`) foram descontinuadas do controlador para os overlays, assegurando que o `ChromeLayer` pertencerá exclusivamente ao escopo da sua respectiva instância do `document-editor`.
+1. **Contrato de Montagem Dinâmico**: A extensão `PaginationExtension` agora gerencia autonomamente o seu contêiner visual interno de cabeçalho e rodapé (`div.document-editor-chrome-layer`).
+2. **Propriedade (Ownership) e Filhos**:
+   - A biblioteca cria exclusivamente a sua camada interna. Caso o consumidor não informe nada, esse elemento é posicionado dinamicamente como adjacente (irmão) ao contêiner `view.dom`.
+   - Se o host fornecer explicitamente o ponto de montagem por meio da chave opcional `chromeLayerElement` no `PaginationOptions`, o controlador apenas fará o `appendChild` da sua camada interna para dentro desse contêiner do consumidor.
+   - Durante a destruição (`destroy()`), apenas a camada interna (`.document-editor-chrome-layer`) é removida. O elemento externo fornecido pelo host permanece intocado, garantindo que nenhum conteúdo de terceiros seja deletado indevidamente.
+3. **Escopo DOM Local**: Consultas globais (`document.getElementById`) foram descontinuadas do controlador para os overlays, assegurando que o `ChromeLayer` interno pertencerá ao escopo da sua respectiva instância do `document-editor`.
 
 ## Consequências
 - **Positivas**:
@@ -24,4 +25,4 @@ Esse acoplamento gerava várias limitações arquiteturais:
   - Abre caminho estrutural seguro para a implementação futura de suporte multi-instância (P2).
   - Melhora a DX para o usuário consumidor, que não precisará mais decorar a topologia exata com IDs "mágicos", funcionando de forma "plug and play".
 - **Negativas / Limitações Conhecidas**:
-  - A simulação do modo de impressão continua acoplada globalmente (`document.body.classList.add('print-mode')`), sendo esse o único resíduo documentado de manipulação DOM não restrita ao escopo da instância, pois a impressão no navegador tem natureza estruturalmente global e exige ocultamento forçado do layout do host hospedeiro.
+  - A simulação do modo de impressão continua acoplada globalmente (`document.body.classList.add('print-mode')`), sendo um resíduo documentado de manipulação DOM não restrita ao escopo da instância, pois a impressão no navegador tem natureza estruturalmente global e exige ocultamento forçado do layout do host hospedeiro.

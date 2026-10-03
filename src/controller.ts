@@ -20,7 +20,6 @@ export class PaginationController {
     private revision: number = 0;
     private manualBreakNodeName: string;
     private chromeLayer: HTMLElement;
-    private isChromeLayerOwner: boolean;
     
     constructor(view: EditorView, layout: LayoutConfig, onLayoutStable?: (snapshot: LayoutSnapshot) => void, manualBreakNodeName: string = 'pageBreak', chromeLayerElement?: HTMLElement) {
         this.view = view;
@@ -28,12 +27,12 @@ export class PaginationController {
         this.onLayoutStable = onLayoutStable;
         this.manualBreakNodeName = manualBreakNodeName;
         
+        this.chromeLayer = document.createElement('div');
+        this.chromeLayer.className = 'document-editor-chrome-layer';
+        
         if (chromeLayerElement) {
-            this.chromeLayer = chromeLayerElement;
-            this.isChromeLayerOwner = false;
+            chromeLayerElement.appendChild(this.chromeLayer);
         } else {
-            this.chromeLayer = document.createElement('div');
-            this.chromeLayer.className = 'document-editor-chrome-layer';
             const parent = this.view.dom.parentElement;
             if (parent) {
                 const style = window.getComputedStyle(parent);
@@ -42,7 +41,6 @@ export class PaginationController {
                 }
                 parent.insertBefore(this.chromeLayer, this.view.dom);
             }
-            this.isChromeLayerOwner = true;
         }
     }
     
@@ -84,12 +82,8 @@ export class PaginationController {
         if (this.renderTimeout) clearTimeout(this.renderTimeout);
         this.currentDecorations = DecorationSet.empty;
         
-        if (this.isChromeLayerOwner) {
-            if (this.chromeLayer.parentNode) {
-                this.chromeLayer.parentNode.removeChild(this.chromeLayer);
-            }
-        } else if (this.chromeLayer) {
-            this.chromeLayer.innerHTML = '';
+        if (this.chromeLayer && this.chromeLayer.parentNode) {
+            this.chromeLayer.parentNode.removeChild(this.chromeLayer);
         }
     }
     
