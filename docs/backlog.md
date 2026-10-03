@@ -1,6 +1,6 @@
 # Backlog Evolutivo - Document Editor
 
-O pacote encontra-se na baseline funcional 0.1.0-alpha.0 com arquitetura de Rota B (Paginação Visual via Decorations) comprovadamente operante. A tabela abaixo reflete as intenções e manutenções identificadas para futuras iterações.
+O pacote encontra-se na baseline funcional 0.1.0-alpha.2 (RC) com arquitetura de Rota B (Paginação Visual via Decorations) comprovadamente operante. A tabela abaixo reflete as intenções e manutenções identificadas para futuras iterações.
 
 ## Prioridade 0 (P0) - Funcionalidade Crítica
 *(Nenhuma pendência crítica estrutural neste momento. O layout resolve PE-L sob stress e mantém isolamento semântico).*
@@ -12,9 +12,9 @@ O pacote encontra-se na baseline funcional 0.1.0-alpha.0 com arquitetura de Rota
 - **Auditoria e tratamento de contratos públicos legados:**
   - **Motivação:** Contratos de persistência como `PersistedDocument` usam identificadores históricos (`document-editor-lab`) que vazam para a API pública.
   - **Resultado Esperado:** Isolar a infraestrutura de envelopes do core geométrico.
-- **Unit Testing de Matemáticas Puras:**
-  - **Motivação:** A suíte E2E é custosa.
-  - **Resultado Esperado:** Cobrir avaliadores do `controller` com Vitest/JSDOM.
+- **Ampliação do Unit Testing de Matemáticas Puras:**
+  - **Motivação:** A suíte de regras semânticas já opera no Vitest (criada na CONS-003), mas a suíte E2E ainda carrega o peso principal da geometria e é falha por variações externas de renderização do DOM.
+  - **Resultado Esperado:** Extrair e cobrir mais funções geométricas do `controller` (avaliadores de tamanho e fragmentação isolada) com Vitest/JSDOM, complementando a suíte unitária existente.
 
 ## Prioridade 2 (P2) - Melhorias Arquiteturais
 - **Configuração genérica do nó manual de quebra:**
