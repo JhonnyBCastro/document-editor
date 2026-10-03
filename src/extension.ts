@@ -20,7 +20,8 @@ export const PaginationExtension = Extension.create<PaginationOptions, { control
                     differentFirstPage: false
                 }
             },
-            onLayoutStable: undefined
+            onLayoutStable: undefined,
+            manualBreakNodeName: 'pageBreak'
         };
     },
 
@@ -37,7 +38,7 @@ export const PaginationExtension = Extension.create<PaginationOptions, { control
             new Plugin({
                 key: PaginationPluginKey,
                 view: (view) => {
-                    controller = new PaginationController(view, this.options.layout, this.options.onLayoutStable);
+                    controller = new PaginationController(view, this.options.layout, this.options.onLayoutStable, this.options.manualBreakNodeName || 'pageBreak');
                     this.storage.controller = controller;
                     (window as any).paginationController = controller;
                     controller.scheduleRender();

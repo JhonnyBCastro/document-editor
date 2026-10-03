@@ -87,4 +87,5 @@ export type LayoutSnapshot = {
 export type PaginationOptions = {
     layout: LayoutConfig;
     onLayoutStable?: (snapshot: LayoutSnapshot) => void;
+    manualBreakNodeName?: string;
 };

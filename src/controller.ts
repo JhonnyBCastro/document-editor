@@ -18,11 +18,13 @@ export class PaginationController {
     private onLayoutStable?: (snapshot: LayoutSnapshot) => void;
     private stableListeners: Array<(snapshot: LayoutSnapshot) => void> = [];
     private revision: number = 0;
+    private manualBreakNodeName: string;
     
-    constructor(view: EditorView, layout: LayoutConfig, onLayoutStable?: (snapshot: LayoutSnapshot) => void) {
+    constructor(view: EditorView, layout: LayoutConfig, onLayoutStable?: (snapshot: LayoutSnapshot) => void, manualBreakNodeName: string = 'pageBreak') {
         this.view = view;
         this.layout = layout;
         this.onLayoutStable = onLayoutStable;
+        this.manualBreakNodeName = manualBreakNodeName;
     }
     
     public getLayout(): LayoutConfig {
@@ -111,7 +113,7 @@ export class PaginationController {
         
         const manualBreaks: number[] = [];
         this.view.state.doc.descendants((node, p) => {
-            if (node.type.name === 'pageBreak') {
+            if (node.type.name === this.manualBreakNodeName) {
                 manualBreaks.push(p);
             }
         });

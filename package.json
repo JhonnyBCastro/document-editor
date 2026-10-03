@@ -1,6 +1,6 @@
 {
   "name": "document-editor",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "Pagination extension for Tiptap",
   "type": "module",
   "main": "dist/pagination.umd.js",

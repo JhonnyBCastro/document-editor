@@ -9,17 +9,17 @@ O pacote encontra-se na baseline funcional 0.1.0-alpha.2 (RC) com arquitetura de
 - **[CONCLUÍDO - CONS-005] Certificação da compatibilidade Tiptap:**
   - **Motivação:** A biblioteca declara suporte a Tiptap 2 e 3 (`peerDependencies`).
   - **Resultado:** Executado teste E2E rigoroso certificando a funcionalidade em versões de Tiptap 2.x e 3.x de maneira cruzada.
-- **Auditoria e tratamento de contratos públicos legados:**
-  - **Motivação:** Contratos de persistência como `PersistedDocument` usam identificadores históricos (`document-editor-lab`) que vazam para a API pública.
-  - **Resultado Esperado:** Isolar a infraestrutura de envelopes do core geométrico.
+- **[CONCLUÍDO - CONS-006] Auditoria e tratamento de contratos públicos legados:**
+  - **Motivação:** Contratos de persistência como `PersistedDocument` usavam identificadores históricos (`document-editor-lab`) que vazavam para a API pública.
+  - **Resultado:** A API foi purificada, preservando apenas os contratos geométricos essenciais de paginação.
 - **Ampliação do Unit Testing de Matemáticas Puras:**
   - **Motivação:** A suíte de regras semânticas já opera no Vitest (criada na CONS-003), mas a suíte E2E ainda carrega o peso principal da geometria e é falha por variações externas de renderização do DOM.
   - **Resultado Esperado:** Extrair e cobrir mais funções geométricas do `controller` (avaliadores de tamanho e fragmentação isolada) com Vitest/JSDOM, complementando a suíte unitária existente.
 
 ## Prioridade 2 (P2) - Melhorias Arquiteturais
-- **Configuração genérica do nó manual de quebra:**
-  - **Motivação:** `controller.ts` possui hardcode no nome de nó `pageBreak`.
-  - **Resultado Esperado:** Tornar o nome da extensão flexível via `PaginationOptions`.
+- **[CONCLUÍDO - CONS-007] Configuração genérica do nó manual de quebra:**
+  - **Motivação:** `controller.ts` possuía hardcode no nome de nó `pageBreak`.
+  - **Resultado:** O identificador foi generalizado via `manualBreakNodeName` em `PaginationOptions`, desacoplando o núcleo de formatação do schema do consumidor.
 - **Evolução do contrato DOM do host:**
   - **Motivação:** A extensão assume globalmente `document.body` e o `#chrome-layer`.
   - **Resultado Esperado:** Estabelecer uma política segura de injeção contida no root do Tiptap.
