@@ -6,21 +6,33 @@ O pacote encontra-se na baseline funcional 0.1.0-alpha.0 com arquitetura de Rota
 *(Nenhuma pendência crítica estrutural neste momento. O layout resolve PE-L sob stress e mantém isolamento semântico).*
 
 ## Prioridade 1 (P1) - Testabilidade, Documentação e Manutenção
+- **Certificação da compatibilidade Tiptap:**
+  - **Motivação:** A biblioteca declara suporte a Tiptap 2 e 3 (`peerDependencies`), mas os testes internos rodam nativamente apenas na v2.11.
+  - **Resultado Esperado:** Criar uma matriz de testes CI ou configuração local capaz de rodar a suíte inteira contra o Tiptap v3 para oficializar o suporte.
+- **Auditoria e tratamento de contratos públicos legados:**
+  - **Motivação:** Contratos de persistência como `PersistedDocument` usam identificadores históricos (`document-editor-lab`) que vazam para a API pública.
+  - **Resultado Esperado:** Isolar a infraestrutura de envelopes do core geométrico.
 - **Unit Testing de Matemáticas Puras:**
-  - **Motivação:** A suíte de E2E é custosa e falha por variações externas de renderização do DOM.
-  - **Resultado Esperado:** Os avaliadores de tamanho e funções de fragmentação isoladas no `controller` deverão ser cobertas por Jest ou Vitest usando JSDOM/Mocks antes de rodar Puppeteer.
-- **Auditoria do Contrato do Host DOM:**
-  - **Motivação:** A extensão assume `document.body` e o seletor `#chrome-layer`.
-  - **Resultado Esperado:** Tornar os seletores relativos ao container root, suportando flexibilidade nas implementações hospedeiras e preparando caminho para Multi-Instância.
+  - **Motivação:** A suíte E2E é custosa.
+  - **Resultado Esperado:** Cobrir avaliadores do `controller` com Vitest/JSDOM.
 
 ## Prioridade 2 (P2) - Melhorias Arquiteturais
-- **Suporte Multi-Instância (Instâncias Simultâneas na Janela):**
-  - **Motivação:** Como dependemos de um único `#chrome-layer` global e injeção central no `body`, não é possível rodar dezenas de `editor` renderizados simultaneamente na mesma aba do navegador sem que eles colidam.
-  - **Resultado Esperado:** Cada instância gerenciar seu próprio contexto geométrico, escopando `ResizeObserver` e overlays para não vazar `LayoutSnapshot`.
+- **Configuração genérica do nó manual de quebra:**
+  - **Motivação:** `controller.ts` possui hardcode no nome de nó `pageBreak`.
+  - **Resultado Esperado:** Tornar o nome da extensão flexível via `PaginationOptions`.
+- **Evolução do contrato DOM do host:**
+  - **Motivação:** A extensão assume globalmente `document.body` e o `#chrome-layer`.
+  - **Resultado Esperado:** Estabelecer uma política segura de injeção contida no root do Tiptap.
+- **Generalização gradual de nomenclaturas demonstrativas:**
+  - **Motivação:** Fixtures nomeadas sob domínio do APPE (`PE-S`, `PE-L`).
+  - **Resultado Esperado:** Nomes neutros descritivos quando couber limpeza.
 
 ## Research (Investigação)
 - **Fragmentação Intralinha de Tabelas (TABLE_INTRAROW_UNSUPPORTED):**
-  - **Motivação:** Atualmente quebramos a tabela inteiramente no `<tr>`. Células enormes (textos monolíticos) ou `rowspan` que sozinhos invadem e transbordam toda uma página A4 irão corromper visualmente o rodapé.
-  - **Resultado Esperado:** Uma estratégia algorítmica viável no DOM e AST para fatiar o texto de uma única `<td>` transbordante, duplicando virtualmente a célula.
+  - **Motivação:** Atualmente a quebra recai sobre a `<tr>` inteira. Textos monolíticos transbordantes quebram o visual.
+  - **Resultado Esperado:** Estratégia algorítmica viável no AST para fracionar a tabela.
+- **Suporte Multi-Instância:**
+  - **Motivação:** Dependência no DOM global (resolvida pela P2) impede renderização cruzada na mesma aba do navegador.
+  - **Resultado Esperado:** Vários `editor` rodando paginação na mesma aba sem colisão geométrica.
 - **Estratégia de Versionamento e Publicação:**
-  - **Motivação:** Integrar diretamente o `.tgz` no APPE a longo prazo e sincronizar versões sem atrito.
+  - **Motivação:** Integrar diretamente o pacote npm a longo prazo.
