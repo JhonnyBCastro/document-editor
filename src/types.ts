@@ -32,12 +32,7 @@ export type LayoutConfig = {
     };
 };
 
-export type PersistedDocument = {
-    format: 'document-editor-lab';
-    version: 2;
-    layout: LayoutConfig;
-    content: any; // TipTap JSON
-};
+
 
 export type BreakCandidate = {
     kind: 'linear' | 'table';

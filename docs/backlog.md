@@ -6,9 +6,9 @@ O pacote encontra-se na baseline funcional 0.1.0-alpha.2 (RC) com arquitetura de
 *(Nenhuma pendência crítica estrutural neste momento. O layout resolve PE-L sob stress e mantém isolamento semântico).*
 
 ## Prioridade 1 (P1) - Testabilidade, Documentação e Manutenção
-- **Certificação da compatibilidade Tiptap:**
-  - **Motivação:** A biblioteca declara suporte a Tiptap 2 e 3 (`peerDependencies`), mas os testes internos rodam nativamente apenas na v2.11.
-  - **Resultado Esperado:** Criar uma matriz de testes CI ou configuração local capaz de rodar a suíte inteira contra o Tiptap v3 para oficializar o suporte.
+- **[CONCLUÍDO - CONS-005] Certificação da compatibilidade Tiptap:**
+  - **Motivação:** A biblioteca declara suporte a Tiptap 2 e 3 (`peerDependencies`).
+  - **Resultado:** Executado teste E2E rigoroso certificando a funcionalidade em versões de Tiptap 2.x e 3.x de maneira cruzada.
 - **Auditoria e tratamento de contratos públicos legados:**
   - **Motivação:** Contratos de persistência como `PersistedDocument` usam identificadores históricos (`document-editor-lab`) que vazam para a API pública.
   - **Resultado Esperado:** Isolar a infraestrutura de envelopes do core geométrico.
