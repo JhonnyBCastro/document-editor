@@ -12,13 +12,13 @@
     "vite": "^6.4.3"
   },
   "dependencies": {
+    "@jhonny_bcastro/document-editor": "file:../../jhonny_bcastro-document-editor-0.1.0-rc.3.tgz",
     "@tiptap/core": "^3.31.3",
     "@tiptap/extension-table": "^3.31.3",
     "@tiptap/extension-table-cell": "^3.31.3",
     "@tiptap/extension-table-header": "^3.31.3",
     "@tiptap/extension-table-row": "^3.31.3",
     "@tiptap/pm": "^3.31.3",
-    "@tiptap/starter-kit": "^3.31.3",
-    "@jhonny_bcastro/document-editor": "file:../.."
+    "@tiptap/starter-kit": "^3.31.3"
   }
 }

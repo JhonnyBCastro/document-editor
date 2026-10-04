@@ -85,8 +85,11 @@ async function waitStabilization(page) {
         const trs = document.querySelectorAll('.tiptap table tr:not(.virtual-page-spacer)');
         const spacers = document.querySelectorAll('.tiptap table tr.virtual-page-spacer');
         const spacerHeights = Array.from(spacers).map(el => el.getBoundingClientRect().height);
+        
+        // Remove text formatting for strict semantic comparison if needed, but T60 is clean.
+        
         return {
-          jsonSize: JSON.stringify(json).length,
+          json: JSON.parse(JSON.stringify(json)),
           dataRows: trs.length,
           spacers: spacers.length,
           spacerHeights
@@ -96,16 +99,16 @@ async function waitStabilization(page) {
 
     const screenshotsDir = '/home/jhonny/.gemini/antigravity-ide/brain/88a31939-ff9d-4894-a9ac-e5e1007395f2';
 
+    // V1
     console.log(`\n--- V1: setContent(T60) ---`);
     await page.evaluate(() => { window.__appeLastSnapshot = null; });
     await page.evaluate((json) => { window.__appeEditor.commands.setContent(json); }, T60);
     const snapV1 = await waitStabilization(page);
     const infoV1 = await extractInfo();
-    console.log(`V1 Páginas: ${snapV1.pages.length}, Espaçadores: ${infoV1.spacers}, JSON Length: ${infoV1.jsonSize}`);
-    console.log(`V1 Spacer Heights: ${infoV1.spacerHeights.join(', ')}`);
-    console.log(`V1 displacements:`, snapV1.breaks.map(b => b.effectiveDisplacement).join(', '));
+    console.log(`V1 Páginas: ${snapV1.pages.length}, Espaçadores: ${infoV1.spacers}`);
     await page.screenshot({ path: path.join(screenshotsDir, 't60-v1.png'), fullPage: true });
     
+    // V2
     console.log(`\n--- V2: curto -> T60 ---`);
     await page.evaluate((json) => { window.__appeEditor.commands.setContent(json); }, shortDoc);
     const snapV2Short = await waitStabilization(page);
@@ -114,23 +117,14 @@ async function waitStabilization(page) {
     await page.evaluate((json) => { window.__appeEditor.commands.setContent(json); }, T60);
     const snapV2 = await waitStabilization(page);
     const infoV2 = await extractInfo();
-    console.log(`V2 Páginas: ${snapV2.pages.length}, Espaçadores: ${infoV2.spacers}, JSON Length: ${infoV2.jsonSize}`);
-    console.log(`V2 Spacer Heights: ${infoV2.spacerHeights.join(', ')}`);
-    console.log(`V2 displacements:`, snapV2.breaks.map(b => b.effectiveDisplacement).join(', '));
+    console.log(`V2 Páginas: ${snapV2.pages.length}, Espaçadores: ${infoV2.spacers}`);
     await page.screenshot({ path: path.join(screenshotsDir, 't60-v2.png'), fullPage: true });
 
+    // Second Stabilization
     await page.evaluate(() => { window.paginationController.scheduleRender(); });
     const snapV2Second = await waitStabilization(page);
     
-    function assertTolerance(arr1, arr2, tol, msg) {
-      assert.strictEqual(arr1.length, arr2.length, msg + ' (lengths differ)');
-      for (let i = 0; i < arr1.length; i++) {
-        assert.ok(Math.abs(arr1[i] - arr2[i]) <= tol, `${msg}: index ${i} differ by more than ${tol} (${arr1[i]} vs ${arr2[i]})`);
-      }
-    }
-    
-    assertTolerance(snapV2Second.breaks.map(b => b.effectiveDisplacement), snapV2.breaks.map(b => b.effectiveDisplacement), 10, 'Segunda estabilização V2 não deve divergir além das bordas acumuladas');
-    
+    // V3
     console.log(`\n--- V3: curto -> T60 -> curto -> T60 ---`);
     await page.evaluate((json) => { window.__appeEditor.commands.setContent(json); }, shortDoc);
     const snapV3Short = await waitStabilization(page);
@@ -143,17 +137,54 @@ async function waitStabilization(page) {
     await page.evaluate((json) => { window.__appeEditor.commands.setContent(json); }, T60);
     const snapV3 = await waitStabilization(page);
     const infoV3 = await extractInfo();
-    console.log(`V3 Páginas: ${snapV3.pages.length}, Espaçadores: ${infoV3.spacers}, JSON Length: ${infoV3.jsonSize}`);
-    console.log(`V3 Spacer Heights: ${infoV3.spacerHeights.join(', ')}`);
-    console.log(`V3 displacements:`, snapV3.breaks.map(b => b.effectiveDisplacement).join(', '));
+    console.log(`V3 Páginas: ${snapV3.pages.length}, Espaçadores: ${infoV3.spacers}`);
     await page.screenshot({ path: path.join(screenshotsDir, 't60-v3.png'), fullPage: true });
 
-    assert.ok(infoV2.spacerHeights[0] < 300, `V2 Spacer acumulou e explodiu para ${infoV2.spacerHeights[0]}px!`);
-    assert.ok(infoV3.spacerHeights[0] < 300, `V3 Spacer acumulou e explodiu para ${infoV3.spacerHeights[0]}px!`);
+    // --- ASSERÇÕES ESTRUTURAIS E GEOMÉTRICAS ---
+
+    // Igualdade Semântica do JSON (V1 = V2 = V3)
+    assert.deepStrictEqual(infoV1.json, infoV2.json, "JSON de V1 deve ser igual ao V2");
+    assert.deepStrictEqual(infoV2.json, infoV3.json, "JSON de V2 deve ser igual ao V3");
     
-    assertTolerance(snapV2.breaks.map(b => b.effectiveDisplacement), snapV3.breaks.map(b => b.effectiveDisplacement), 10, 'V2 e V3 divergiram!');
+    function mapBreaks(snap) {
+      return snap.breaks.map(b => ({
+        pos: b.pos,
+        reason: b.reason,
+        effectiveDisplacement: b.effectiveDisplacement,
+        renderer: b.renderer
+      }));
+    }
     
-    console.log('\nSUCCESS! No geometric accumulation detected (GREEN).');
+    const mappedV1 = mapBreaks(snapV1);
+    const mappedV2 = mapBreaks(snapV2);
+    const mappedV3 = mapBreaks(snapV3);
+    const mappedV2Second = mapBreaks(snapV2Second);
+
+    // Igualdade de Posições, Motivos e Renderizadores (V2 == V3)
+    for (let i = 0; i < mappedV2.length; i++) {
+        assert.strictEqual(mappedV2[i].pos, mappedV3[i].pos, `Posição do break ${i} difere`);
+        assert.strictEqual(mappedV2[i].reason, mappedV3[i].reason, `Motivo do break ${i} difere`);
+        assert.strictEqual(mappedV2[i].renderer, mappedV3[i].renderer, `Renderer do break ${i} difere`);
+    }
+
+    function assertTolerance(arr1, arr2, tol, msg) {
+      assert.strictEqual(arr1.length, arr2.length, msg + ' (lengths differ)');
+      for (let i = 0; i < arr1.length; i++) {
+        assert.ok(Math.abs(arr1[i] - arr2[i]) <= tol, `${msg}: index ${i} differ by more than ${tol} (${arr1[i]} vs ${arr2[i]})`);
+      }
+    }
+
+    // Correspondência entre effectiveDisplacement e Dimensão Física
+    assertTolerance(mappedV2.map(b => b.effectiveDisplacement), infoV2.spacerHeights, 2, "Displacement V2 deve bater fisicamente com o Spacer");
+    assertTolerance(mappedV3.map(b => b.effectiveDisplacement), infoV3.spacerHeights, 2, "Displacement V3 deve bater fisicamente com o Spacer");
+
+    // V2 Second Stabilization (Sem acumulação)
+    assertTolerance(mappedV2Second.map(b => b.effectiveDisplacement), mappedV2.map(b => b.effectiveDisplacement), 10, "Segunda estabilização não pode divergir além da tolerância de bordas");
+
+    // V2 = V3 Tolerância
+    assertTolerance(mappedV2.map(b => b.effectiveDisplacement), mappedV3.map(b => b.effectiveDisplacement), 10, "V2 e V3 divergiram");
+
+    console.log('\nSUCCESS! Todas as asserções Nível A aprovadas (GREEN).');
   } catch (err) {
     console.error('Error during script:', err);
     process.exit(1);
