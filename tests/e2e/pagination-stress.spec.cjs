@@ -32,30 +32,6 @@ async function waitStabilization(page) {
 }
 
 (async () => {
-  const { spawn } = require('child_process');
-  
-  // 1. Iniciar o servidor
-  const serverProcess = spawn('npm', ['run', 'preview'], {
-      cwd: path.resolve(__dirname, '../../examples/vanilla-consumer'),
-      stdio: 'pipe'
-  });
-
-  await new Promise((resolve, reject) => {
-      serverProcess.stdout.on('data', (data) => {
-          if (data.toString().includes('http://localhost:8543')) {
-              resolve();
-          }
-      });
-      serverProcess.stderr.on('data', (data) => {
-          console.error(`Server error: ${data}`);
-      });
-      serverProcess.on('exit', (code) => {
-          if (code !== 0 && code !== null) {
-              reject(new Error(`Server exited with code ${code}`));
-          }
-      });
-  });
-
   const browser = await puppeteer.launch({ 
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,1024'],
       defaultViewport: { width: 1280, height: 1024 }
@@ -201,8 +177,5 @@ async function waitStabilization(page) {
     console.error('Error during script:', err);
   } finally {
     await browser.close();
-    if (serverProcess) {
-        serverProcess.kill();
-    }
   }
 })();

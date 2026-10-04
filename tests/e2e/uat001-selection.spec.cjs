@@ -27,26 +27,12 @@ function generateT60() {
 }
 
 (async () => {
-  const { spawn } = require('child_process');
-  const serverProcess = spawn('npm', ['run', 'preview'], {
-      cwd: path.resolve(__dirname, '../../examples/vanilla-consumer'),
-      stdio: 'pipe'
-  });
-
-  await new Promise((resolve, reject) => {
-      serverProcess.stdout.on('data', (data) => {
-          if (data.toString().includes('http://localhost:8543')) resolve();
-      });
-      serverProcess.stderr.on('data', (data) => console.error(`Server error: ${data}`));
-      serverProcess.on('exit', (code) => {
-          if (code !== 0 && code !== null) reject(new Error(`Server exited with code ${code}`));
-      });
-  });
-
   const browser = await puppeteer.launch({ 
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,1024'],
       defaultViewport: { width: 1280, height: 1024 }
   });
+  const context = browser.defaultBrowserContext();
+  await context.overridePermissions('http://localhost:8543', ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
   const page = await browser.newPage();
   
   try {
@@ -109,7 +95,7 @@ function generateT60() {
     
     const dragCoords = await page.evaluate(() => {
         // Encontrar as células ao redor do spacer
-        const cells = Array.from(document.querySelectorAll('td p'));
+        const cells = Array.from(document.querySelectorAll('td'));
         // Linha antes do spacer (prox 1507) e depois (prox 1516)
         // O spacer ocorre na quebra de página (entre as rows ~33-34)
         const cellStart = cells.find(c => c.textContent.includes('Row 33 Col 1'));
@@ -121,56 +107,52 @@ function generateT60() {
             const rect1 = cellStart.getBoundingClientRect();
             const rect2 = cellEnd.getBoundingClientRect();
             return {
-                x1: rect1.left + rect1.width / 2, y1: rect1.top + rect1.height / 2,
-                x2: rect2.left + rect2.width / 2, y2: rect2.top + rect2.height / 2
+                x1: rect1.left + 5, y1: rect1.top + 5,
+                x2: rect2.left + 5, y2: rect2.top + 5
             };
         });
     });
 
     if (dragCoords) {
-        let eventsLog3 = await page.evaluate((coords) => {
-            const logs = [];
-            const view = window.__appeEditor.view;
-            
-            function simulateMouse(type, x, y) {
-                const el = document.elementFromPoint(x, y);
-                const ev = new MouseEvent(type, {
-                    view: window,
-                    bubbles: true,
-                    cancelable: true,
-                    clientX: x,
-                    clientY: y,
-                    buttons: type === 'mouseup' ? 0 : 1
-                });
-                el.dispatchEvent(ev);
-                
-                const pos = view.posAtCoords({left: x, top: y});
-                const sel = view.state.selection;
-                logs.push(`[${type}] target: ${el ? el.tagName + '.' + el.className : 'null'}, text: ${el ? el.textContent?.substring(0, 10) : ''}, posAtCoords: ${pos ? pos.pos : 'null'}, pm_sel: ${sel.constructor.name}(${sel.from}-${sel.to})`);
-            }
-            
-            simulateMouse('mousedown', coords.x1, coords.y1);
-            
-            // Move partially into spacer
-            const midY = (coords.y1 + coords.y2) / 2;
-            simulateMouse('mousemove', coords.x1, midY);
-            
-            // Move to end
-            simulateMouse('mousemove', coords.x2, coords.y2);
-            
-            simulateMouse('mouseup', coords.x2, coords.y2);
-            
-            return logs;
-        }, dragCoords);
+        await page.mouse.move(dragCoords.x1, dragCoords.y1);
+        await page.mouse.down();
         
-        console.log("S3 Events Log:\n" + eventsLog3.join('\n'));
+        const midY = (dragCoords.y1 + dragCoords.y2) / 2;
+        await page.mouse.move(dragCoords.x1, midY, { steps: 50 });
+        await page.mouse.move(dragCoords.x2, dragCoords.y2, { steps: 50 });
+        await page.mouse.up();
+        
+        await new Promise(r => setTimeout(r, 200));
         await page.screenshot({ path: path.join(screenshotsDir, 'uat001-s3.png') });
         
         let s3 = await page.evaluate(() => {
             const sel = window.__appeEditor.state.selection;
-            return { from: sel.from, to: sel.to, empty: sel.empty, className: sel.constructor.name, isCellSelection: !!sel.isCellSelection, content: window.__appeEditor.state.doc.textBetween(sel.from, sel.to, ' ') };
+            return { 
+                from: sel.from, to: sel.to, empty: sel.empty, className: sel.constructor.name, 
+                isCellSelection: !!sel.$anchorCell, 
+                content: window.__appeEditor.state.doc.textBetween(sel.from, sel.to, ' ') 
+            };
         });
         console.log(`S3 PM Selection: ${s3.from}-${s3.to}, type: ${s3.className}, isCellSelection: ${s3.isCellSelection}, empty: ${s3.empty}, content: ${s3.content}`);
+
+        await page.keyboard.down('Control');
+        await page.keyboard.press('KeyC');
+        await page.keyboard.up('Control');
+        await new Promise(r => setTimeout(r, 200));
+
+        const clipboardHTML = await page.evaluate(async () => {
+            try {
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    if (item.types.includes('text/html')) {
+                        const blob = await item.getType('text/html');
+                        return await blob.text();
+                    }
+                }
+                return await navigator.clipboard.readText();
+            } catch (e) { return e.message; }
+        });
+        console.log(`S3 Clipboard: ${clipboardHTML.substring(0, 100)}...`);
         
         const nativeSel = await page.evaluate(() => {
             const sel = window.getSelection();
@@ -196,7 +178,7 @@ function generateT60() {
     // S5: Arraste de mouse (Drag) NORMAL (sem spacer)
     console.log(`--- S5: Arraste de mouse NORMAL (sem spacer) ---`);
     const dragCoords2 = await page.evaluate(() => {
-        const cells = Array.from(document.querySelectorAll('td p'));
+        const cells = Array.from(document.querySelectorAll('td'));
         const cellStart = cells.find(c => c.textContent.includes('Row 2 Col 1'));
         const cellEnd = cells.find(c => c.textContent.includes('Row 3 Col 1')); // same col
         if(!cellStart || !cellEnd) return null;
@@ -206,55 +188,28 @@ function generateT60() {
             const rect1 = cellStart.getBoundingClientRect();
             const rect2 = cellEnd.getBoundingClientRect();
             return {
-                x1: rect1.left + rect1.width / 2, y1: rect1.top + rect1.height / 2,
-                x2: rect2.left + rect2.width / 2, y2: rect2.top + rect2.height / 2
+                x1: rect1.left + 5, y1: rect1.top + 5,
+                x2: rect2.left + 5, y2: rect2.top + 5
             };
         });
     });
 
     if (dragCoords2) {
-        let eventsLog = await page.evaluate((coords) => {
-            const logs = [];
-            const el1 = document.elementFromPoint(coords.x1, coords.y1);
-            const el2 = document.elementFromPoint(coords.x2, coords.y2);
-            
-            const view = window.__appeEditor.view;
-            
-            function simulateMouse(type, x, y) {
-                const el = document.elementFromPoint(x, y);
-                const ev = new MouseEvent(type, {
-                    view: window,
-                    bubbles: true,
-                    cancelable: true,
-                    clientX: x,
-                    clientY: y,
-                    buttons: type === 'mouseup' ? 0 : 1
-                });
-                el.dispatchEvent(ev);
-                
-                const pos = view.posAtCoords({left: x, top: y});
-                const sel = view.state.selection;
-                logs.push(`[${type}] target: ${el.tagName}.${el.className}, text: ${el.textContent?.substring(0, 10)}, posAtCoords: ${pos ? pos.pos : 'null'}, pm_sel: ${sel.constructor.name}(${sel.from}-${sel.to})`);
-            }
-            
-            simulateMouse('mousedown', coords.x1, coords.y1);
-            
-            // Move partially
-            simulateMouse('mousemove', coords.x1, coords.y1 + 10);
-            
-            // Move to end
-            simulateMouse('mousemove', coords.x2, coords.y2);
-            
-            simulateMouse('mouseup', coords.x2, coords.y2);
-            
-            return logs;
-        }, dragCoords2);
-        
-        console.log("S5 Events Log:\n" + eventsLog.join('\n'));
+        await page.mouse.move(dragCoords2.x1, dragCoords2.y1);
+        await page.mouse.down();
+        const midY2 = (dragCoords2.y1 + dragCoords2.y2) / 2;
+        await page.mouse.move(dragCoords2.x1, midY2, { steps: 50 });
+        await page.mouse.move(dragCoords2.x2, dragCoords2.y2, { steps: 50 });
+        await page.mouse.up();
+        await new Promise(r => setTimeout(r, 200));
 
         let s5 = await page.evaluate(() => {
             const sel = window.__appeEditor.state.selection;
-            return { from: sel.from, to: sel.to, empty: sel.empty, className: sel.constructor.name, isCellSelection: !!sel.isCellSelection, content: window.__appeEditor.state.doc.textBetween(sel.from, sel.to, ' ') };
+            return { 
+                from: sel.from, to: sel.to, empty: sel.empty, className: sel.constructor.name, 
+                isCellSelection: !!sel.$anchorCell, 
+                content: window.__appeEditor.state.doc.textBetween(sel.from, sel.to, ' ') 
+            };
         });
         console.log(`S5 PM Selection: ${s5.from}-${s5.to}, type: ${s5.className}, isCellSelection: ${s5.isCellSelection}, empty: ${s5.empty}, content: ${s5.content}`);
         
@@ -270,7 +225,6 @@ function generateT60() {
     process.exit(1);
   } finally {
     await browser.close();
-    if (serverProcess) serverProcess.kill();
     process.exit(0);
   }
 })();

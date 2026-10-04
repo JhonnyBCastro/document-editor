@@ -1,6 +1,6 @@
 {
   "PE-S": {
-    "duration": 128,
+    "duration": 135,
     "pages": 2,
     "autoBreaks": 0,
     "manualBreaks": 1,
@@ -9,10 +9,10 @@
       "chromeHeaders": 0
     },
     "tableCheck": {},
-    "semanticDiff": -1151
+    "semanticDiff": -1289
   },
   "PE-M": {
-    "duration": 118,
+    "duration": 131,
     "pages": 3,
     "autoBreaks": 0,
     "manualBreaks": 2,
@@ -21,10 +21,10 @@
       "chromeHeaders": 0
     },
     "tableCheck": {},
-    "semanticDiff": -7844
+    "semanticDiff": -8728
   },
   "PE-L": {
-    "duration": 171,
+    "duration": 210,
     "pages": 10,
     "autoBreaks": 7,
     "manualBreaks": 2,
@@ -35,14 +35,14 @@
     "tableCheck": {
       "ok": true,
       "dataRows": 151,
-      "spacers": 6
+      "spacers": 0
     },
-    "semanticDiff": -51008
+    "semanticDiff": -57066
   },
   "PE-L-Edit": {},
   "Rollback": {
     "success": true,
     "domCleared": true,
-    "jsonSizeSaved": 104960
+    "jsonSizeSaved": 98902
   }
 }

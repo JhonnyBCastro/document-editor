@@ -3,8 +3,8 @@
 
 # Vite build artifacts
 /dist
-examples/vanilla-consumer/node_modules
-examples/vanilla-consumer/dist
+examples/**/node_modules
+examples/**/dist
 
 # OS generated
 .DS_Store

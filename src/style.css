@@ -29,7 +29,9 @@
 }
 
 .page-break-row > td, .page-break-row > th {
-  padding-top: calc(var(--page-break-gap, 0px) + 8px) !important;
+  /* O acréscimo de 8px justifica-se pela compensação do padding natural do .ProseMirror td/th (8px)
+     garantindo que o deslocamento adicionado não roube espaço físico do conteúdo da célula. */
+  padding-top: calc(var(--page-break-gap, 0px) + var(--tiptap-cell-padding, 8px)) !important;
 }
 
 /* Na hora de imprimir o PDF */

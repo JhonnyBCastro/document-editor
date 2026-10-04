@@ -122,3 +122,30 @@ A prova provou inequivocamente que a arquitetura da Alternativa B não apenas so
 O isolamento visual provido via `pointer-events: none` na WidgetDecoration cumpre a ressalva cosmética sem impactar interatividade. O modelo mantém total compatibilidade com rowspan e colspan, dado que a quebra se aplica linearmente à classe da linha (e se propaga aos filhos e células atravessadas).
 
 **Status de Execução:** Prova de Conceito validada de ponta a ponta na branch experimental. Recomendação `GO` para consolidação do modelo (Alternativa B + Alternativa C) na branch principal candidata. A implementação estrita não foi comitada, sendo mantida nas instâncias temporárias para inspeção via PR ou aprovação de mesclagem estrutural.
+
+---
+
+## 5. Implementação Canônica Controlada (REOPEN-002/F2-R4)
+
+### 5.1 Deliberação e Consolidação
+A arquitetura baseada na **Alternativa B + Alternativa C** foi autorizada de forma expressa (F2-R4) e integralmente consolidada na base principal do renderizador, substituindo por completo o antigo `<tr>` fictício.
+
+O algoritmo do `PaginationController` (`src/controller.ts`) e o mapeamento de estilo da quebra (`src/decorations.ts`, `src/style.css`) agora utilizam unicamente a abordagem de decorações do ProseMirror:
+- Em tabelas: `Decoration.node` injeta `.page-break-row` e propriedades CSS in-line `--page-break-gap`, acoplando o espaçamento de padding sem quebrar a sequencialidade de linhas; além disso, a visualização da quebra e sombras é resolvida via `Decoration.widget` renderizado de forma não-interativa sob as bordas.
+- Em elementos lineares: mantido o `linear-widget`.
+
+### 5.2 Validação de Aceitação (UAT-001)
+
+A suíte de testes de regressão (T60/H1+H2) foi adaptada para ler as propriedades via `var(--page-break-gap)` do `ComputedStyle` do layout em modo headless, assegurando compatibilidade com todos os critérios de offset sem uso de `tr` extras. Todos os testes de deslocamento e precisão matemática foram aprovados Nível A (GREEN).
+
+O teste end-to-end `uat001-selection.spec.cjs` confirmou nativamente os cenários estritos:
+- **S3 (Arraste Físico pela Fronteira):** Os eventos do mouse simulados arrastando de uma célula antes do Gap até uma célula após o Gap são agora capturados com sucesso pela biblioteca `prosemirror-tables`. O diagnóstico atestou a formação íntegra da classe `CellSelection` e a autorização global para que o usuário copie (Clipboard = PASS) os fragmentos arrastados.
+- **S5 (Seleção Convencional):** Não sofreu interferências sistêmicas da arquitetura isolada do DOM da tabela.
+
+**UAT-001: REAVALIAÇÃO CONCLUÍDA**
+**Status Final:** GREEN (Todos os cenários de seleção estrita e drag-and-drop aprovados).
+
+### 5.3 Encerramento da Fase 2
+- A injeção perigosa que destruía o `TableMap` foi erradicada da API de renderização canônica.
+- O branch isolado suporta totalmente seleções contínuas, drag operations, cópias e regressões paginadas completas.
+- Os binários e o código atualizados não foram submetidos via `git push` conforme as restrições da consolidação (Aguardando homologação formal do Boby para RC.4).
