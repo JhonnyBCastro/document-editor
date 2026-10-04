@@ -2,34 +2,21 @@
 import { Decoration } from '@tiptap/pm/view';
 import { BreakDecision, LayoutConfig } from './types';
 
-export function createDecorationFromDecision(b: BreakDecision, layout: LayoutConfig, totalGapSize: number): Decoration {
-    let widget: HTMLElement;
-              
+export function createDecorationFromDecision(b: BreakDecision, layout: LayoutConfig, totalGapSize: number, doc: any): Decoration[] {
     if (b.renderer === 'table-row-spacer') {
-        widget = document.createElement('tr')
-        widget.className = 'virtual-page-spacer'
-        widget.setAttribute('aria-hidden', 'true')
-        widget.setAttribute('data-reasons', b.reasons.join(','))
-        widget.setAttribute('data-displacement', b.effectiveDisplacement.toString())
+        const trNode = doc.nodeAt(b.pos);
+        const trSize = trNode ? trNode.nodeSize : 0;
         
-        const td = document.createElement('td')
-        td.colSpan = b.colspan || 1 
-        td.style.padding = '0'
-        td.style.border = 'none'
-        td.style.position = 'relative' 
-        
-        const gapDiv = document.createElement('div')
-        gapDiv.contentEditable = 'true'
-        gapDiv.style.height = `${b.effectiveDisplacement}px`
-        gapDiv.style.width = '100%'
-        gapDiv.style.background = 'transparent'
-        gapDiv.style.pointerEvents = 'none'
-        gapDiv.textContent = '\u200B'
-        td.appendChild(gapDiv)
+        const nodeDeco = Decoration.node(b.pos, b.pos + trSize, {
+            class: 'page-break-row',
+            style: `--page-break-gap: ${b.effectiveDisplacement}px;`,
+            'data-reasons': b.reasons.join(','),
+            'data-displacement': b.effectiveDisplacement.toString()
+        });
         
         const visualLayer = document.createElement('div')
         visualLayer.style.position = 'absolute'
-        visualLayer.style.top = '0'
+        visualLayer.style.top = `-${b.effectiveDisplacement}px`
         visualLayer.style.left = `-${layout.page.marginLeft}px` 
         visualLayer.style.width = `${layout.page.width}px` 
         visualLayer.style.height = `${b.effectiveDisplacement}px`
@@ -66,56 +53,60 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
         pageTop.style.boxShadow = '0 -1px 3px rgba(0,0,0,0.1)'
         visualLayer.appendChild(pageTop)
         
-        td.appendChild(visualLayer)
-        widget.appendChild(td)
-    } else {
-        widget = document.createElement('div')
-        widget.className = 'page-break-widget'
-        widget.contentEditable = 'false'
-        widget.setAttribute('data-reasons', b.reasons.join(','))
-        widget.setAttribute('data-displacement', b.effectiveDisplacement.toString())
-        widget.style.height = `${b.effectiveDisplacement}px` 
-        widget.style.width = '100%'
-        widget.style.background = 'transparent'
-        widget.style.position = 'relative'
-        widget.style.marginLeft = `-${layout.page.marginLeft}px`
-        widget.style.marginRight = `-${layout.page.marginRight}px`
+        const widgetDeco = Decoration.widget(b.pos + 2, visualLayer, {
+            side: -1,
+            ignoreSelection: true
+        });
         
-        const extraWhite = b.effectiveDisplacement - totalGapSize
-        const pageBottom = document.createElement('div')
-        pageBottom.style.position = 'absolute'
-        pageBottom.style.top = '0'
-        pageBottom.style.width = '100%'
-        pageBottom.style.height = `${layout.page.marginBottom + extraWhite}px`
-        pageBottom.style.background = 'white'
-        pageBottom.style.borderBottom = '1px solid #ccc'
-        pageBottom.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
-        widget.appendChild(pageBottom)
-        
-        const gap = document.createElement('div')
-        gap.style.position = 'absolute'
-        gap.style.top = `${layout.page.marginBottom + extraWhite}px`
-        gap.style.width = '100%'
-        gap.style.height = `${layout.page.pageGap}px`
-        gap.style.background = '#eee'
-        widget.appendChild(gap)
-        
-        const pageTop = document.createElement('div')
-        pageTop.style.position = 'absolute'
-        pageTop.style.bottom = '0'
-        pageTop.style.width = '100%'
-        pageTop.style.height = `${layout.page.marginTop}px`
-        pageTop.style.background = 'white'
-        pageTop.style.borderTop = '1px solid #ccc'
-        pageTop.style.boxShadow = '0 -1px 3px rgba(0,0,0,0.1)'
-        widget.appendChild(pageTop)
-        
+        return [nodeDeco, widgetDeco];
     }
+
+    // linear-widget fallback
+    let widget = document.createElement('div')
+    widget.className = 'page-break-widget'
+    widget.contentEditable = 'false'
+    widget.setAttribute('data-reasons', b.reasons.join(','))
+    widget.setAttribute('data-displacement', b.effectiveDisplacement.toString())
+    widget.style.height = `${b.effectiveDisplacement}px` 
+    widget.style.width = '100%'
+    widget.style.background = 'transparent'
+    widget.style.position = 'relative'
+    widget.style.marginLeft = `-${layout.page.marginLeft}px`
+    widget.style.marginRight = `-${layout.page.marginRight}px`
     
-    return Decoration.widget(b.pos, widget, { 
+    const extraWhite = b.effectiveDisplacement - totalGapSize
+    const pageBottom = document.createElement('div')
+    pageBottom.style.position = 'absolute'
+    pageBottom.style.top = '0'
+    pageBottom.style.width = '100%'
+    pageBottom.style.height = `${layout.page.marginBottom + extraWhite}px`
+    pageBottom.style.background = 'white'
+    pageBottom.style.borderBottom = '1px solid #ccc'
+    pageBottom.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+    widget.appendChild(pageBottom)
+    
+    const gap = document.createElement('div')
+    gap.style.position = 'absolute'
+    gap.style.top = `${layout.page.marginBottom + extraWhite}px`
+    gap.style.width = '100%'
+    gap.style.height = `${layout.page.pageGap}px`
+    gap.style.background = '#eee'
+    widget.appendChild(gap)
+    
+    const pageTop = document.createElement('div')
+    pageTop.style.position = 'absolute'
+    pageTop.style.bottom = '0'
+    pageTop.style.width = '100%'
+    pageTop.style.height = `${layout.page.marginTop}px`
+    pageTop.style.background = 'white'
+    pageTop.style.borderTop = '1px solid #ccc'
+    pageTop.style.boxShadow = '0 -1px 3px rgba(0,0,0,0.1)'
+    widget.appendChild(pageTop)
+    
+    return [Decoration.widget(b.pos, widget, { 
         side: 1, 
         effectiveDisplacement: b.effectiveDisplacement, 
         reasons: b.reasons,
         ignoreSelection: true 
-    });
+    })];
 }

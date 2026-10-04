@@ -28,6 +28,10 @@
   width: 100%;
 }
 
+.page-break-row > td, .page-break-row > th {
+  padding-top: calc(var(--page-break-gap, 0px) + 8px) !important;
+}
+
 /* Na hora de imprimir o PDF */
 @media print {
   @page { 

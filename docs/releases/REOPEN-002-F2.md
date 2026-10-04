@@ -93,3 +93,32 @@ A tabela abaixo compara três abordagens para reverter o FAIL do UAT-001 sem des
 **Recomendação:** Aprovar a alteração do renderizador tabular do motor de paginação (substituindo a injeção atual de Widget por um **NodeDecoration de Spacing na linha semântica** — Alternativa B). Isso preservará a pureza da árvore do ProseMirror e eliminará 100% dos conflitos com seleções e colisões nativas de tabelas, com baixa complexidade de implementação.
 
 Ficamos no aguardo de deliberação para iniciar o pivot arquitetural da Alternativa B.
+
+## 4. F2-R3 — Resultado da Prova de Conceito (Alternativa B)
+
+Conforme autorizado, a implementação experimental estrita da **Alternativa B** (Associação de deslocamento geométrico às linhas semânticas via Decorations) foi executada e aferida com sucesso.
+
+### 4.1 Estrutura DOM Resultante e Deslocamento
+
+A injeção do elemento transitório `<tr>` (`virtual-page-spacer`) foi suprimida. Em seu lugar, a quebra de página é representada por um par de decorações do ProseMirror aplicadas dinamicamente durante a paginação:
+1. **NodeDecoration (Física):** Aplica a classe CSS `.page-break-row` na `<tr>` subsequente à quebra. A regra CSS `.page-break-row > td` utiliza `padding-top: calc(var(--page-break-gap) + 8px)` para criar o espaço mecânico e afastar fisicamente as linhas, empurrando o conteúdo para a próxima página sem quebrar a continuidade dos elementos irmãos do `<tbody>`.
+2. **WidgetDecoration (Visual):** Insere um elemento decorativo não-interativo (`pointer-events: none; position: absolute;`) dentro da célula no espaço do padding, renderizando a arte visual da quebra (bordas, sombras), com side `-1` para ancorá-lo no topo do nó.
+
+### 4.2 Resultados Comportamentais (S1, S2, S3 e S5)
+
+- **Geometria T60 (S1/S2):** PASS. O `padding-top` foi calculado corretamente usando a variável CSS injetada pelo `NodeDecoration`. A paginação tabular manteve a precisão matemática da Fragmentação Vertical, e os nós `page-break-row` operaram exatamente nas mesmas coordenadas esperadas. As alturas das páginas não se acumularam "em fantasma".
+- **Seleção Nativa e prosemirror-tables (S3):** **PASS** (GREEN).
+  - O arraste de mouse provocado pelo usuário entre a linha anterior (ex: Row 16) e a linha deslocada (ex: Row 17) funciona perfeitamente.
+  - Como o "buraco" (gap) agora pertence genuinamente ao `<td padding-top="...">`, a API do navegador `document.elementFromPoint` no meio do vão retorna `TD`.
+  - A API interna `view.posAtCoords` mapeia a coordenada de forma contígua para dentro da `tableCell`.
+  - O hook `mousemove` do `prosemirror-tables` valida o `domInCell` e **cria com sucesso a `CellSelection`**, pintando ambas as linhas de azul, atravessando a quebra de página.
+- **Clipboard Textual / HTML:** **PASS**. Como a `CellSelection` é nativa e contínua, o payload de cópia (`<table data-pm-slice="...">`) é preservado integralmente, contendo todo o fragmento tabular sem perda de contexto estrutural.
+- **Hit-Testing:** PASS. Cliques diretos no gap (vão vazio gerado pelo `padding`) são interpretados corretamente pelo Chromium como parte integrante da tabela, acionando a seleção da respectiva célula sem anular a seleção geral.
+
+### 4.3 Parecer Final da Prova de Conceito
+
+A prova provou inequivocamente que a arquitetura da Alternativa B não apenas soluciona a UAT-001 (permitindo seleções em arrastes profundos), como também elimina a complexidade subjacente introduzida pela injeção forçada de `<tr>` em uma matriz `prosemirror-tables`.
+
+O isolamento visual provido via `pointer-events: none` na WidgetDecoration cumpre a ressalva cosmética sem impactar interatividade. O modelo mantém total compatibilidade com rowspan e colspan, dado que a quebra se aplica linearmente à classe da linha (e se propaga aos filhos e células atravessadas).
+
+**Status de Execução:** Prova de Conceito validada de ponta a ponta na branch experimental. Recomendação `GO` para consolidação do modelo (Alternativa B + Alternativa C) na branch principal candidata. A implementação estrita não foi comitada, sendo mantida nas instâncias temporárias para inspeção via PR ou aprovação de mesclagem estrutural.

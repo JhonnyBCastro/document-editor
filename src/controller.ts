@@ -376,7 +376,7 @@ export class PaginationController {
         }
         
         if (changed) {
-            const decos = breaks.map(b => createDecorationFromDecision(b, this.layout, totalGapSize));
+            const decos = breaks.flatMap(b => createDecorationFromDecision(b, this.layout, totalGapSize, this.view.state.doc));
             this.currentDecorations = DecorationSet.create(this.view.state.doc, decos);
             this.view.dispatch(this.view.state.tr.setMeta('pagination', true));
             this.revision++;
