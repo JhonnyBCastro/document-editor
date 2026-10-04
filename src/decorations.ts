@@ -8,8 +8,9 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
     if (b.renderer === 'table-row-spacer') {
         widget = document.createElement('tr')
         widget.className = 'virtual-page-spacer'
-        widget.contentEditable = 'false'
         widget.setAttribute('aria-hidden', 'true')
+        widget.setAttribute('data-reasons', b.reasons.join(','))
+        widget.setAttribute('data-displacement', b.effectiveDisplacement.toString())
         
         const td = document.createElement('td')
         td.colSpan = b.colspan || 1 
@@ -18,9 +19,12 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
         td.style.position = 'relative' 
         
         const gapDiv = document.createElement('div')
+        gapDiv.contentEditable = 'true'
         gapDiv.style.height = `${b.effectiveDisplacement}px`
         gapDiv.style.width = '100%'
         gapDiv.style.background = 'transparent'
+        gapDiv.style.pointerEvents = 'none'
+        gapDiv.textContent = '\u200B'
         td.appendChild(gapDiv)
         
         const visualLayer = document.createElement('div')
@@ -68,6 +72,8 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
         widget = document.createElement('div')
         widget.className = 'page-break-widget'
         widget.contentEditable = 'false'
+        widget.setAttribute('data-reasons', b.reasons.join(','))
+        widget.setAttribute('data-displacement', b.effectiveDisplacement.toString())
         widget.style.height = `${b.effectiveDisplacement}px` 
         widget.style.width = '100%'
         widget.style.background = 'transparent'
@@ -104,21 +110,12 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
         pageTop.style.boxShadow = '0 -1px 3px rgba(0,0,0,0.1)'
         widget.appendChild(pageTop)
         
-        const badge = document.createElement('div')
-        badge.textContent = b.reasons.join(', ')
-        badge.style.position = 'absolute'
-        badge.style.right = '20px'
-        badge.style.top = '10px'
-        badge.style.background = '#ffeb3b'
-        badge.style.padding = '2px 5px'
-        badge.style.fontSize = '10px'
-        badge.style.border = '1px solid #cddc39'
-        badge.style.color = '#333'
-        badge.style.borderRadius = '3px'
-        badge.style.maxWidth = '250px'
-        badge.style.zIndex = '10'
-        widget.appendChild(badge)
     }
     
-    return Decoration.widget(b.pos, widget, { side: 1, effectiveDisplacement: b.effectiveDisplacement, reasons: b.reasons });
+    return Decoration.widget(b.pos, widget, { 
+        side: 1, 
+        effectiveDisplacement: b.effectiveDisplacement, 
+        reasons: b.reasons,
+        ignoreSelection: true 
+    });
 }

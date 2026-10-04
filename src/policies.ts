@@ -136,6 +136,12 @@ export function evaluateTablePolicies(candidate: BreakCandidate, view: EditorVie
     const cellRect = map.findCell(localCellPos);
     
     if (!cellRect) {
+         // LIMITAÇÃO CONTRATUAL INTENCIONAL (UAT-002):
+         // Quando o motor tenta resolver uma quebra que cai no interior de uma célula 
+         // ou quando a estrutura tabular não permite a identificação clara da fronteira 
+         // celular, emitimos TABLE_INTRAROW_UNSUPPORTED.
+         // A fragmentação intralinha é proibida pelos requisitos arquiteturais.
+         // Este diagnostic não representa um bug de cálculo, mas um limite estrutural.
          return {
             status: 'blocked',
             code: 'TABLE_INTRAROW_UNSUPPORTED',
