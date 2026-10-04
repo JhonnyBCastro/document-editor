@@ -182,7 +182,7 @@ export class PaginationController {
                 continue;
             }
             
-            const widgetsBefore = this.currentDecorations.find(0, pos);
+            const widgetsBefore = this.currentDecorations.find(0, pos).filter(w => w.from < pos);
             const cumulativeDisplacement = widgetsBefore.reduce((acc, w) => acc + (w.spec.effectiveDisplacement || totalGapSize), 0);
             
             const neutralY = coords.top - cumulativeDisplacement;
@@ -217,7 +217,7 @@ export class PaginationController {
                 while (exactPos > 0) {
                     try {
                         const exactCoords = this.view.coordsAtPos(exactPos);
-                        const exactWidgets = this.currentDecorations.find(0, exactPos);
+                        const exactWidgets = this.currentDecorations.find(0, exactPos).filter(w => w.from < exactPos);
                         const exactDisp = exactWidgets.reduce((acc, w) => acc + (w.spec.effectiveDisplacement || totalGapSize), 0);
                         const exactNeutralY = exactCoords.top - exactDisp;
                         if (exactNeutralY <= targetNeutralY) break;
@@ -345,7 +345,7 @@ export class PaginationController {
 
 
                 const coordsBefore = this.view.coordsAtPos(decision.pos);
-                const dispBefore = this.currentDecorations.find(0, decision.pos).reduce((acc, w) => acc + (w.spec.effectiveDisplacement || totalGapSize), 0);
+                const dispBefore = this.currentDecorations.find(0, decision.pos).filter(w => w.from < decision.pos).reduce((acc, w) => acc + (w.spec.effectiveDisplacement || totalGapSize), 0);
                 const spaceLeft = targetNeutralY - (coordsBefore.top - dispBefore);
                 decision.effectiveDisplacement = totalGapSize + Math.max(0, spaceLeft);
                 
@@ -364,7 +364,7 @@ export class PaginationController {
             pos += jump;
         }
         
-        const currentBreaks = this.currentDecorations.find(0, docSize);
+        const currentBreaks = this.currentDecorations.find();
         let changed = breaks.length !== currentBreaks.length;
         if (!changed) {
             for (let i = 0; i < breaks.length; i++) {
