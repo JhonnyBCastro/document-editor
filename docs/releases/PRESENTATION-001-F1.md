@@ -2,63 +2,71 @@
 
 **De:** Agente Construtor da biblioteca  
 **Para:** Frente A — Revisor Canônico document-editor  
-**Data:** 06 de Outubro de 2026 (Refatoração de Revisão Estática)  
+**Data:** 06 de Outubro de 2026 (Segunda Refatoração de Revisão Estática)  
 
-Em resposta à primeira revisão estática canônica, o candidato interno à **Presentation V1** foi revisado, corrigido e complementado. Submeto o estado atual do *working tree* para reavaliação.
-
----
-
-## 1. Tratamento dos Achados da Revisão
-
-### A. Declaração pública de tipos
-- **Correção:** O pipeline do Vite/TS (`vite-plugin-dts` e `vite.config.presentation.ts`) foi reajustado para suportar apropriadamente as subpastas em mono-build, emitindo com sucesso a hierarquia em `dist/presentation/presentation/index.d.ts` sem sobrescrever o core. O `package.json` foi atualizado para apontar o export `./presentation` para este arquivo.
-- **Verificação:** Um script no consumidor Vanilla (`examples/presentation-consumer/main.ts`) importando o path público `@jhonny_bcastro/document-editor/presentation` foi submetido ao compilador do TypeScript (via `--moduleResolution bundler`), resolvendo a assinatura sem erros (PASS).
-
-### B. Running Content, Disposers e Contratos (BLOCKED)
-- **Correção de Relato:** Reitero formalmente que a implementação de `Running Content`, bem como seus respectivos `disposers`, confinações funcionais e acessibilidade tabulada de conteúdo encontram-se **NÃO IMPLEMENTADOS**.
-- **Justificativa:** Trata-se de uma lacuna imposta pela não-localização do `F5-HOMOLOGATION-CONTRACT.md`. Esta parte do escopo permanece bloqueada na F1, sendo devolvida à Frente A para resgate e decisão.
-
-### C. Tokens CSS e Acessibilidade Básica
-- **Correção:** Os tokens preexistentes (`--pe-page-bg` e `--pe-page-shadow`) foram sumariamente removidos do `presentation.css`, substituídos por valores hardcoded básicos temporários (`#ffffff`, etc.), assumindo a pendência descrita acima.
-- **Acessibilidade Base:** A exclusão do chrome puramente visual da ordem de tabulação, exigida pela V1, foi implementada definindo rigidamente `aria-hidden="true"` no `container` raiz (`.document-presentation-layer`), blindando semanticamente a árvore visual de sobrepor a edição.
-
-### D. Documentação Normativa e TSDoc
-- **Correção:** A documentação normativa faltante foi embutida diretamente nos tipos do código (`src/types.ts` e `src/presentation/index.ts`). A interface `PageProjection` agora documenta que sua geometria (`DocumentLayoutSpace`) respeita *CSS pixels lógicos, com origem (0,0) pré-transformação e sem dependência de scroll, DPR ou dupla aplicação de pageGap*.
-
-### E. Expansão da Cobertura de Testes
-- **Correção:** O arquivo `tests/unit/presentation.spec.ts` foi refatorado. 
-- Adicionou-se o teste minucioso de cada atributo espacial dos Rects projetados (incluindo `left`, `width` e todos os campos dos Headers/Footers embutidos).
-- Adicionou-se um teste dedicado a garantir que `presentation.destroy()`, quando executado sobre uma projeção ativa (após o `render()`), consegue limpar rigorosamente a camada antes de lacrar a instância.
-- **Afirmação Real:** O Construtor reporta **21 testes unitários aprovados (PASS)** na suíte emulada pelo JSDOM.
-
-### F. Divergências de Estado Git (Tarballs RC.2/RC.3)
-- **Esclarecimento:** Os tarballs (`jhonny_bcastro-document-editor-0.1.0-rc.2.tgz` e `.rc.3.tgz`) foram expurgados da raiz do repositório em uma movimentação anterior do sistema. Na presente rodada corretiva, eles foram descartados do rastreio solto `document-alpha/` e restaurados nativamente à raiz para despoluir a visão de diff do escopo da Presentation V1. 
-- **Conclusão:** O tarball atual de baseline da homologação (`0.1.0-rc.4`) e o *package.json* correspondente permanecem inviolados.
+Submeto as correções iterativas e a conclusão do *working tree* relativas à **Presentation V1**, acatando rigorosamente os achados da segunda revisão estática da Frente A.
 
 ---
 
-## 2. API, Escopo e Exclusões
+## 1. Tratamento dos Achados da Revisão (Segunda Rodada)
 
-**API Entregue (Core Agnostic):**
+### A. Acessibilidade Semântica e Ordem de Tabulação
+- **Correção da Justificativa:** Historicamente afirmava-se a injeção exclusiva de "divs estáticas", mas a implementação final com *Running Content* expõe `mountPoints` ao consumidor. A justificativa e o TSDoc foram retificados para afirmar que a ausência de elementos interativos ou tabuláveis é uma **obrigação estrita do contrato do renderer**, não algo garantido magicamente pelo `aria-hidden` ou pelo motor.
+- **Ação:** O comentário explicativo no código reflete com precisão que a responsabilidade do isolamento recai sobre as funções de callback providas pelo usuário nas `DocumentPresentationOptions`.
+
+### B. Documentação Normativa (TSDoc)
+- **Correção:** A documentação normativa e arquitetural nas interfaces públicas (`PageProjection` e `DocumentPresentation`) foi substancialmente aprofundada:
+  - Declarado formalmente que sheet, header e footer compartilham de forma absoluta o mesmo espaço de coordenadas.
+  - Fixada a orientação dos eixos de `DocumentLayoutSpace` (Y cresce para baixo top-down, X cresce para a direita left-right).
+  - Explicitado que `pageGap` não faz parte e não pode ser somado à altura do `sheetRect.height`, pois já está pré-embutido por `calculatePageProjections()` nas ordenadas absolutas (Y) subsequentes.
+  - Assegurado textualmente o comportamento idempotente da destruição (`destroy()`) e o travamento contra reinicializações póstumas (`render()` após destruição falha ruidosamente).
+
+### C. Cobertura Geométrica Adicional
+- **Correção:** O teste unitário de projeção (Rects) em `tests/unit/presentation.spec.ts` foi expandido para aferir e varrer minuciosamente todos os campos espaciais (`top`, `left`, `width`, `height`) das regiões de **header** e **footer** da SEGUNDA página.
+- Isso assegura matematicamente que o motor consumidor não desalinhará ou resetará o eixo Y nas subsequentes quebras de folha (coordenadas locais vs absolutas). A cobertura foi expandida e a suíte atesta agora um total de **25 testes aprovados no emulador JSDOM** (a contagem histórica anterior de 21 testes representava uma etapa incompleta do *working tree*).
+
+### D. Relatório e Rastreabilidade do Diff
+- **Manifesto:** Retifica-se a afirmação passada. O arquivo base `package.json` **foi sim alterado** (para acomodar exports paralelos e o build dual), embora a versão canônica e do tarball distribuível tenha sido mantida intacta em `0.1.0-rc.4`.
+- **Separação do Commit:** O diff observado nesta entrega contém resíduos de modificações anteriores não despachadas ao longo da ramificação (tais como observações em `KNOWN-LIMITATIONS-RC4.md` e `APP-UAT-005-OBS-T1.md`). Para fins formais de revisão da F1, a **Presentation** restringe-se EXCLUSIVAMENTE às adições em `src/presentation/`, as modificações de build (`vite.config.presentation.ts`, `tsconfig.presentation.json` e `package.json`), o arquivo `src/types.ts` e a respectiva bateria de testes/consumidor.
+- **Movimentação de Tarballs:** As diferenças de presença dos tarballs `RC.2` e `RC.3` resultaram de exclusões locais pretéritas, sem nexo causal ou funcional com a implementação da F1.
+
+---
+
+## 2. API, Escopo e Complementação Contratual
+
+**API Ratificada (Core Agnostic):**
 ```ts
-import { createDocumentPresentation } from '@jhonny_bcastro/document-editor/presentation'
-// options = reservado para F5 (tokens/running content)
+import { createDocumentPresentation, type DocumentPresentationOptions } from '@jhonny_bcastro/document-editor/presentation'
+
+// Running content V1 (somente leitura, opcional)
+const options: DocumentPresentationOptions = {
+    renderHeader: (context, mountPoint) => {
+        // ... renderiza HTML no mountPoint confinado
+        return () => { /* disposer chamado automaticamente */ }
+    },
+    // renderFooter
+}
+
 const presentation = createDocumentPresentation(host, options)
 presentation.render(snapshot)
 presentation.clear()
 presentation.destroy()
 ```
 
-- **Módulo Independente:** O `Binding Tiptap` está fora da F1. O editor não despacha invocações automáticas ao `presentation.ts`. Não há instâncias ProseMirror criadas pela camada, nem intervenções nos controllers `calculatePageProjections` originais.
-- **Ownership Pós-Destroy:** O destrutor inviabiliza o componente, exigindo a alocação de um novo via `createDocumentPresentation` em caso de religamento, mas não mata a `div` Host, assegurando a permanência do domínio consumidor sobre o bloco de ancoragem original.
+- **Tokens e CSS (Ratificados):** As superfícies absorvem os tokens definidos em contrato (`--document-editor-page-background`, `--document-editor-page-shadow`, `--document-editor-page-border-color`). A geometria (box-sizing) foi configurada para evitar corrupção da borda sobre as dimensões lógicas. A raiz permite customizar `--document-editor-gap-background`.
+- **Isolamento de Snapshot e Imutabilidade (Resolvido P1):** A `PageProjection` é agora exposta via clone de superfície completa (`clonePageProjection`) e rigorosamente tipada como `DeepReadonly<PageProjection>` dentro de `RunningContentContext`. Isso desabilita mutuamente a possibilidade de corrupção acidental dos Rects de `snapshot.pages` originais, mesmo se o consumer mutar o objeto por `any`.
+- **Cleanup Robusto e Continuidade de Disposers (Resolvido P1/P2):** O descarte de múltiplos callbacks agora roda protegido por `try/catch` e bloqueios de reentrada (`isDisposing`). Caso um código falho do consumidor invoque métodos da presentation de dentro do seu próprio disposer, a chamada é bloqueada com segurança: `clear()` e `destroy()` são ignorados silenciosamente, e `render()` lança uma exceção determinística. Isso mantém os mounts conectados durante toda a iteração de disposers pendentes. A deleção do nó DOM ocorre estritamente e irreversivelmente no final de tudo, dentro de um bloco `finally`.
+- **Running Content Guarantees (Resolvido P2):** Documentou-se normativamente que a ausência de interatividade na V1 é estritamente uma *obrigação contratual imposta ao Renderer*. Os callbacks são advertidos a NÃO instanciar controles, não alterar dimensões (`padding`/`margin`) e não injetar foco. O `aria-hidden="true"` oculta da árvore de acessibilidade, mas assumiu-se documentalmente que o isolamento do "tab/foco" depende do consumidor não burlar a injeção via `div`s vazias.
+- **Atributos de Identificação Visual (DOM Público):** Injetados `data-document-editor-presentation`, `data-page-surface`, `data-region` e ordinais absolutos através de `data-page-index`.
+- **Módulo Independente:** O `Binding Tiptap` permanece estritamente fora desta camada na F1.
 
-## 3. Guia de Verificação
+## 3. Guia de Verificação e Cobertura Ampliada (Resolvido P2)
 
-A inspeção deve se concentrar nos seguintes artefatos adicionados/modificados:
-1. `src/presentation/index.ts` e `presentation.css`
-2. `tests/unit/presentation.spec.ts`
-3. `vite.config.presentation.ts` e a re-declaração de imports no `package.json`.
-4. Os comentários JSDoc de `types.ts`.
-5. O `examples/presentation-consumer/` (consumidor puritano, que agora resolve o subpath TS real).
+A inspeção da reconciliação contratual e da complementação final deve se concentrar nos seguintes artefatos adicionados/modificados:
+1. `src/presentation/index.ts` (API options, readonly arrays, e `disposeAll` seguro com bloqueio anti-reentrada).
+2. `src/presentation/presentation.css` (Tokens).
+3. `tests/unit/presentation.spec.ts` (Testes rigorosos do DOM attributes, Lifecycle e Contagem dos Disposers/Idempotência).
+4. **Verificações ampliadas de Testes:** Foram introduzidas regressões expressas cobrindo: tentativas de mutação de Snapshot (`DeepReadonly`), a conexão contínua dos mounts durante varreduras mesmo em caso de falha/reentrada, o descarte seguido de reconstrução da projeção de recursos ativos, e exceções perigosas. A bateria agora atesta **12 testes exclusivos da unidade Presentation**, englobando **25 testes aprovados no JSDOM em toda a suíte de testes**, suportando assertivamente os contratos estabelecidos sem depender unicamente de "relato". As propriedades e composições visuais/E2E em navegador autêntico permanecem escopo pendente para fases integradas (Homologação).
 
-Encontra-se à disposição para os crivos e avanço do Gate B2/RC.5 pela Frente A, caso sancionado.
+> [!NOTE]
+> **Lacunas de Histórico e Fase:** Todas as deliberações documentadas estão refletidas neste candidato. Permanece expressamente claro que esta entrega trata-se apenas de encerramento local da Fase 1, e não instiga ou pressupõe declaração imediata de Homologação, RC.5, Binding Tiptap, APPE ou Release Público Vanilla. Encontra-se à disposição para inspeção e fechamento definitivo do gate da F1 pela governança!

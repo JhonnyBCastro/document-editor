@@ -10,10 +10,22 @@
 
 .document-presentation-sheet {
     position: absolute;
-    /* Valores hardcoded provisórios aguardando o contrato de tokens F5 */
-    background-color: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    /* The sheet itself is just a visual background in DocumentLayoutSpace */
+    background-color: var(--document-editor-page-background, #ffffff);
+    box-shadow: var(--document-editor-page-shadow, 0 1px 3px rgba(0, 0, 0, 0.2));
+    border: 1px solid var(--document-editor-page-border-color, transparent);
+    box-sizing: border-box; /* Garante que a borda não aumente o box geométrico */
+}
+
+/* Opcional: Para pintar o background do gap, o Host pode configurar o layer root */
+.document-presentation-layer {
+    background-color: var(--document-editor-gap-background, transparent);
+    pointer-events: none; /* Não interativo */
+}
+
+.document-presentation-header, .document-presentation-footer {
+    position: absolute;
+    /* Running content confinado geometricamente e visual-only */
+    overflow: hidden;
 }
 
 .document-presentation-header,
