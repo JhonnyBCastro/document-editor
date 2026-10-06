@@ -70,6 +70,12 @@ export type LayoutDiagnostic = {
     message: string;
 };
 
+/**
+ * Projeção geométrica de uma página renderizada.
+ * Utiliza o DocumentLayoutSpace: os valores estão em CSS pixels lógicos,
+ * com origem (0,0) pré-transformação e são independentes de scroll ou DPR (Device Pixel Ratio).
+ * O espaçamento (pageGap) já está embutido no deslocamento absoluto da folha subsequente.
+ */
 export type PageProjection = {
     index: number;
     sheetRect: { top: number; left: number; width: number; height: number; };

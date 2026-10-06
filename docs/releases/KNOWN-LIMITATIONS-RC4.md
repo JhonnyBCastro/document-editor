@@ -113,3 +113,58 @@ Referências dos artefatos da bateria UAT B1 e seus derivados:
 - `APP-UAT-005-T1-R4`
 
 *Toda observância de controle sem PaginationExtension baseia-se em relato emitido pela Frente B; não se tratando portanto de materialidade fabricada pela Frente A dentro desta suíte, preenchendo assim as ressalvas de reprodução.*
+
+---
+
+## 8. Observações Visuais Complementares — CROSS-005/OBS-001
+
+Esta seção documenta duas observações visuais provenientes da auditoria diagnóstica `APP-UAT-005-OBS-T1`, cujas medições espaciais e relatos foram produzidos de forma isolada pela Frente B no ecossistema integrador. Estas observações não substituem nem encerram as ocorrências estruturais de seleção discutidas nas seções anteriores (ex: UAT-001A ou UAT-001D).
+
+### 8.1. OBS-PAG-001 — Ausência de separação visual na quebra tabular
+- **Sintoma:** A compensação geométrica tabular aparece visualmente como uma extensa região branca contínua, desprovida da separação cinza perceptível habitualmente desenhada nas quebras lineares do texto.
+- **Elementos Diagnosticados:** 
+  - A compensação física foi associada adequadamente às células reais.
+  - Identificou-se uso da propriedade `--page-break-gap`.
+  - Observou-se fundo transparente nas células e no root da tabela.
+  - Constatou-se fundo branco sólido na superfície principal subjacente `.tiptap.ProseMirror`.
+  - Há ausência de separação gráfica cinza suficientemente perceptível no cenário.
+- **Classificação:** Limitação visual conhecida da representação tabular RC.4. A evidência atesta que a ocorrência **não configura falha matemática da paginação, perda de conteúdo ou contaminação do JSON**. O evento visual não é dado como corrigido nesta versão.
+- **Restrição Arquitetural:** Qualquer abordagem corretiva futura deve preservar obrigatoriamente o deslocamento físico intra-nó e a operabilidade da seleção nativa através das fronteiras tabulares, não sendo admitido reintroduzir linhas transitórias fictícias (`<tr>`) ou elementos físicos estáticos que rompam a grade de leitura original.
+
+### 8.2. OBS-PAG-002 — Superfície branca próxima à toolbar
+- **Sintoma:** Constatação de uma região branca inselecionável e visualmente inesperada na faixa superior adjacente à toolbar do software.
+- **Evidência:** O rastreamento de nós nativos via `elementsFromPoint` capturou que a entidade máxima presente naquele quadrante Z é a `div.tiptap.ProseMirror`, sendo que o background computado na folha de estilos confirmou tratar-se da exata cor branca sólida vislumbrada pelo operador.
+- **Classificação:** Observação visual conhecida — **responsabilidade causal inconclusiva**. A coleta de evidências favorece a hipótese de tratar-se meramente do fundo contínuo principal estendendo-se por overflow ou padding indesejado, não se caracterizando primariamente como um elemento autônomo defeituoso injetado no DOM. Fica resguardado o cuidado de não atribuir antecipadamente a responsabilidade estrita sobre a margem unicamente à biblioteca `document-editor` ou unicamente à plataforma `APPE`.
+
+### 8.3 Critérios para Eventual Investigação Futura
+Caso atividades investigativas ou corretivas sejam autorizadas a respeito dos tópicos visuais enumerados, recomenda-se testar sob as seguintes condições:
+
+**Para OBS-PAG-001:**
+- Comparação visual entre a fragmentação da quebra linear e tabular.
+- Medição do deslocamento físico efetivo da malha, apartada da pintura.
+- Inspeção rigorosa dos backgrounds efetivamente computados.
+- Verificação minuciosa da posição e extensão (height) das camadas decorativas de padding.
+- Hit-testing minucioso na região da folha compensada.
+- Certificação da sobrevivência da `CellSelection` e integridade plena do clipboard via ponteiros físicos na fronteira.
+- Exclusão absoluta de existência de parágrafos/conteúdo escondidos sob opacidade no vão gerado.
+
+**Para OBS-PAG-002:**
+- Inspeção dos polígonos computados da toolbar host, do invólucro do sistema Angular e do *root* interno ProseMirror.
+- Identificação da procedência genealógica das regras de pintura CSS aplicadas.
+- Varredura de contexto de empilhamento (stacking context), manipulações absolutas/fixadas de position e delimitação estrita de `overflow`.
+- Comparação física direta entre a simulação executada no ambiente puritano Vanilla Consumer e o envoltório final operado dentro do APPE.
+- Validação iterativa dos elementos reportados pela leitura em profundidade `elementsFromPoint` na área reportada.
+
+*(Ressalta-se que a presente listagem figura primariamente como pauta investigativa referencial, devendo não ser processada automaticamente ou entendida como declaração formal de retrabalho aprovado).*
+
+### 8.4 Proveniência Institucional
+As deliberações desta subseção complementam as anteriores e procedem dos ofícios:
+- `CROSS-005/OBS-001`
+- `APP-UAT-005-OBS-T1`
+- `APP-VALIDATION-005-B1`
+
+A consolidação reitera que **as capturas, screenshots espaciais, insumos brutos e logs analíticos produzidos nestas observações pela bateria de validação da Frente B se dão por declarados via comunicação externa a esta interface de sistema.**
+
+---
+
+*(Reitera-se permanentemente: a RC.4 se mantém aceita com ressalvas no UAT humano B1-05, aguardando parecer ou deliberação final pelo autor Boby).*

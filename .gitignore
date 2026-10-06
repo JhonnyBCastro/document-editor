@@ -5,6 +5,10 @@
 /dist
 examples/**/node_modules
 examples/**/dist
+**/node_modules
+
+**.png
+**/*.png
 
 # OS generated
 .DS_Store

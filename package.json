@@ -30,13 +30,19 @@
       "import": "./dist/pagination.es.js",
       "require": "./dist/pagination.umd.js"
     },
-    "./style.css": "./dist/document-editor.css"
+    "./style.css": "./dist/document-editor.css",
+    "./presentation": {
+      "types": "./dist/presentation/presentation/index.d.ts",
+      "import": "./dist/presentation/index.es.js",
+      "require": "./dist/presentation/index.umd.js"
+    },
+    "./presentation.css": "./dist/presentation/presentation.css"
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "vite build -c vite.config.lib.ts",
+    "build": "vite build -c vite.config.lib.ts && vite build -c vite.config.presentation.ts",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
     "test:watch": "vitest",
