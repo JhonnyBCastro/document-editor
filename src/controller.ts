@@ -77,7 +77,10 @@ export class PaginationController {
     
     public scheduleRender() {
         if (this.renderTimeout) clearTimeout(this.renderTimeout);
-        this.renderTimeout = setTimeout(() => this.renderVirtualPages(), 100);
+        this.renderTimeout = setTimeout(() => {
+            this.renderTimeout = null;
+            this.renderVirtualPages();
+        }, 100);
     }
     
     public destroy() {
