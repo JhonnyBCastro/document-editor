@@ -20,6 +20,7 @@ export const PaginationExtension = Extension.create<PaginationOptions, { control
                     differentFirstPage: false
                 }
             },
+            visualMode: 'legacy',
             onLayoutStable: undefined,
             manualBreakNodeName: 'pageBreak'
         };
@@ -38,7 +39,7 @@ export const PaginationExtension = Extension.create<PaginationOptions, { control
             new Plugin({
                 key: PaginationPluginKey,
                 view: (view) => {
-                    controller = new PaginationController(view, this.options.layout, this.options.onLayoutStable, this.options.manualBreakNodeName || 'pageBreak', this.options.chromeLayerElement);
+                    controller = new PaginationController(view, this.options.layout, this.options.onLayoutStable, this.options.manualBreakNodeName || 'pageBreak', this.options.chromeLayerElement, this.options.visualMode);
                     this.storage.controller = controller;
                     (window as any).paginationController = controller;
                     controller.scheduleRender();

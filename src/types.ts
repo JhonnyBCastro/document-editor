@@ -100,9 +100,20 @@ export type LayoutSnapshot = {
     diagnostics: readonly LayoutDiagnostic[];
 };
 
+/** Documentary paint ownership, selected once when pagination is created. */
+export type PaginationVisualMode = 'legacy' | 'composed';
+
 export type PaginationOptions = {
     layout: LayoutConfig;
     onLayoutStable?: (snapshot: LayoutSnapshot) => void;
     manualBreakNodeName?: string;
     chromeLayerElement?: HTMLElement;
+    /**
+     * Defaults to legacy. Fixed for the controller lifetime; later option mutations
+     * do not switch modes. Unknown values are rejected without fallback.
+     * Composed suppresses Core documentary paint while preserving geometry and
+     * consumer styles. It rejects any defined chromeLayerElement and does not
+     * provide document composition, automatic insets, or Presentation mounting.
+     */
+    visualMode?: PaginationVisualMode;
 };
