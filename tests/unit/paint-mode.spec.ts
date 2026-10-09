@@ -53,22 +53,41 @@ function widgetDOM(deco: Decoration): HTMLElement {
 }
 function withoutPaint(root: HTMLElement): string {
     const clone = root.cloneNode(true) as HTMLElement;
+    // Only the approved edge colors may differ; widths/styles remain observable.
+    const bottom = clone.children[0] as HTMLElement;
+    const top = clone.children[2] as HTMLElement;
+    // Canonicalize shorthand/longhand representation using the observed dimensions.
+    if (bottom.style.borderBottom) bottom.style.borderBottom = `${bottom.style.borderBottomWidth} ${bottom.style.borderBottomStyle} #ccc`;
+    if (top.style.borderTop) top.style.borderTop = `${top.style.borderTopWidth} ${top.style.borderTopStyle} #ccc`;
     for (const node of [clone, ...clone.querySelectorAll<HTMLElement>('*')]) {
-        // Rebuild retained declarations: JSDOM shorthand removal can leave or
-        // recreate background longhands, so mutating the list is not a normalizer.
+        // Rebuild declarations to handle JSDOM background shorthand behavior.
         const retained = Array.from(node.style)
-            .filter(property => !/^(background|border|box-shadow)/.test(property))
+            .filter(property => !/^(background(?:-|$)|box-shadow$)/.test(property))
             .map(property => [property, node.style.getPropertyValue(property), node.style.getPropertyPriority(property)]);
         node.style.cssText = '';
         for (const [property, value, priority] of retained) node.style.setProperty(property, value, priority);
-        // A style attribute emptied by normalization is equivalent to no style attribute.
         if (!node.style.length) node.removeAttribute('style');
     }
     return clone.outerHTML;
 }
-function expectNoPaint(root: HTMLElement) {
+function expectEdgeBorders(root: HTMLElement, mode: PaginationVisualMode) {
+    expect(root.children).toHaveLength(3);
     for (const node of [root, ...root.querySelectorAll<HTMLElement>('*')]) {
-        expect(Array.from(node.style).filter(p => /^(background|border|box-shadow)/.test(p))).toEqual([]);
+        for (const edge of ['top', 'right', 'bottom', 'left']) {
+            const approved = (node === root.children[0] && edge === 'bottom') ||
+                (node === root.children[2] && edge === 'top');
+            expect(node.style.getPropertyValue(`border-${edge}-width`)).toBe(approved ? '1px' : '');
+            expect(node.style.getPropertyValue(`border-${edge}-style`)).toBe(approved ? 'solid' : '');
+            expect(node.style.getPropertyValue(`border-${edge}-color`)).toBe(
+                approved ? (mode === 'composed' ? 'transparent' : 'rgb(204, 204, 204)') : ''
+            );
+        }
+    }
+}
+function expectComposedPaintContract(root: HTMLElement) {
+    expectEdgeBorders(root, 'composed');
+    for (const node of [root, ...root.querySelectorAll<HTMLElement>('*')]) {
+        expect(Array.from(node.style).filter(p => /^(background(?:-|$)|box-shadow$)/.test(p))).toEqual([]);
         expect(node.style.display).not.toBe('none');
         expect(node.style.visibility).toBe('');
         expect(node.style.opacity).toBe('');
@@ -167,7 +186,7 @@ describe('paint mode: controller ownership and validation', () => {
         const decorations = controller.getDecorations().find();
         expect(decorations).toHaveLength(1);
         expect(decorations[0].spec.reasons).toEqual(['manual_page_break']);
-        expectNoPaint(widgetDOM(decorations[0]));
+        expectComposedPaintContract(widgetDOM(decorations[0]));
         expect(widgetDOM(decorations[0]).children).toHaveLength(3);
         expect(dom.style.background).toBe('');
         expect(dom.style.boxShadow).toBe('');
@@ -209,7 +228,7 @@ describe('paint mode: extension selection and fixed lifetime', () => {
 
 describe('paint mode: decorations preserve geometry and metadata', () => {
     const doc = { nodeAt: () => ({ nodeSize: 12 }) };
-    it.each(['linear-widget', 'manual-spacer', 'table-row-spacer'] as const)('only removes paint for %s', renderer => {
+    it.each(['linear-widget', 'manual-spacer', 'table-row-spacer'] as const)('preserves B1 border dimensions and neutralizes paint for %s', renderer => {
         const decision: BreakDecision = {
             status: 'accepted', origin: renderer === 'manual-spacer' ? 'manual' : 'automatic',
             pos: 10, effectiveDisplacement: 240, reasons: ['fixture_reason'], renderer, colspan: 2
@@ -230,7 +249,9 @@ describe('paint mode: decorations preserve geometry and metadata', () => {
         const newRoot = widgetDOM(composed[index]);
         expect(widgetDOM(omitted[index]).outerHTML).toBe(oldRoot.outerHTML);
         expect(withoutPaint(newRoot)).toBe(withoutPaint(oldRoot));
-        expectNoPaint(newRoot);
+        expectComposedPaintContract(newRoot);
+        expectEdgeBorders(oldRoot, 'legacy');
+        expectEdgeBorders(widgetDOM(omitted[index]), 'legacy');
         expect(newRoot.children).toHaveLength(3);
         const [bottom, pageGap, top] = Array.from(newRoot.children) as HTMLElement[];
         expect(bottom.style.height).toBe('120px');
@@ -261,4 +282,60 @@ describe('paint mode: decorations preserve geometry and metadata', () => {
             expect(composed[0].spec).toEqual({ side: 1, effectiveDisplacement: 240, reasons: ['fixture_reason'], ignoreSelection: true });
         }
     });
+
+    const cases = [
+        { name: 'asymmetric zero extraWhite', page: layout.page, displacement: 200, bottom: 80 },
+        { name: 'asymmetric positive extraWhite', page: layout.page, displacement: 240, bottom: 120 },
+        { name: 'asymmetric fractional displacement', page: layout.page, displacement: 240.5, bottom: 120.5 },
+        { name: 'fractional margins and zero extraWhite', page: { ...layout.page, marginTop: 37.5, marginBottom: 62.5, pageGap: 18.25 }, displacement: 118.25, bottom: 62.5 }
+    ];
+    const matrix = (['linear-widget', 'manual-spacer', 'table-row-spacer'] as const)
+        .flatMap(renderer => cases.map(testCase => ({ renderer, ...testCase })));
+    it.each(matrix)('B1 declarations: $renderer / $name', ({ renderer, page, displacement, bottom }) => {
+        const config: LayoutConfig = { ...layout, page };
+        const totalGap = page.marginBottom + page.pageGap + page.marginTop;
+        const decision: BreakDecision = {
+            status: 'accepted', origin: renderer === 'manual-spacer' ? 'manual' : 'automatic',
+            pos: 10, effectiveDisplacement: displacement, reasons: ['fixture_reason'], renderer, colspan: 2
+        };
+        const omitted = createDecorationFromDecision(decision, config, totalGap, doc);
+        const legacy = createDecorationFromDecision(decision, config, totalGap, doc, 'legacy');
+        const composed = createDecorationFromDecision(decision, config, totalGap, doc, 'composed');
+        const index = renderer === 'table-row-spacer' ? 1 : 0;
+        const oldRoot = widgetDOM(legacy[index]);
+        const newRoot = widgetDOM(composed[index]);
+        expect(widgetDOM(omitted[index]).outerHTML).toBe(oldRoot.outerHTML);
+        expect(withoutPaint(newRoot)).toBe(withoutPaint(oldRoot));
+        expectEdgeBorders(oldRoot, 'legacy');
+        expectEdgeBorders(widgetDOM(omitted[index]), 'legacy');
+        expectComposedPaintContract(newRoot);
+        expect(composed).toHaveLength(legacy.length);
+        for (let i = 0; i < composed.length; i++) {
+            expect(composed[i].from).toBe(legacy[i].from);
+            expect(composed[i].to).toBe(legacy[i].to);
+            expect(composed[i].spec).toEqual(legacy[i].spec);
+        }
+        if (renderer === 'table-row-spacer') {
+            const attrs = (composed[0] as unknown as { type: { attrs: Record<string, string> } }).type.attrs;
+            expect(attrs).toEqual((legacy[0] as unknown as { type: { attrs: unknown } }).type.attrs);
+            expect(attrs.style).toBe(`--page-break-gap: ${displacement}px;`);
+            expect(newRoot.style.top).toBe(`-${displacement}px`);
+        } else {
+            expect(newRoot.getAttribute('data-displacement')).toBe(`${displacement}`);
+        }
+        const [pageBottom, gap, pageTop] = Array.from(newRoot.children) as HTMLElement[];
+        expect(newRoot.style.height).toBe(`${displacement}px`);
+        expect(pageBottom.style.height).toBe(`${bottom}px`);
+        expect(pageBottom.style.top).toBe('0px');
+        expect(gap.style.top).toBe(`${bottom}px`);
+        expect(gap.style.height).toBe(`${page.pageGap}px`);
+        expect(pageTop.style.height).toBe(`${page.marginTop}px`);
+        expect(pageTop.style.bottom).toBe('0px');
+        for (const node of [newRoot, pageBottom, gap, pageTop]) {
+            expect(node.style.padding).toBe('');
+            expect(node.style.boxSizing).toBe('');
+        }
+        // Style/DOM checks only: no simulated rect/client/offset measurement.
+    });
+
 });

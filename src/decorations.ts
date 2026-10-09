@@ -34,6 +34,8 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
             pageBottom.style.background = 'white'
             pageBottom.style.borderBottom = '1px solid #ccc'
             pageBottom.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+        } else {
+            pageBottom.style.borderBottom = '1px solid transparent'
         }
         visualLayer.appendChild(pageBottom)
         
@@ -56,6 +58,8 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
             pageTop.style.background = 'white'
             pageTop.style.borderTop = '1px solid #ccc'
             pageTop.style.boxShadow = '0 -1px 3px rgba(0,0,0,0.1)'
+        } else {
+            pageTop.style.borderTop = '1px solid transparent'
         }
         visualLayer.appendChild(pageTop)
         
@@ -92,6 +96,8 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
         pageBottom.style.background = 'white'
         pageBottom.style.borderBottom = '1px solid #ccc'
         pageBottom.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+    } else {
+        pageBottom.style.borderBottom = '1px solid transparent'
     }
     widget.appendChild(pageBottom)
     
@@ -114,6 +120,8 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
         pageTop.style.background = 'white'
         pageTop.style.borderTop = '1px solid #ccc'
         pageTop.style.boxShadow = '0 -1px 3px rgba(0,0,0,0.1)'
+    } else {
+        pageTop.style.borderTop = '1px solid transparent'
     }
     widget.appendChild(pageTop)
     

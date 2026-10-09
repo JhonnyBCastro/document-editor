@@ -112,7 +112,9 @@ export type PaginationOptions = {
      * Defaults to legacy. Fixed for the controller lifetime; later option mutations
      * do not switch modes. Unknown values are rejected without fallback.
      * Composed suppresses Core documentary paint while preserving geometry and
-     * consumer styles. It rejects any defined chromeLayerElement and does not
+     * consumer styles. The bottom/top decorative edges retain 1px solid borders
+     * with transparent color in composed mode as geometric contributions (B1).
+     * It rejects any defined chromeLayerElement and does not
      * provide document composition, automatic insets, or Presentation mounting.
      */
     visualMode?: PaginationVisualMode;
