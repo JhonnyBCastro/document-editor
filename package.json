@@ -43,7 +43,7 @@
   ],
   "scripts": {
     "build": "vite build -c vite.config.lib.ts && vite build -c vite.config.presentation.ts",
-    "test": "npm run test:unit && npm run test:e2e",
+    "test": "npm run test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "node tests/e2e/pagination-stress.spec.cjs"

@@ -1,26 +1,33 @@
-# Arquitetura
+# Arquitetura vigente
 
-O `document-editor` baseia-se na separação total entre o **Documento Semântico** e a **Paginação Visual** (abordagem batizada de "Rota B" nos experimentos históricos).
+Corte documental:12/10/2026. Separação entre documento semântico contínuo e paginação visual (“Rota B”). Não substituir ADRs/releases históricos por este estado vigente.
 
-## Paginação por Decorations
-A extensão avalia geometricamente o documento montado no DOM pelo navegador. Utilizando os tamanhos reais dos elementos (`offsetHeight`, `getClientRects`), o `PaginationController` fragmenta o layout inserindo **Decorations do ProseMirror**.
-Para o texto linear (parágrafos), utiliza `Decoration.widget` para inserir o espaço em branco da quebra (`div`).
-Para as tabelas, utiliza **também `Decoration.widget`**, mas injetando um elemento `<tr>` virtual contendo um `<td>` e a classe `virtual-page-spacer` entre as linhas reais da tabela. O espaçador aumenta o deslocamento visual sem corromper a tabela, suportando `colspan` adaptado à largura da tabela. Não quebra células intralinha (como `rowspan` ou textos gigantes).
+## Responsabilidades
 
-## O Controlador (`PaginationController`)
-- **Separação do Schema Manual:** A definição semântica do nó manual pertence ao schema (ProseMirror Node) do consumidor. A identificação desse nó pelo Controlador é meramente configurável (via `manualBreakNodeName`), garantindo que o document-editor atue apenas orquestrando políticas visuais, e delegando a responsabilidade de persistência e extensão propriamente dita ao dono do projeto.
-- **Regras de Progresso e lastBreakPos:** A regra atesta que uma fronteira escolhida pode recuar em relação ao cursor geométrico que encontrou o overflow (por exemplo, retrocedendo a linha para não quebrar uma viúva/órfã ou retrocedendo para o início da tabela), **desde que avance em relação à última quebra confirmada (`lastBreakPos`)**. Se não avançar, o algoritmo avança forçadamente para evitar loops infinitos.
-- **whenLayoutStable:** Promise central para notificar aos consumidores e testes quando a paginação terminar as operações em idle.
-- **Isolamento de Contêineres (ChromeLayer):** A projeção de cabeçalhos e rodapés de cada página é feita em uma camada sobreposta independente. Para manter estrito isolamento arquitetural e preparar a evolução para instâncias simultâneas no futuro (suporte não certificado atualmente), o `PaginationController` instancia autonomamente o contêiner DOM (`.document-editor-chrome-layer`) em escopo restrito à sua hierarquia do host, sem fazer uso de IDs globais, garantindo desconstrução segura no ciclo `destroy()`.
+Core mede DOM (`getClientRects`, `offsetHeight` e coordenadas), avalia políticas/quebras e produz LayoutSnapshot/projeções e Decorations. O consumidor fornece schema/content/UI e significado do nó manual configurável. Quebras tabulares usam espaçadores nas fronteiras de linhas, sem fragmentação intralinha suportada.
 
-## Print Contract (`preparePrintSession` / `restore`)
-Para compatibilidade com exportadores do navegador (PDF via print), a biblioteca exporta a API `preparePrintSession`. A sequência realizada é:
-1. Preservação da configuração `LayoutConfig` original.
-2. Preparação do layout de impressão neutralizando as margens inter-páginas (`pageGap = 0`).
-3. Adição do efeito global `document.body.classList.add('print-mode')`.
-4. Iniciação do `reflow` forçado com a nova configuração.
-5. Espera pela estabilização da paginação (`await controller.whenLayoutStable()`).
-6. Disponibilização do `LayoutSnapshot` final.
-7. O consumidor realiza a impressão, e em seguida chama `restore()`, que revoga a classe global e restaura as dimensões da configuração original.
+Presentation é entrada independente: pinta sheets/running content a partir do snapshot no host coordenado, com render/clear/destroy e disposers locais. Não calcula paginação, não cria Editor, não promete editor integrado. Integração oficial deverá definir fonte de layout, ownership, insets, atualização, estabilidade e descarte; permanece planejada. Consumidor experimental não equivale a factory/bridge pública pronta.
 
-> **Importante:** O consumidor não deverá interpretar `preparePrintSession` como um serviço que gera o PDF diretamente. A biblioteca prepara o layout visual; a exportação propriamente dita pertence ao navegador ou adaptador externo. A exportação oficial institucional backend continua utilizando o formato OpenPDF a partir do JSON semântico isolado.
+## Legacy/default e composto opt-in
+
+`visualMode` é seleção explícita e fixa. Omissão=legacy preserva chrome/pintura histórica; host externo chromeLayerElement continua opção legado. Composed rejeita esse host, não cria chrome legado e não escreve pintura documental do Core nos estilos do consumidor. Mantém os mecanismos geométricos e quatro arestas decorativas1px/solid com cor transparente (B1), em vez de retirar contribuição de borda. Linear/manual/tabular, nós/dimensões/metadados/compensações não receberam redesign.
+
+Composed não fornece sozinho folha/insets/rolagem ou running content pronto. Presentation deve ser montada e coordenada pelo consumidor segundo contratos próprios; automação de insets, atualização pública e composição/print oficial permanecem pendentes.
+
+## Estabilidade e atualização
+
+Correção mínima: scheduleRender libera renderTimeout=null quando o callback é consumido, antes de renderVirtualPages; debounce100ms existente preservado. Promessas/callbacks representam conclusão local da rodada. Não são garantia de geometria permanente ou de todos os eventos de alteração de layout.
+
+O plugin agenda por tamanho de conteúdo/metadado de configuração. Mudança sem diferença de tamanho pode alterar medidas e não ser coberta por esse trigger. Há fonts.ready/frame cuja cobertura integral de cancelamento não é demonstrada. Não ampliar scheduler/triggers/políticas/snapshot nesta consolidação.
+
+## Lifecycle e impressão
+
+Core cria/descarta somente chrome próprio no legado e trata host externo sem apropriar filhos do consumidor. Presentation descarta recursos de render/disposers e host interno; host externo e Editor têm coordenação a cargo do consumidor. Cleanup de uma campanha não demonstra descarte completo de toda combinação de instâncias.
+
+preparePrintSession altera layout temporário e classe global document.body, conserva lock até restore e devolve snapshot; host realiza impressão. Dependência global limita multi-instância. Impressão composta oficial não foi validada; PDF institucional e motor do browser não têm equivalência geométrica garantida.
+
+## Produto, exemplos e evidências
+
+src/configs e testesunit/fixtures constituem produto. Exemplos legacyRC4 e Presentation sintética são demonstrações delimitadas, não distribuição da working tree consolidada. E2E/artefatos/ADRs/releases permanecem históricos com seus alcances; governança extensa, materiais de campanha e auxiliares são externos, não dependência de runtime.
+
+Exports Core/CSS/Presentation/CSS e tipos preservados; files=dist. Code/tgz antigos ou deps do Lab não são copiados como emissão nova. Externals protegidos não abrangem todo subpath PM/tables: não afirmar singleton global ou grafo runtime certificado. [Proveniência](provenance.md) e [backlog](backlog.md) identificam mudanças e pendências.

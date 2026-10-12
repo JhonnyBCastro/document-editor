@@ -1,8 +1,8 @@
 // src/pagination/decorations.ts
 import { Decoration } from '@tiptap/pm/view';
-import { BreakDecision, LayoutConfig } from './types';
+import { BreakDecision, LayoutConfig, PaginationVisualMode } from './types';
 
-export function createDecorationFromDecision(b: BreakDecision, layout: LayoutConfig, totalGapSize: number, doc: any): Decoration[] {
+export function createDecorationFromDecision(b: BreakDecision, layout: LayoutConfig, totalGapSize: number, doc: any, visualMode: PaginationVisualMode = 'legacy'): Decoration[] {
     if (b.renderer === 'table-row-spacer') {
         const trNode = doc.nodeAt(b.pos);
         const trSize = trNode ? trNode.nodeSize : 0;
@@ -30,9 +30,13 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
         pageBottom.style.top = '0'
         pageBottom.style.width = '100%'
         pageBottom.style.height = `${layout.page.marginBottom + extraWhite}px`
-        pageBottom.style.background = 'white'
-        pageBottom.style.borderBottom = '1px solid #ccc'
-        pageBottom.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+        if (visualMode === 'legacy') {
+            pageBottom.style.background = 'white'
+            pageBottom.style.borderBottom = '1px solid #ccc'
+            pageBottom.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+        } else {
+            pageBottom.style.borderBottom = '1px solid transparent'
+        }
         visualLayer.appendChild(pageBottom)
         
         const gap = document.createElement('div')
@@ -40,7 +44,9 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
         gap.style.top = `${layout.page.marginBottom + extraWhite}px`
         gap.style.width = '100%'
         gap.style.height = `${layout.page.pageGap}px`
-        gap.style.background = '#eee'
+        if (visualMode === 'legacy') {
+            gap.style.background = '#eee'
+        }
         visualLayer.appendChild(gap)
         
         const pageTop = document.createElement('div')
@@ -48,9 +54,13 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
         pageTop.style.bottom = '0'
         pageTop.style.width = '100%'
         pageTop.style.height = `${layout.page.marginTop}px`
-        pageTop.style.background = 'white'
-        pageTop.style.borderTop = '1px solid #ccc'
-        pageTop.style.boxShadow = '0 -1px 3px rgba(0,0,0,0.1)'
+        if (visualMode === 'legacy') {
+            pageTop.style.background = 'white'
+            pageTop.style.borderTop = '1px solid #ccc'
+            pageTop.style.boxShadow = '0 -1px 3px rgba(0,0,0,0.1)'
+        } else {
+            pageTop.style.borderTop = '1px solid transparent'
+        }
         visualLayer.appendChild(pageTop)
         
         const widgetDeco = Decoration.widget(b.pos + 2, visualLayer, {
@@ -69,7 +79,9 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
     widget.setAttribute('data-displacement', b.effectiveDisplacement.toString())
     widget.style.height = `${b.effectiveDisplacement}px` 
     widget.style.width = '100%'
-    widget.style.background = 'transparent'
+    if (visualMode === 'legacy') {
+        widget.style.background = 'transparent'
+    }
     widget.style.position = 'relative'
     widget.style.marginLeft = `-${layout.page.marginLeft}px`
     widget.style.marginRight = `-${layout.page.marginRight}px`
@@ -80,9 +92,13 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
     pageBottom.style.top = '0'
     pageBottom.style.width = '100%'
     pageBottom.style.height = `${layout.page.marginBottom + extraWhite}px`
-    pageBottom.style.background = 'white'
-    pageBottom.style.borderBottom = '1px solid #ccc'
-    pageBottom.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+    if (visualMode === 'legacy') {
+        pageBottom.style.background = 'white'
+        pageBottom.style.borderBottom = '1px solid #ccc'
+        pageBottom.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+    } else {
+        pageBottom.style.borderBottom = '1px solid transparent'
+    }
     widget.appendChild(pageBottom)
     
     const gap = document.createElement('div')
@@ -90,7 +106,9 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
     gap.style.top = `${layout.page.marginBottom + extraWhite}px`
     gap.style.width = '100%'
     gap.style.height = `${layout.page.pageGap}px`
-    gap.style.background = '#eee'
+    if (visualMode === 'legacy') {
+        gap.style.background = '#eee'
+    }
     widget.appendChild(gap)
     
     const pageTop = document.createElement('div')
@@ -98,9 +116,13 @@ export function createDecorationFromDecision(b: BreakDecision, layout: LayoutCon
     pageTop.style.bottom = '0'
     pageTop.style.width = '100%'
     pageTop.style.height = `${layout.page.marginTop}px`
-    pageTop.style.background = 'white'
-    pageTop.style.borderTop = '1px solid #ccc'
-    pageTop.style.boxShadow = '0 -1px 3px rgba(0,0,0,0.1)'
+    if (visualMode === 'legacy') {
+        pageTop.style.background = 'white'
+        pageTop.style.borderTop = '1px solid #ccc'
+        pageTop.style.boxShadow = '0 -1px 3px rgba(0,0,0,0.1)'
+    } else {
+        pageTop.style.borderTop = '1px solid transparent'
+    }
     widget.appendChild(pageTop)
     
     return [Decoration.widget(b.pos, widget, { 

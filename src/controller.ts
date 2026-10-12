@@ -2,7 +2,7 @@
 import { EditorView } from '@tiptap/pm/view';
 import { DecorationSet } from '@tiptap/pm/view';
 import { TableMap } from '@tiptap/pm/tables';
-import { BreakCandidate, BreakDecision, LayoutConfig, LayoutSnapshot, LayoutDiagnostic } from './types';
+import { BreakCandidate, BreakDecision, LayoutConfig, LayoutSnapshot, LayoutDiagnostic, PaginationVisualMode } from './types';
 import { getVisualLines } from './measurement';
 import { evaluateLinearPolicies, evaluateTablePolicies, checkProgressRule } from './policies';
 import { createDecorationFromDecision } from './decorations';
@@ -19,29 +19,39 @@ export class PaginationController {
     private stableListeners: Array<(snapshot: LayoutSnapshot) => void> = [];
     private revision: number = 0;
     private manualBreakNodeName: string;
-    private chromeLayer: HTMLElement;
+    private chromeLayer?: HTMLElement;
+    private readonly visualMode: PaginationVisualMode;
     private originalParentPosition?: string;
     
-    constructor(view: EditorView, layout: LayoutConfig, onLayoutStable?: (snapshot: LayoutSnapshot) => void, manualBreakNodeName: string = 'pageBreak', chromeLayerElement?: HTMLElement) {
+    constructor(view: EditorView, layout: LayoutConfig, onLayoutStable?: (snapshot: LayoutSnapshot) => void, manualBreakNodeName: string = 'pageBreak', chromeLayerElement?: HTMLElement, visualMode: PaginationVisualMode = 'legacy') {
+        if (visualMode !== 'legacy' && visualMode !== 'composed') {
+            throw new TypeError('Invalid pagination visualMode: expected legacy or composed.');
+        }
+        if (visualMode === 'composed' && chromeLayerElement !== undefined) {
+            throw new TypeError('chromeLayerElement is not allowed in composed visualMode.');
+        }
+        this.visualMode = visualMode;
         this.view = view;
         this.layout = layout;
         this.onLayoutStable = onLayoutStable;
         this.manualBreakNodeName = manualBreakNodeName;
         
-        this.chromeLayer = document.createElement('div');
-        this.chromeLayer.className = 'document-editor-chrome-layer';
+        if (this.visualMode === 'legacy') {
+            this.chromeLayer = document.createElement('div');
+            this.chromeLayer.className = 'document-editor-chrome-layer';
         
-        if (chromeLayerElement) {
-            chromeLayerElement.appendChild(this.chromeLayer);
-        } else {
-            const parent = this.view.dom.parentElement;
-            if (parent) {
-                const style = window.getComputedStyle(parent);
-                if (style.position === 'static') {
-                    this.originalParentPosition = parent.style.position;
-                    parent.style.position = 'relative';
+            if (chromeLayerElement) {
+                chromeLayerElement.appendChild(this.chromeLayer);
+            } else {
+                const parent = this.view.dom.parentElement;
+                if (parent) {
+                    const style = window.getComputedStyle(parent);
+                    if (style.position === 'static') {
+                        this.originalParentPosition = parent.style.position;
+                        parent.style.position = 'relative';
+                    }
+                    parent.insertBefore(this.chromeLayer, this.view.dom);
                 }
-                parent.insertBefore(this.chromeLayer, this.view.dom);
             }
         }
     }
@@ -77,7 +87,10 @@ export class PaginationController {
     
     public scheduleRender() {
         if (this.renderTimeout) clearTimeout(this.renderTimeout);
-        this.renderTimeout = setTimeout(() => this.renderVirtualPages(), 100);
+        this.renderTimeout = setTimeout(() => {
+            this.renderTimeout = null;
+            this.renderVirtualPages();
+        }, 100);
     }
     
     public destroy() {
@@ -376,7 +389,7 @@ export class PaginationController {
         }
         
         if (changed) {
-            const decos = breaks.flatMap(b => createDecorationFromDecision(b, this.layout, totalGapSize, this.view.state.doc));
+            const decos = breaks.flatMap(b => createDecorationFromDecision(b, this.layout, totalGapSize, this.view.state.doc, this.visualMode));
             this.currentDecorations = DecorationSet.create(this.view.state.doc, decos);
             this.view.dispatch(this.view.state.tr.setMeta('pagination', true));
             this.revision++;
@@ -387,8 +400,10 @@ export class PaginationController {
             updateChromeLayer(this.chromeLayer, projections, this.layout);
         }
         
-        editorEl.style.background = 'white';
-        editorEl.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
+        if (this.visualMode === 'legacy') {
+            editorEl.style.background = 'white';
+            editorEl.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
+        }
         
         const snapshot: LayoutSnapshot = {
             revision: this.revision,

@@ -1,187 +1,55 @@
 # document-editor
 
-A hybrid, non-destructive visual pagination extension for Tiptap and ProseMirror.
+Biblioteca de paginação visual de documento contínuo para Tiptap/ProseMirror. O JSON semântico permanece separado das quebras visuais. Core e Presentation são entradas independentes.
 
-## Product Overview
-`document-editor` is a TypeScript library that provides visual pagination for continuous documents rendered in the browser. It projects pages into a fixed format (e.g., US Letter by default) based on configurable layouts.
+## Identidade e distribuição
 
-The core architectural principle of this library is **semantic isolation**: the underlying document structure (JSON/AST) remains continuous and untouched by the pagination logic. Automatic visual page breaks are calculated dynamically based on browser geometry and injected as transient ProseMirror `Decorations`. 
+Nome: `@jhonny_bcastro/document-editor`. Versão declarada: **0.1.0-rc.4**. A working tree incorpora os deltas de estabilidade, seleção de pintura e B1 descritos em [proveniência](docs/provenance.md); não representa uma nova publicação, RC.5 ou homologação.
 
-This library explicitly distinguishes between:
-- **Automatic visual page breaks**: Transient spacer widgets calculated on the fly.
-- **Manual page breaks**: Semantic nodes owned and persisted by the consumer's schema.
+Os tarballs RC.2/3/4 existentes são distribuições históricas locais; seus bytes não são uma emissão da working tree consolidada. O estado remoto/npm atual não foi consultado nesta consolidação. Instale um artefato identificado pela sua distribuição e use um conjunto compatível de Tiptap/PM; não copie `node_modules` de consumidores experimentais. A declaração de peers aceita majors 2/3; os ensaios de referência não certificam todas as versões ou singleton global.
 
-> **Note:** This library is not a complete WYSIWYG editor, a backend persistence service, or a server-side PDF generator.
+## Entradas públicas
 
-## Features
-- **Non-destructive visual pagination**: Preserves your semantic document tree.
-- **Page projection**: Configurable layout boundaries.
-- **Manual PageBreak recognition**: Integrates with your existing schema.
-- **Consecutive & Starting breaks**: Supports consecutive manual breaks and breaks at the very beginning of the document.
-- **Tabular pagination on row boundaries**: Safely breaks tables between `<tr>` elements using virtual row spacers (note: this is not full table virtualization).
-- **Virtual headers/footers**: Maintains visual structure across projected pages.
-- **Layout Stabilization notification**: Exposes hooks and promises to detect when the layout finishes calculating.
-- **Print session management**: Prepares and restores the document for browser-based printing.
-- **Isolated ChromeLayer mounting**: Automatically injects visual page boundaries independent of the semantic DOM, or allows custom container assignment.
+```ts
+import { PaginationExtension, whenLayoutStable, preparePrintSession } from '@jhonny_bcastro/document-editor';
+import type { LayoutSnapshot, PaginationVisualMode } from '@jhonny_bcastro/document-editor';
+import '@jhonny_bcastro/document-editor/style.css';
 
-## Installation
-The current version (`0.1.0-rc.2`) is distributed as a local tarball. 
-
-**Requirements:**
-- A modern bundler (Vite, Webpack, etc.).
-- Peer dependencies: `@tiptap/core` and `@tiptap/pm` (v2 or v3).
-
-```bash
-npm install ./jhonny_bcastro-document-editor-0.1.0-rc.2.tgz
+import { createDocumentPresentation } from '@jhonny_bcastro/document-editor/presentation';
+import '@jhonny_bcastro/document-editor/presentation.css';
 ```
 
-> **Note**: This repository is currently private. The links to the repository, bugs, and homepage are not accessible to the public yet.
+Core oferece extensão, snapshots e preparação de impressão. Presentation consome snapshots para pintar superfícies/header/footer; não cria Editor nem schema. O consumidor fornece schema, conteúdo, DOM, UI e coordenação de montagem. Detalhes em [API](docs/api.md) e [arquitetura](docs/architecture.md).
 
-## Quick Start
-Initialize your Tiptap Editor by passing the `PaginationExtension`. The library relies on its CSS for geometry, so the stylesheet must be explicitly imported.
+## Seleção de pintura
 
-```typescript
-import { Editor } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
-import { PaginationExtension } from '@jhonny_bcastro/document-editor';
-import '@jhonny_bcastro/document-editor/style.css'; // Mandatory for geometry calculations
+`PaginationExtension.configure({ visualMode: 'legacy' })` preserva o comportamento legado. Omissão equivale a `legacy`. `visualMode: 'composed'` é opt-in e fixo durante a instância: Core deixa de produzir pintura documental/chrome legado, conserva geometria e estilos do consumidor e mantém as arestas decorativas B1 de 1px solid transparent. Valor inválido ou `chromeLayerElement` definido no composto é rejeitado sem fallback.
 
-const element = document.querySelector('#editor');
+Composto sozinho não monta um documento pronto: factory/bridge oficial, insets automáticos, atualização suportada e impressão composta permanecem pendentes. Não mude opções de uma instância esperando troca de modo; crie outra instância respeitando o lifecycle.
 
-if (element) {
-  const editor = new Editor({
-    element,
-    extensions: [
-      StarterKit,
-      PaginationExtension.configure() // Uses defaults
-    ]
-  });
-}
-```
+## Exemplos existentes
 
-## Manual Page Breaks
-The `manualBreakNodeName` option allows you to bind the pagination engine to your existing semantic page break node (default is `'pageBreak'`). 
+- `examples/vanilla-consumer`: editor/schema/PageBreak, modo legado, dependência no tarball **RC.4 histórico**, Tiptap2.27.3. Não é exemplo ligado automaticamente ao código consolidado.
+- `examples/presentation-consumer`: renderização de **snapshot sintético**, sem editor integrado. Importa o pacote, mas seu manifesto não declara a dependência local instalada: reprodução autônoma permanece pendente.
+- `examples/vanilla-consumer.bak`: histórico Tiptap3/file:root; package/lock diferem do exemplo ativo. Não usar como fallback de instalação.
 
-**Important:** The library recognizes this identifier, but it **does not** automatically register the ProseMirror Node extension for you. You must register your own node extension in Tiptap.
+As árvores/tarballs foram preservados. Não existe nesta entrega comando de lançamento composto oficial ou sessão browser aprovada.
 
-```typescript
-import { Node } from '@tiptap/core';
-import { Editor } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
-import { PaginationExtension } from '@jhonny_bcastro/document-editor';
+## Verificações separadas
 
-// 1. The host defines its own semantic node for manual breaks.
-const CustomPageBreak = Node.create({
-  name: 'myCustomBreak',
-  group: 'block',
-  parseHTML() { return [{ tag: 'hr.page-break' }] },
-  renderHTML() { return ['hr', { class: 'page-break' }] },
-});
+| Comando | Alcance/pré-requisito |
+|---|---|
+| `npm test` | Agora executa **somente** `npm run test:unit`; deixou de encadear E2E/browser. |
+| `npm run test:unit` | Vitest/JSDOM, regressões unitárias; não comprova geometria/pintura reais. |
+| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json` | Tipos Core no ambiente instalado. |
+| `node node_modules/typescript/bin/tsc --noEmit --emitDeclarationOnly false -p tsconfig.presentation.json` | Tipos Presentation, sem emissão. |
+| `npm run build` | Build técnico Vite Core + Presentation; separado de testes e distribuição. |
+| `npm run test:e2e` | Runner histórico de stress com Puppeteer, fixtures e servidor consumidor próprio em8543; requer decisão/ambiente browser separados. |
 
-// 2. Configure the extension to listen to your custom node.
-const element = document.querySelector('#editor');
+Não execute os runners `run*.sh` para preparar ambiente: contêm paths locais e encerramento por porta. O E2E histórico grava resultados na raiz e mede diferença de comprimento JSON, não igualdade semântica completa; catch pode não propagar falha. Esses limites não foram alterados para obter aprovação. Comandos de build/servidor/browser/instalação não foram executados por esta consolidação.
 
-if (element) {
-  const editor = new Editor({
-    element,
-    extensions: [
-      StarterKit,
-      CustomPageBreak,
-      PaginationExtension.configure({
-        manualBreakNodeName: 'myCustomBreak'
-      })
-    ]
-  });
-}
-```
+## Estado e limites
 
-## Layout Stabilization
-Calculating page breaks requires DOM layout reads, which are batched using `requestAnimationFrame`.
-You can wait for the engine to finish settling the layout using `whenLayoutStable` or the `onLayoutStable` configuration option.
+Compatibilidade histórica em Tiptap2.27.3/3.31.3 é delimitada, não garantia universal. Atualização por edição de mesmo tamanho, fontes/scroll, multi-instância, impressão composta, integração oficial e uso visual arbitrário permanecem com limites. Gate Vanilla não homologado. Pendências experimentais e anomalias de Presentation não foram corrigidas pela organização do código.
 
-```typescript
-import { whenLayoutStable } from '@jhonny_bcastro/document-editor';
-
-// Returns a Promise<LayoutSnapshot>
-const snapshot = await whenLayoutStable(editor);
-console.log('Total pages:', snapshot.pages.length);
-```
-
-*Note:* Stabilization means that the pagination engine has no pending reflows. It does not guarantee exact geometrical fidelity between the browser's visual pagination and PDFs produced by external server-side rendering engines, nor does it guarantee permanent stability if the host subsequently mutates fonts, images, or DOM containers.
-
-## Pagination Widgets vs ChromeLayer
-It is crucial to distinguish between the two layers of visual intervention:
-1. **Pagination Widgets**: These are transient ProseMirror `Decorations` (linear spacers or tabular row spacers) injected directly into the editor's DOM to push content vertically down.
-2. **ChromeLayer (`.document-editor-chrome-layer`)**: A sibling/underlay `div` element created by the library. This layer is strictly responsible for rendering the visual page backgrounds, box shadows, and virtual headers/footers.
-
-- **Host Ownership**: The host is responsible for the CSS positioning and styling of the outer container. 
-- **Library Ownership**: The library creates and destroys only its internal `.document-editor-chrome-layer`.
-- **Custom Mounting**: You can supply a custom container via the `chromeLayerElement` configuration option.
-
-## Print Session
-The library provides an asynchronous `preparePrintSession` utility that prepares the DOM for browser printing (e.g., neutralizing page gaps) and provides a `restore` callback.
-
-```typescript
-import { preparePrintSession } from '@jhonny_bcastro/document-editor';
-
-// 1. Prepare the layout for printing
-const session = await preparePrintSession(editor);
-
-try {
-  // 2. The host is strictly responsible for controlling the print lifecycle.
-  // Example of a host-implemented function (not provided by this library):
-  // Implemented by the consuming application, not document-editor.
-  declare function hostControlledPrintFlow(): Promise<void>;
-  
-  await hostControlledPrintFlow();
-} finally {
-  // 3. Always restore the layout after the print lifecycle concludes.
-  await session.restore();
-}
-```
-*Note:* This routine explicitly applies a global `print-mode` CSS class to `document.body` and modifies the editor layout. Consequently, the library imposes a strict lock: the lock `isPreparingPrint` becomes active upon preparation and remains active until `restore()` is called. Invoking `preparePrintSession` concurrently will throw an error. This routine does not directly generate PDF files.
-
-## How Pagination Works
-The engine follows a linear pipeline:
-1. **Semantic Document**: The raw content is structurally continuous.
-2. **Geometrical Measurement**: The engine probes the DOM nodes' bounding rects.
-3. **Decisions**: It calculates boundaries based on the configured page height.
-4. **Projection**: It generates virtual pages and virtual table spacers.
-5. **Decorations**: It applies non-destructive `Decorations` to push content vertically down.
-
-## Configuration Reference
-
-| Option | Type | Default Value | Description |
-|---|---|---|---|
-| `layout.page` | `Object` | `{ width: 816, height: 1056, marginTop: 96, marginRight: 96, marginBottom: 96, marginLeft: 96, pageGap: 20 }` | Page geometry in pixels (US Letter @ 96 DPI by default). |
-| `layout.policies` | `Object` | `{ keepWithNext: true, widowOrphan: true, minLinesBeforeBreak: 2, minLinesAfterBreak: 2, keepWithNextMinLines: 2 }` | Typographic control policies. |
-| `layout.runningContent` | `Object` | `{ header: { enabled: false, text: '', align: 'center' }, footer: { enabled: true, text: 'Página {page} de {total}', align: 'right' }, differentFirstPage: false }` | Header and footer configuration. |
-| `onLayoutStable` | `Function` | `undefined` | Callback invoked whenever the layout settles. |
-| `manualBreakNodeName` | `string` | `'pageBreak'` | The Tiptap node name representing semantic manual breaks. |
-| `chromeLayerElement` | `HTMLElement` | `undefined` | Optional external container to host the visual page backgrounds. |
-
-## Known Limitations
-- **Single-instance**: While the ChromeLayer possesses isolated ownership per editor instance, multi-instance usage is not officially validated. Supporting simultaneous editors falls outside the current contract, primarily due to the global DOM mutations triggered during printing (`.print-mode`).
-- **DOM Dependency**: Heavily relies on the Browser DOM font engine and CSS geometry; No Server-Side Rendering (SSR) support.
-- **Intrarow Fragmentation**: Complex tables with extremely tall `<tr>` elements cannot be split mid-row. Emits `TABLE_INTRAROW_UNSUPPORTED` diagnostics.
-- **Render Differences**: There is no guarantee of exact geometric fidelity between the browser's visual pagination and external PDF engines.
-
-## Compatibility and Testing
-Verified reference versions:
-- Tiptap `2.27.3`
-- Tiptap `3.31.3`
-
-The library possesses internal unit and end-to-end integration tests via Puppeteer.
-As an example of its capability, the isolated validation fixture `PE-L` successfully paginates a continuous block of 151 tabular `DataRows` across 10 virtual pages, injecting 7 automatic breaks and 6 tabular spacers. 
-*Note: Successful execution on these reference versions does not implicitly certify all minor variations across the two majors.*
-
-## Architecture and Design Decisions
-For more details on why the library separates structural and visual concerns, and why it manages its own DOM layer, please consult the Architectural Decision Records (ADRs) available in the repository:
-- [Architecture Overview](docs/architecture.md)
-- [ADR-002: Product Independence](docs/decisions/ADR-002-product-independence.md)
-- [ADR-003: Host DOM Ownership](docs/decisions/ADR-003-host-dom-ownership.md)
-
-## License and Project Status
-**Version:** Release Candidate `0.1.0-rc.2`
-**Status:** Local tarball distribution. 
-**License:** MIT License
+Leia [limitações](docs/limitations.md), [backlog](docs/backlog.md) e o [índice de consolidação](docs/consolidation/CANONICAL-CONSOLIDATION-001.md). ADRs/releases preservam suas datas e alcances históricos. Licença MIT.
