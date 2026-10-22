@@ -1,29 +1,36 @@
-# Backlog vigente
+# Backlog
 
-Corte12/10/2026. Versão declaradaRC4, working tree de consolidação não publicada. RelatosRC1/RC2, ADRs e releases são históricos; resultados delimitados não equivalem a ausência de pendências críticas ou certificação universal.
+Estado documental da linha `dev/cons014-composed-20261022`, referência `1962cdbb3456cc989b064017137d48a8df143d3d`. Esta lista separa implementação, evidência e trabalho futuro; não reabre automaticamente decisões encerradas.
 
-## Implementado no escopo selecionado
+## Implementado
 
-- Liberação do handle renderTimeout ao consumir callback, preservando debounce; regressões core-stability.
-- visualMode legacy/composed, defaultlegacy, validação sem fallback, seleção fixa e rejeição de chromeLayerElement no composto.
-- B1: quatro arestas geométricas1px/solid transparent em composed, sem mudança de dimensões/compensações; regressões paint-mode.
-- Fluxo de testes separado: npm test agoraunit apenas; E2E/build explícitos. Verificações próprias da integração e seus resultados são registrados externamente, sem promessa de sucesso antes de ocorrerem.
+- Core/Presentation separados e modo único `composed`; rejeição de outros modos e remoção de `chromeLayerElement`.
+- Ownership transacional de decorações no plugin, bridge interna e remapeamento.
+- Recorrência de capacidade e validação de carriers/decisões estruturais.
+- Reatividade por tamanho/estrutura e sinal de configuração, com os limites descritos na [API](api.md).
+- Live Demo independente dos consumidores removidos, com texto linear, títulos e edição; cenários tabulares explicitamente indisponíveis.
+- Linha de desenvolvimento consolidada localmente e enviada ao remoto, preservando a proveniência canônica e experimental.
 
-## Prioridades pendentes de produto
+## Observado com validação limitada
 
-1. Contrato e implementação de composição oficial: factory/bridge, ownership/insets/layout único, atualização suportada, estabilidade e descarte. Consumidor experimental não cumpre esse marco por existência.
-2. Cobertura de mudanças de conteúdo de mesmo tamanho, fontes/rolagem e lifecycle; estudar somente mediante decisão própria. Não redesenhar scheduler por arrumação de repositório.
-3. Experiência visual e alcance de conteúdo/multipágina, anomalias de Presentation/tabelas/transições: causas abertas. Homologação/interação e Gate Vanilla pendentes.
-4. Print composto e multi-instância, incluindo efeitos globais e cancelamento/disposers.
-5. Instalação reprodutível dos exemplos atuais, separados de RC4 histórico/snapshot sintético; resolver manifesto/lock da Presentation somente sob seleção própria.
-6. Toolchainunit/peers2/3 e grafoPM: esclarecer mistura StarterKit3/Core2 sem atualizar dependências/lock preventivamente. Sem promessa de singleton global.
+- 118 testes em 11 arquivos e builds Core/Presentation aprovados no ciclo da candidata; não repetidos na edição documental.
+- Checker executado em três cenários lineares, com `freshLayoutRound: true`, mas `idempotent: false` e violações geométricas.
+- Sessão manual favorável, inclusive documento de aproximadamente 472 páginas; lentidão observada, sem benchmark ou homologação geral.
+- Reavaliação das duas inconsistências visuais anteriores sem reprodução conclusiva. Não registrar como correção comprovada.
 
-## Manutenção/testes e organização futura
+## Planejado ou pendente
 
-- Runnersbrowser: separar outputs, tratamento de falha/capture/cleanup e comparação semântica real em proposta específica; não alterar oráculos/tolerâncias silenciosamente.
-- Auxiliares, .bak, tgz e evidências: classificação/recuperação e destinos dependem de decisão; nenhuma exclusão está autorizada pela consolidaçãoA.
-- Fragmentação intralinha, coexistência de instâncias e publicação futura são recortes distintos, não metas cumpridas por unitários.
+1. Investigar idempotência negativa, violações geométricas e HTTP 404 com hipótese e escopo próprios; sem atribuição causal antecipada.
+2. Delimitar e validar reatividade de mudanças de texto, marcas e atributos com tamanho constante na linha atual. A tarefa focal C-05 permanece independente.
+3. Tornar instalação e execução reproduzíveis: esclarecer o grafo Tiptap/PM, versões ensaiadas, dependências da Demo e consumo externo do pacote. Não restaurar consumidores obsoletos.
+4. Disponibilizar cenários tabulares na Demo por decisão própria, preservando os limites intralinha e de rowspan.
+5. Ampliar validação de orçamento, recuperação de `STALE_BREAK`, associação estrutural tabular e mapeamento linha visual/intervalo PM (pendências N2–N5 do CONS-013). A recorrência algébrica não fecha a integração geométrica.
+6. Decidir o comportamento sem corte elegível (L1) e de overshoot sem fronteira anterior (L2), sem confundir essas escolhas com ressalvas de rodapé ou impressão.
+7. Especificar composição pública, atualização de layout, insets e lifecycle; tratar fontes/CSS externos, multi-instância e impressão composta.
+8. Revisar runners E2E históricos antes de propô-los como fluxo atual: pré-requisitos, comparação semântica, propagação de falhas e saídas portáteis.
 
-## Pendências de integração/evidência externas
+## Fora de qualquer aprovação automática
 
-M1/effectiveHeightProof=UNAVAILABLE, S e margens horizontais, contrato/evidênciaC e SLP-B-02/helper/teste, reservas de build/grafo/tipos/temporalidade continuam com seus responsáveis e alcances. Não incorporar avaliador, supervisores, autorizações ou dados do Lab ao produto. Não converter insuficiência de testemunha em aprovação nem reclassificar diferenças históricas.
+Publicação de pacote, nova versão, compatibilidade universal e homologação completa exigem evidência e decisão próprias. O laboratório histórico deve adaptar seus consumidores ao contrato atual quando pertinente; sua desatualização não bloqueia o desenvolvimento da biblioteca.
+
+Veja [limitações](limitations.md), [desenvolvimento](development.md) e [história](project-history.md).

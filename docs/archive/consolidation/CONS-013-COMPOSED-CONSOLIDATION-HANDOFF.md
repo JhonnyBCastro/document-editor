@@ -19,7 +19,7 @@ O documento destina-se aos revisores técnicos das **Frentes A e B** encarregado
 ### 2.1. O congelamento em textos contínuos extensos (CPU Lock)
 
 #### Sintomas e Reprodução
-Durante a validação operacional no Live Demo (`examples/live-demo`), ao limpar o documento e colar blocos contínuos de texto de grande extensão — especificamente código-fonte (como o conteúdo do arquivo [`src/controller.ts`](../../src/controller.ts), com ~34 KB e 741 linhas) —, o navegador travava de forma síncrona. A thread principal entrava em loop infinito e o editor parava de responder.
+Durante a validação operacional no Live Demo (`examples/live-demo`), ao limpar o documento e colar blocos contínuos de texto de grande extensão — especificamente código-fonte (como o conteúdo do arquivo [`src/controller.ts`](../../../src/controller.ts), com ~34 KB e 741 linhas) —, o navegador travava de forma síncrona. A thread principal entrava em loop infinito e o editor parava de responder.
 
 #### Diagnóstico e Cadeia Causal
 A investigação detalhada do motor de paginação revelou uma falha interconectada entre a resolução de nós do DOM e a máquina de estados de quebra:
@@ -28,8 +28,8 @@ A investigação detalhada do motor de paginação revelou uma falha interconect
 3. **Loop síncrono após `STALE_BREAK`:** O laço de layout `performLayout` detectava que o deslocamento não era suficiente, emitia uma condição de quebra obsoleta (`STALE_BREAK`) e reiniciava o cálculo geométrico na mesma posição sem progredir. Isso causava o esgotamento do loop em trabalho síncrono infinito, bloqueando o navegador.
 
 #### Correção Implementada
-1. **Resolução precisa do DOM:** Reformulação da busca de nós em [`src/controller.ts`](../../src/controller.ts) utilizando resolução exata para nós textuais (`TextNode`), garantindo identificação correta da linha e coordenadas via `Range.getClientRects()`.
-2. **Garantia de avanço progressivo:** Em [`src/policies.ts`](../../src/policies.ts), na política de quebra de blocos contínuos (`multi_page_block_overflow`), a decisão de quebra é ancorada em `candidate.exactPos`, com guarda obrigatória de avanço estrito `candidate.exactPos > lastBreakPos`.
+1. **Resolução precisa do DOM:** Reformulação da busca de nós em [`src/controller.ts`](../../../src/controller.ts) utilizando resolução exata para nós textuais (`TextNode`), garantindo identificação correta da linha e coordenadas via `Range.getClientRects()`.
+2. **Garantia de avanço progressivo:** Em [`src/policies.ts`](../../../src/policies.ts), na política de quebra de blocos contínuos (`multi_page_block_overflow`), a decisão de quebra é ancorada em `candidate.exactPos`, com guarda obrigatória de avanço estrito `candidate.exactPos > lastBreakPos`.
 3. **Recuperação segura de `STALE_BREAK`:** O tratamento de quebra obsoleta foi limitado para impedir repetição síncrona de trabalho geométrico no mesmo ciclo caso a posição não progrida.
 
 ---
@@ -44,15 +44,15 @@ Após a correção do congelamento, um teste manual no Live Demo revelou novos e
 
 #### Diagnóstico e Correções Implementadas
 
-1. **Correção da primeira página vazia ([`src/policies.ts`](../../src/policies.ts)):**
+1. **Correção da primeira página vazia ([`src/policies.ts`](../../../src/policies.ts)):**
    - *Causa:* Em `evaluateLinearPolicies()`, ao avaliar a primeira linha de um bloco (`targetLine === 0`), a política de prevenção de orfandade/transporte aplicava o transporte integral do bloco para a página seguinte mesmo quando o bloco era o primeiro do documento (`candidate.blockStart <= 1`). Isso gerava uma quebra espúria na posição inicial, empurrando todo o documento para a Página 2.
    - *Solução:* Foi adicionada uma salvaguarda estrita: se `targetLine === 0` e `candidate.blockStart <= 1`, a decisão direciona a quebra para `candidate.exactPos` com o motivo `natural_overflow`. O primeiro parágrafo é retido na Página 1 e apenas o seu transbordo migra para a Página 2.
 
-2. **Absorção de `\n` terminal ([`src/controller.ts`](../../src/controller.ts)):**
+2. **Absorção de `\n` terminal ([`src/controller.ts`](../../../src/controller.ts)):**
    - *Causa:* Quando a quebra de página recaía imediatamente antes de um caractere `\n` (comum em código-fonte ou texto com quebras duras), esse `\n` era projetado no topo da folha seguinte, gerando uma linha em branco invisível mas mensurável que empurrava o conteúdo da folha em $15\text{ px}$ para baixo.
    - *Solução:* No aceite da decisão de quebra em `controller.ts`, quando o caractere na posição da quebra for `\n`, o offset é avançado em 1 (`decision.pos = decision.pos + 1`), fechando a linha na página atual e impedindo o surgimento de linha em branco espúria na página seguinte.
 
-3. **Reatividade estrutural após edição ([`src/extension.ts`](../../src/extension.ts)):**
+3. **Reatividade estrutural após edição ([`src/extension.ts`](../../../src/extension.ts)):**
    - *Causa:* O gatilho de recálculo da paginação em `PaginationExtension` avaliava apenas `state.doc.content.size !== prevState.doc.content.size`. Ações que alteravam a estrutura do documento mantendo o mesmo tamanho de conteúdo (como a conversão de um `codeBlock` em `paragraph` ao teclar Backspace) não disparavam a repaginação, deixando decorações e spacers órfãos associados a nós DOM inexistentes.
    - *Solução:* A condição foi corrigida para `state.doc !== prevState.doc && (state.doc.content.size !== prevState.doc.content.size || !state.doc.eq(prevState.doc))`, garantindo que qualquer mutação semântica ou estrutural provoque o reagendamento seguro do layout.
 
@@ -64,7 +64,7 @@ Após a correção do congelamento, um teste manual no Live Demo revelou novos e
 
 A biblioteca possuía historicamente dois caminhos de apresentação visual:
 1. **`legacy`:** O Core injetava imperativamente elementos DOM flutuantes (`.document-editor-chrome-layer`), manipulava o posicionamento CSS do elemento pai do editor (`parent.style.position = 'relative'`), alterava estilos inline (`editorEl.style.background = 'white'`) e pintava fundos brancos `#fff` e sombras dentro dos widgets de quebra do ProseMirror.
-2. **`composed`:** O Core permanece estritamente neutro e focado em cálculo. Não injeta camadas flutuantes, não altera estilos do consumidor e preserva apenas bordas transparentes B1 (`1px solid transparent`) para a geometria de 1 px no box model. Toda a renderização de folhas de papel, margens, cabeçalhos e rodapés é delegada à camada externa [`@jhonny_bcastro/document-editor/presentation`](../../src/presentation/index.ts) (`createDocumentPresentation`), que consome as projeções calculadas (`calculatePageProjections`).
+2. **`composed`:** O Core permanece estritamente neutro e focado em cálculo. Não injeta camadas flutuantes, não altera estilos do consumidor e preserva apenas bordas transparentes B1 (`1px solid transparent`) para a geometria de 1 px no box model. Toda a renderização de folhas de papel, margens, cabeçalhos e rodapés é delegada à camada externa [`@jhonny_bcastro/document-editor/presentation`](../../../src/presentation/index.ts) (`createDocumentPresentation`), que consome as projeções calculadas (`calculatePageProjections`).
 
 A manutenção de ambos os caminhos no mesmo código-fonte trazia severas desvantagens:
 - **Divergência de comportamento:** O caminho `legacy` apresentava desvios acumulados de margem (ex.: 36 violações de margem no fixture PE-M em RC.4) e não representava o padrão visual aceito para o produto.
@@ -97,11 +97,11 @@ Para evitar compatibilidade artificial que mascararia problemas na adoção da b
 
 Durante a limpeza, as seguintes responsabilidades compartilhadas foram rigorosamente verificadas e preservadas:
 
-1. **[`src/projection.ts`](../../src/projection.ts) (`calculatePageProjections`):**
+1. **[`src/projection.ts`](../../../src/projection.ts) (`calculatePageProjections`):**
    - Embora originalmente criado para auxiliar na projeção de folhas, este módulo é o elo matemático fundamental entre o Core e a Presentation. Ele converte os deslocamentos das quebras (`BreakDecision`) nos retângulos lógicos das páginas (`sheetRect`, `headerRect`, `footerRect`) no espaço de layout do documento. O módulo foi preservado integralmente.
-2. **Regras CSS de tabelas em [`src/style.css`](../../src/style.css):**
+2. **Regras CSS de tabelas em [`src/style.css`](../../../src/style.css):**
    - As regras `.page-break-row > td` e `.page-break-row > th` foram mantidas intactas, pois implementam o mecanismo de espaçamento físico do `table-row-spacer` nas quebras intra-tabela.
-3. **Arestas B1 transparentes em [`src/decorations.ts`](../../src/decorations.ts):**
+3. **Arestas B1 transparentes em [`src/decorations.ts`](../../../src/decorations.ts):**
    - Preservadas as bordas de `1px solid transparent` nos spacers de quebra para garantir a retenção da espessura física de 1 px no cálculo geométrico sem pintar linhas visíveis sobre o editor.
 4. **Núcleo de cálculo e políticas:**
    - As políticas de orfandade/viuvez, prevenção de quebra em cabeçalhos (`keepWithNext`), cálculo de capacidade residual e controle de estabilidade assíncrona (`whenLayoutStable`) foram mantidas e validadas.

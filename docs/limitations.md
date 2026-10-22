@@ -1,18 +1,39 @@
-# Limitações atuais
+# Limitações
 
-Corte 18/10/2026. Implementação e testes têm alcance delimitado; a consolidação não homologa a biblioteca.
+Referência: linha `dev/cons014-composed-20261022`, commit `1962cdbb3456cc989b064017137d48a8df143d3d`. Estas ressalvas descrevem o estado conhecido; documentação organizada não constitui homologação geral.
 
-- **Composição e arquitetura oficial:** `composed` é a única arquitetura oficial e padrão; o modo `legacy` e a camada `chrome.ts` foram descontinuados e removidos do código executável nesta cópia de testes (detalhes no dossiê [CONS-013](consolidation/CONS-013-COMPOSED-CONSOLIDATION-HANDOFF.md)). O Core foca estritamente em geometria limpa; Presentation é responsável pelo desenho das folhas e running content. Não oferece montagem pronta, insets automáticos, factory/bridge pública ou impressão composta suportada.
-- **Atualização e reatividade:** O trigger de recálculo em `extension.ts` avalia mutações semânticas e estruturais (`!state.doc.eq(prevState.doc)`), cobrindo edições de mesmo tamanho (como conversão de `codeBlock` para `paragraph` via Backspace). Entretanto, a estabilização local não detecta alterações puramente visuais externas (carregamento tardio de webfonts, resize de CSS externo sem evento no editor ou scroll).
-- **Ressalva geométrica de rodapé:** Em blocos com tipografia alta e entrelinhas expressivas, a base da última linha de texto (`coords.bottom`) pode se aproximar ou sobrepor por alguns pixels o indicador numérico do rodapé da Presentation, uma vez que a cota nominal $T_1 = A + U$ baseia-se no topo da linha (`coords.top`). Essa limitação visual é conhecida e permanece para tratamento futuro na especificação de running content rico.
-- **Lifecycle/multi-instância:** impressão usa lock/classe global do body; fontes/frames e cancelamento integral não estão certificados. Ownership local não prova coexistência perfeita de múltiplos editores.
-- **Tabelas:** quebras por fronteiras de linhas; conteúdo/rowspan que exige fragmentação intralinha pode produzir TABLE_INTRAROW_UNSUPPORTED. Colspan adaptado não resolve todo caso de célula gigante.
-- **DOM:** medição interativa depende de browser/DOM/fontes; SSR não é suportado como mecanismo de paginação visual. Snapshot sem diagnóstico não garante equivalência com renderização PDF externa.
-- **Tipos/PM:** peers2/3 e ensaios 2.27.3/3.31.3 não certificam todos os minors nem singleton global. Toolchain unit instalada mistura Core/PM2 e StarterKit3; unidade/tipos não atestam todo grafo transitivo/bundle.
-- **Evidência browser:** campanha passiva histórica atendeu comparações L/T delimitadas, conservou diferenças S e não homologou uso arbitrário. Imagem legível não valida seleção/clipboard/edição/multipágina. Sessão manual posterior foi interrompida por supervisão; vídeo é complemento separado, não reparação dos registros.
-- **M1/S/C:** testemunho de altura/cascata M1 permanece UNAVAILABLE; S e margens horizontais independentes continuam pendentes. Contrato diferencial C não é prova absoluta M1; avaliador/helpers experimentais não são parte do produto.
-- **Exemplos/artefatos:** Vanilla usa tarball RC4 histórico, Presentation usa snapshot sintético e manifesto incompleto de dependência. Dist existente e tarballs não foram emitidos por esta consolidação. Runner stress compara comprimento JSON, grava resultado na raiz e catch pode não sinalizar erro; não é oráculo semântico suficiente.
-- **Associação de decorações (Bloco A):** a associação transacional e o remapeamento via plugin state garantem a integridade documental das decorações na working tree do Core, mas não alteram os triggers existentes (baseados em `doc.content.size` e metadado), não reformulam a fórmula de orçamento, políticas de corte ou comparador tabular, e não constituem demonstração física de neutralização ou correção de layout no navegador.
-- **Orçamento e neutralizadores (Bloco B):** a recorrência de capacidade e o acumulador estrutural eliminam a transferência algébrica de folgas e o acúmulo de deslocamentos em tabelas e overlays no Core. As guardas B-R1 e B-R2 asseguram a validação estrita de integridade de protocolo (`reasons` como array denso de strings e `renderer` canônico obrigatório em múltiplos estágios de decisão e comparação). Contudo, em condições de overshoot extremo ($n_i > T_i$), o modelo fixa $r_i = 0$ e $D_i = G$, sem quebrar blocos atômicos ou tabelas indivisíveis; medições de quebra manual conservam a convenção ratificada sem absorver a altura física $h$ de elementos DOM `pageBreak`, sem prometer $r=U$ para qualquer marcador arbitrário nem alinhamento físico colapsado; abortos de rodada por inconsistência mantêm aguardantes (`whenLayoutStable`) pendentes sem resolução ou rejeição sintética (DEC-05); e as fixtures sintéticas de teste unitário baseadas em mock geométrico delimitado não equivalem a prova empírica de renderização DOM/CSS real no navegador, permanecendo a validação física dependente de futura execução no Lab.
+## Implementação e contratos
 
-Reservas históricas de identidade/empacotamento/temporalidade e Gate Vanilla conservam seus alcances. Ver [backlog](backlog.md) para ações ainda dependentes de decisão e [índice](consolidation/CANONICAL-CONSOLIDATION-001.md) para proveniência delimitada.
+- **Reatividade delimitada:** o hook da extensão compara referência, tamanho e estrutura de quantidade/tipos de nós, além de `settingsChanged`. Não compara genericamente texto, marcas ou atributos por `doc.eq()`. Mudanças de mesmo tamanho podem alterar medidas sem satisfazer o predicado. A suíte focal C-05 de outro workspace não certifica essa implementação. Veja [API](api.md).
+- **Mudanças externas:** CSS, fontes tardias, escala e outros efeitos do DOM não são cobertos universalmente pelo reagendamento transacional. A estabilização observada não é permanente.
+- **Composição:** Core e Presentation são separados. Não há factory pública de editor completo, insets automáticos ou bridge pública de composição. O consumidor coordena montagem e descarte.
+- **Tabelas:** políticas do Core trabalham em fronteiras de linhas. Linhas/células e rowspans que exigem fragmentação intralinha podem produzir `TABLE_INTRAROW_UNSUPPORTED`. Não há garantia geral para tabelas arbitrárias.
+- **Impressão/multi-instância:** `preparePrintSession` usa classe global no body e lock de sessão. Não é geração de PDF nem certificação de impressão composta, coexistência de editores ou equivalência com renderizadores externos.
+- **Browser:** medição depende de DOM, CSS e fontes. SSR não substitui paginação visual. Não há certificação geral de navegadores.
+- **Dependências:** peers declaram Tiptap 2/3, mas isso não certifica todos os minors ou um singleton global ProseMirror. O ambiente ensaiado misturava Core/PM 2.27.3 e StarterKit 3.31.4. Instalação limpa e matriz ampla permanecem sem comprovação nesta etapa.
+
+## Resultado conhecido do checker da Demo — CONS-014, 22/10/2026
+
+| Cenário | Páginas | Quebras | `freshLayoutRound` | `idempotent` | Violações geométricas |
+|---|---:|---:|---|---|---:|
+| `mini` | 5 | 4 | `true` | `false` | 3 |
+| `p:370` | 31 | 30 | `true` | `false` | 19 |
+| `p:600` | 50 | 49 | `true` | `false` | 60 |
+
+Uma nova rodada de layout não prova igualdade entre rodadas. O checker reportou diagnósticos vazios e última linha na última página nesses cenários, mas isso não elimina as violações nem certifica idempotência. O código de saída zero também não significa aprovação desses critérios. Houve um HTTP 404 de origem não identificada.
+
+Há ressalva geométrica na proximidade do rodapé. A explicação histórica baseada em `coords.top` versus `coords.bottom` não estabelece, por si só, a causa de todas as violações. Não se declara geometria geral correta nem se reduz toda divergência a uma tolerância aprovada.
+
+## Demo e observação manual
+
+A Demo atual monta texto linear, títulos e quebra manual com nós definidos no consumidor. Os cenários tabulares `PE-S`, `PE-M` e `PE-L` estão indisponíveis por ausência das extensões correspondentes no ambiente provisionado; sua seleção recai em `mini` com aviso. Isso delimita o consumidor, não elimina os mecanismos tabulares da biblioteca.
+
+O usuário relatou avaliação favorável com aproximadamente 49 e 472 páginas, edição posterior e ausência de travamento observado. Houve lentidão em centenas de páginas. Não é benchmark controlado nem prova de ausência de defeitos. Duas inconsistências visuais anteriores não foram reproduzidas conclusivamente e permanecem sem conclusão definitiva.
+
+## Evidências e pendências históricas
+
+Os 118 testes da candidata e os builds registrados não substituem geometria real, validação tabular, impressão ou a suíte focal independente de C-05. Alegações de outros totais de testes, versões ou consumidores nos relatórios arquivados pertencem àqueles cortes.
+
+O modelo de capacidade e os validadores estruturais não provam suficiência universal do orçamento, recuperação de toda quebra obsoleta ou associação tabular em qualquer DOM. Políticas para situações sem corte elegível e overshoot permanecem delimitadas. Abortos por inconsistência podem manter aguardantes de estabilidade pendentes.
+
+Ressalvas do CONS-013, do Checkpoint 0 e da Fase 1 não foram encerradas pela consolidação local ou pelo push da branch. Registros do laboratório não são dependências da biblioteca nem condição para adaptar o produto ao consumidor antigo. Veja [backlog](backlog.md), [proveniência](provenance.md) e [arquivo histórico](archive/README.md).

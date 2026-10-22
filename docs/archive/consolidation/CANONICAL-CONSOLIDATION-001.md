@@ -8,7 +8,7 @@ Corte12/10/2026. ConjuntoA limitado a14 arquivos, sobre HEAD83389999102626309dcb
 - **Paint-mode a25e691:** legacy default/omissão; composto explícito/fixo; inválido ou hostchrome conflitante rejeitado sem fallback. Core conserva geometria e estilos do consumidor, sem montar composição.
 - **B1 d677032:** preserva quatro contribuições de borda1px/solid por cortransparent em composto; testes conservam dimensões/estilo/metadados e variam deslocamentos/margens. Não cria correção visual geral.
 
-Proveniência por commit/pai em [provenance](../provenance.md); API/arquitetura/limitações/backlog vivos complementam este índice. Releases/ADRs antigos ficam intactos. Registros completos de recuperação/diff/checks e governança permanecem externos; nenhum caminhoLab/dependência experimental foi introduzido no runtime.
+Proveniência por commit/pai em [provenance](../../provenance.md); API/arquitetura/limitações/backlog vivos complementam este índice. Releases/ADRs antigos ficam intactos. Registros completos de recuperação/diff/checks e governança permanecem externos; nenhum caminhoLab/dependência experimental foi introduzido no runtime.
 
 ## Fluxos de verificação
 

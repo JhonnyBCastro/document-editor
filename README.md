@@ -1,14 +1,24 @@
 # document-editor
 
-Biblioteca de paginação visual de documento contínuo para Tiptap/ProseMirror. O JSON semântico permanece separado das quebras visuais. Core e Presentation são entradas independentes.
+Biblioteca de paginação visual de documentos contínuos para Tiptap/ProseMirror. As quebras automáticas são decorações transitórias: não transformam o documento semântico em uma coleção de páginas persistidas.
 
-## Identidade e distribuição
+## Estado do projeto
 
-Nome: `@jhonny_bcastro/document-editor`. Versão declarada: **0.1.0-rc.4**. A working tree incorpora os deltas de estabilidade, seleção de pintura e B1 descritos em [proveniência](docs/provenance.md); não representa uma nova publicação, RC.5 ou homologação.
+Linha de desenvolvimento: `dev/cons014-composed-20261022`. A referência desta organização documental é o commit `1962cdbb3456cc989b064017137d48a8df143d3d`, anterior às edições documentais aqui descritas.
 
-Os tarballs RC.2/3/4 existentes são distribuições históricas locais; seus bytes não são uma emissão da working tree consolidada. O estado remoto/npm atual não foi consultado nesta consolidação. Instale um artefato identificado pela sua distribuição e use um conjunto compatível de Tiptap/PM; não copie `node_modules` de consumidores experimentais. A declaração de peers aceita majors 2/3; os ensaios de referência não certificam todas as versões ou singleton global.
+O nome declarado é `@jhonny_bcastro/document-editor`. O manifesto ainda contém `0.1.0-rc.4`; essa declaração não torna o código desta branch equivalente ao pacote RC.4 histórico. Não há anúncio de nova versão nem comprovação de publicação npm do estado atual. Veja [proveniência](docs/provenance.md).
 
-## Entradas públicas
+## Core e Presentation
+
+- **Core:** mede o DOM, calcula quebras, publica decorações e fornece snapshots de layout.
+- **Presentation:** desenha folhas, cabeçalhos e rodapés a partir desses snapshots; não cria o editor nem calcula as quebras.
+- **Consumidor:** fornece schema Tiptap, conteúdo, DOM, UI, montagem e descarte das duas camadas.
+
+O único modo suportado é `composed`, também usado quando `visualMode` é omitido. Valores diferentes são rejeitados com `TypeError`. O contrato antigo `chromeLayerElement` e a camada ChromeLayer foram removidos. A decisão está registrada retrospectivamente no [ADR-004](docs/decisions/ADR-004-composed-only.md).
+
+## Entradas declaradas do pacote
+
+As entradas abaixo descrevem o contrato de distribuição do manifesto, não uma instrução para instalar um pacote atual já publicado:
 
 ```ts
 import { PaginationExtension, whenLayoutStable, preparePrintSession } from '@jhonny_bcastro/document-editor';
@@ -19,40 +29,35 @@ import { createDocumentPresentation } from '@jhonny_bcastro/document-editor/pres
 import '@jhonny_bcastro/document-editor/presentation.css';
 ```
 
-Core oferece extensão, snapshots e preparação de impressão. Presentation consome snapshots para pintar superfícies/header/footer; não cria Editor nem schema. O consumidor fornece schema, conteúdo, DOM, UI e coordenação de montagem. Detalhes em [API](docs/api.md) e [arquitetura](docs/architecture.md).
+A [API](docs/api.md) detalha opções e responsabilidades. Para trabalhar a partir da fonte, consulte [desenvolvimento](docs/development.md). A instalação limpa e o consumo externo de uma nova distribuição não foram certificados por esta revisão documental.
 
-## Arquitetura oficial (`composed`) e descontinuação do `legacy`
+## Exemplo atual
 
-A biblioteca adota o modo `composed` como sua arquitetura oficial e padrão. A omissão de `visualMode` equivale a `'composed'`:
+A [Live Demo](examples/live-demo/NOTES.md) monta um editor com Presentation consumindo diretamente `src/`. É um consumidor de desenvolvimento, não uma prova de instalação do pacote distribuído.
 
-- **Core limpo e sem poluição de DOM:** O Core calcula a paginação e injeta apenas as quebras estruturais e compensações geométricas de entrelinhas (com arestas decorativas transparentes B1 `1px solid transparent`). Não injeta camadas de chrome artificial (`.document-editor-chrome-layer`), fundos brancos `#fff` ou sombras sobre o editor do ProseMirror.
-- **Camada de apresentação dedicada:** A renderização das páginas (folhas de papel, cabeçalhos e rodapés) é realizada de forma desacoplada pelo módulo `@jhonny_bcastro/document-editor/presentation` (`createDocumentPresentation`), que consome os snapshots e projeções geométricas emitidos pelo Core.
-- **Descontinuação do `legacy`:** O modo `'legacy'` e a opção `chromeLayerElement` foram descontinuados e removidos do código executável e das definições de tipo (`PaginationVisualMode = 'composed'`). Iniciar instâncias com valores diferentes de `'composed'` (inclusive `'legacy'`) lança estritamente `TypeError` sem fallback silencioso. Consulte o dossiê [CONS-013](docs/consolidation/CONS-013-COMPOSED-CONSOLIDATION-HANDOFF.md) para o handoff completo.
+A Demo está delimitada a texto linear, títulos e edição. Os cenários tabulares `PE-S`, `PE-M` e `PE-L` estão indisponíveis. Os antigos consumidores e comparações RC.4 pertencem ao [arquivo histórico](docs/archive/README.md), sem necessidade de restaurá-los.
 
-## Exemplos existentes
+## Evidências e limitações
 
-- `examples/live-demo`: Demonstração operacional oficial da working tree, executando o editor integrado a `DocumentPresentation` em modo `composed` na porta 8544.
-- `examples/vanilla-consumer`: Consumidor experimental antigo, dependente do tarball **RC.4 histórico** e modo legado na porta 8545. Preservado no disco nesta etapa para decisão posterior de limpeza pelo usuário.
-- `examples/presentation-consumer`: Renderização de **snapshot sintético** via Presentation, sem editor ProseMirror integrado.
-- `examples/vanilla-consumer.bak`: Backup histórico legado com Tiptap 3; mantido para referência técnica.
+O ciclo CONS-014 registrou 118 testes unitários aprovados em 11 arquivos e builds Core/Presentation concluídos. A sessão manual foi favorável nos cenários exercitados, incluindo documentos extensos, com lentidão em centenas de páginas. São observações delimitadas, não homologação geral.
 
-As árvores/tarballs foram preservados. Não existe nesta entrega comando de lançamento composto oficial ou sessão browser aprovada.
+Permanecem:
 
-## Verificações separadas
+- `idempotent: false` nos três cenários automatizados; `freshLayoutRound: true` apenas registra uma nova rodada de layout.
+- Violações geométricas reportadas pelo checker e um HTTP 404 de origem não identificada.
+- Reatividade por tamanho/estrutura e sinal de configuração; alterações de texto, marcas ou atributos com tamanho constante não têm detecção geral garantida pelo predicado atual.
+- Limites de impressão composta, multi-instância e compatibilidade de dependências; ausência de certificação universal de navegadores ou Tiptap 2/3.
 
-| Comando | Alcance/pré-requisito |
-|---|---|
-| `npm test` | Agora executa **somente** `npm run test:unit`; deixou de encadear E2E/browser. |
-| `npm run test:unit` | Vitest/JSDOM, regressões unitárias; não comprova geometria/pintura reais. |
-| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json` | Tipos Core no ambiente instalado. |
-| `node node_modules/typescript/bin/tsc --noEmit --emitDeclarationOnly false -p tsconfig.presentation.json` | Tipos Presentation, sem emissão. |
-| `npm run build` | Build técnico Vite Core + Presentation; separado de testes e distribuição. |
-| `npm run test:e2e` | Runner histórico de stress com Puppeteer, fixtures e servidor consumidor próprio em8543; requer decisão/ambiente browser separados. |
+Leia [limitações](docs/limitations.md) antes de adotar a biblioteca. Resultados históricos de tabelas ou distribuições anteriores não validam automaticamente esta branch.
 
-Não execute os runners `run*.sh` para preparar ambiente: contêm paths locais e encerramento por porta. O E2E histórico grava resultados na raiz e mede diferença de comprimento JSON, não igualdade semântica completa; catch pode não propagar falha. Esses limites não foram alterados para obter aprovação. Comandos de build/servidor/browser/instalação não foram executados por esta consolidação.
+## Documentação
 
-## Estado e limites
+- [API](docs/api.md) e [arquitetura](docs/architecture.md).
+- [Desenvolvimento e comandos](docs/development.md) e [Live Demo](examples/live-demo/NOTES.md).
+- [Limitações](docs/limitations.md) e [backlog](docs/backlog.md).
+- [Proveniência](docs/provenance.md), [história do projeto](docs/project-history.md) e [arquivo histórico](docs/archive/README.md).
+- Decisões: [extração](docs/decisions/ADR-001-project-consolidation.md), [independência](docs/decisions/ADR-002-product-independence.md), [ownership histórico](docs/decisions/ADR-003-host-dom-ownership.md) e [composed-only](docs/decisions/ADR-004-composed-only.md).
 
-Compatibilidade histórica em Tiptap2.27.3/3.31.3 é delimitada, não garantia universal. Atualização por edição de mesmo tamanho, fontes/scroll, multi-instância, impressão composta, integração oficial e uso visual arbitrário permanecem com limites. Gate Vanilla não homologado. Pendências experimentais e anomalias de Presentation não foram corrigidas pela organização do código.
+## Licença
 
-Leia [limitações](docs/limitations.md), [backlog](docs/backlog.md) e o [índice de consolidação](docs/consolidation/CANONICAL-CONSOLIDATION-001.md). ADRs/releases preservam suas datas e alcances históricos. Licença MIT.
+[MIT](LICENSE), Copyright (c) 2026 Jhonny B. Castro.

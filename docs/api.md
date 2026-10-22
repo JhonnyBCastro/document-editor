@@ -1,45 +1,78 @@
-# API vigente
+# API
+
+Referência de implementação: linha `dev/cons014-composed-20261022`, commit `1962cdbb3456cc989b064017137d48a8df143d3d`. As entradas declaradas no [manifesto](../package.json) não comprovam publicação npm do estado atual.
 
 ## Core
 
-Entrada pública: `@jhonny_bcastro/document-editor`; CSS: `@jhonny_bcastro/document-editor/style.css`. Exporta `PaginationExtension`, `PaginationPluginKey`, tipos de `types.ts`, `whenLayoutStable` e `preparePrintSession`/`PrintSession`. `PaginationController` não é uma factory de composição exportada pelo barrel.
+Entrada: `@jhonny_bcastro/document-editor`; CSS: `@jhonny_bcastro/document-editor/style.css`.
 
-### PaginationExtension e opções
+O [barrel Core](../src/index.ts) exporta os tipos de `types.ts`, `PaginationExtension`, `PaginationPluginKey`, `whenLayoutStable` e `preparePrintSession`/`PrintSession`. `PaginationController` não é exportado por esse barrel. A bridge de decorações e o payload de publicação são mecanismos internos, não API de composição do consumidor.
 
-O consumidor monta seu Editor e schema Tiptap/PM. A extensão insere Decorations transitórias; não cria o schema do nó de quebra manual nem transforma essas quebras em nós semânticos próprios.
+### PaginationExtension
 
-| Opção | Contrato |
+O consumidor cria seu Editor e schema. Quebras automáticas são decorações; o schema e a serialização do nó de quebra manual pertencem ao consumidor.
+
+| Opção | Contrato atual |
 |---|---|
-| `layout` | `LayoutConfig`: page, policies e runningContent. Defaults da extensão:816×1056, margens96, gap20; cabeçalho desativado e rodapé `Página {page} de {total}`. |
-| `visualMode` | `'composed'`, omissão=`'composed'`. Fixo na criação do controller. `'composed'` é a única arquitetura suportada. Outros valores são estritamente rejeitados com `TypeError`. |
-| `manualBreakNodeName` | Default `pageBreak`; schema/parse/render semânticos pertencem ao consumidor. |
-| `onLayoutStable` | Callback com `LayoutSnapshot` após estabilização local do cálculo. |
+| `layout` | `LayoutConfig`: `page`, `policies` e `runningContent`. Defaults da extensão: 816×1056 CSS px, margens 96, gap 20; cabeçalho desativado e rodapé configurado como `Página {page} de {total}`. A Presentation usa seus próprios callbacks para pintar running content. |
+| `visualMode` | Somente `'composed'`, também usado por omissão. O controller rejeita outros valores com `TypeError`. |
+| `manualBreakNodeName` | Default `pageBreak`. Nome do nó semântico que o consumidor deve fornecer no schema. |
+| `onLayoutStable` | Callback com `LayoutSnapshot` após a estabilização local do cálculo. Não constitui certificação geométrica. |
 
 ```ts
-import { PaginationExtension } from '@jhonny_bcastro/document-editor';
 const pagination = PaginationExtension.configure({ visualMode: 'composed' });
 ```
 
-Essa configuração não monta Presentation, insets ou área rolável. Mutações posteriores de opções não trocam visualMode. Não há `updateLayout` público de composição aprovado; métodos internos do controller não constituem bridge suportada. O trigger atual considera tamanho do documento/metadado: edição do mesmo tamanho pode alterar medidas sem esse trigger, risco estático ainda pendente.
+Esse trecho pressupõe o import da extensão e sua inclusão nas extensões de um Editor. Não monta Presentation, schema, insets ou área de rolagem. Alterar opções depois da criação não troca o modo visual do controller. Não há factory pública de editor composto nem operação pública `updateLayout` de composição.
+
+### Atualização e reatividade
+
+Na [extensão](../src/extension.ts), o hook `update` agenda layout quando:
+
+```ts
+state.doc !== prevState.doc && (
+  state.doc.content.size !== prevState.doc.content.size ||
+  hasStructuralChange(state.doc, prevState.doc)
+)
+```
+
+Também agenda quando o estado do plugin registra `settingsChanged`. `hasStructuralChange` compara quantidade e tipos de nós, recursivamente nos blocos; não compara genericamente texto, marcas ou atributos. Não usa `doc.eq()`. Assim, alterações de mesmo tamanho que preservem essa estrutura podem não reagendar layout.
+
+O sinal interno `paginationSettingsChanged` é lido em `apply` a cada transação. Na transação seguinte sem esse metadado, `settingsChanged` volta a `false`; o hook `update` não o consome por mutação. A existência desse canal interno não constitui uma API pública de atualização de configurações. Seleção pura, sem outro sinal, não satisfaz o predicado de alteração documental.
 
 ### Snapshots e estabilidade
 
-`LayoutSnapshot` contém revision/pages/breaks/diagnostics. `await whenLayoutStable(editor)` exige controller inicializado e retorna snapshot da estabilização local. O handle de renderTimeout é liberado quando o callback é consumido, antes de renderVirtualPages. Isso preserva debounce e evita aguardar handle já executado; não promete estabilidade permanente após mudanças de conteúdo/fontes/DOM.
+`LayoutSnapshot` contém `revision`, `pages`, `breaks` e `diagnostics`. `pages` contém as projeções de folha, cabeçalho e rodapé em DocumentLayoutSpace (CSS px lógicos); o deslocamento por `pageGap` já está embutido nas posições das folhas.
 
-### Impressão
+`await whenLayoutStable(editor)` exige um controller inicializado e aguarda sua estabilização local. Não promete uma nova rodada de layout a cada chamada, igualdade entre rodadas, estabilidade após mudanças externas de fontes/CSS ou ausência de violações geométricas. Em abortos por inconsistência, aguardantes podem permanecer pendentes; o host deve considerar essa limitação.
 
-`preparePrintSession(editor)` retorna `{ snapshot, restore }`. Aplica classe global print-mode quando necessária e pageGap0 temporário; sessão concorrente é rejeitada por lock. Impressão/exportação pertencem ao host/browser. Sempre chamar `restore()` no finally. Não é geração de PDF nem contrato de impressão composta suportada. Multi-instância/lifecycle de fontes e frames permanecem limitados.
+### Preparação de impressão
 
-## Presentation independente
+`await preparePrintSession(editor)` retorna `PrintSession`, com `snapshot` e `restore(): Promise<void>`. O código ajusta temporariamente o gap e a classe global `print-mode`, com lock de sessão. Sempre aguarde a restauração em `finally`:
+
+```ts
+const session = await preparePrintSession(editor);
+try {
+  // Impressão/exportação e sua coordenação pertencem ao host.
+} finally {
+  await session.restore();
+}
+```
+
+Não é um gerador de PDF nem uma garantia de impressão composta. A alteração global e o lock limitam coexistência de instâncias. Veja [limitações](limitations.md).
+
+## Presentation
 
 Entrada: `@jhonny_bcastro/document-editor/presentation`; CSS: `@jhonny_bcastro/document-editor/presentation.css`.
 
-`createDocumentPresentation(host, options?)` retorna `DocumentPresentation` com:
+`createDocumentPresentation(host, options?)` retorna:
 
-- `render(snapshot)`: pinta projeção no espaço coordenado do host sem alterar o snapshot. Após destroy lança erro.
-- `clear()`: descarta recursos de render atual; após destroy não produz efeito.
-- `destroy()`: remove estruturas próprias e previne render; idempotente.
+- `render(snapshot)`: projeta páginas e running content, sem calcular quebras; depois de `destroy`, lança erro.
+- `clear()`: limpa recursos da renderização atual; depois de `destroy`, não produz efeito.
+- `destroy()`: descarta estruturas próprias e previne renderizações; chamadas repetidas são ignoradas.
 
-Opções `renderHeader`/`renderFooter` recebem contexto readonly e mountPoint; podem retornar disposer. Conteúdo é visual-only/não interativo: não inserir elementos focáveis nem modificar geometria do mount. Host co-originário/co-escalado com DocumentLayoutSpace, coordenadasX→direita/Y→baixo. O consumidor coordena snapshots/insets/ownership e destruição; essa montagem experimental não é factory pronta ou integração oficial.
+As opções `renderHeader` e `renderFooter` recebem contexto readonly e um ponto de montagem; podem retornar uma função de descarte. O conteúdo é visual, não interativo: não inserir elementos focáveis nem alterar a geometria do ponto de montagem.
 
-No composto, Core mantém bordas geométricas B1 transparentes e estilos do consumidor; Presentation não calcula quebras e não controla edição. Ver [arquitetura](architecture.md) e [limitações](limitations.md).
+O host deve compartilhar origem e escala com DocumentLayoutSpace. O consumidor coordena insets, snapshots, Editor, Presentation e descarte. Não deve adicionar `pageGap` novamente aos retângulos recebidos. O contrato de descarte da Presentation não implica idempotência do cálculo de paginação.
+
+Veja [arquitetura](architecture.md) e o consumidor em [Live Demo](../examples/live-demo/NOTES.md).
