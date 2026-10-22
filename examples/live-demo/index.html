@@ -1,34 +1,100 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-<meta charset="UTF-8" />
-<title>Live demo — working tree (src/)</title>
-<style>
-  body { margin: 0; background: #e5e5e5; font-family: sans-serif; }
-  #bar { position: sticky; top: 0; z-index: 10; background: #222; color: #fff; padding: 6px 12px; font-size: 13px; }
-  #stage { position: relative; width: 816px; margin: 20px auto; }
-  #presentation-host { position: absolute; top: 0; left: 0; width: 816px; pointer-events: none; z-index: 0; }
-  #editor { position: relative; z-index: 1; }
-  .ProseMirror { width: 816px; box-sizing: border-box; padding: 96px; outline: none; background: transparent; }
-  .ProseMirror table { border-collapse: collapse; width: 100%; }
-  .ProseMirror td, .ProseMirror th { border: 1px solid #888; padding: 8px; vertical-align: top; }
-  .page-break { border-top: 1px dashed #c00; height: 0; }
-  .badge-warn { margin-left: 10px; background: #b45309; color: #fff; padding: 2px 6px; border-radius: 3px; font-size: 11px; }
-</style>
+  <meta charset="UTF-8" />
+  <title>Live demo — working tree (src/)</title>
+  <style>
+    body {
+      margin: 0;
+      background: #e5e5e5;
+      font-family: sans-serif;
+    }
+
+    #bar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #222;
+      color: #fff;
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    #stage {
+      position: relative;
+      width: 816px;
+      margin: 20px auto;
+    }
+
+    #presentation-host {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 816px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #editor {
+      position: relative;
+      z-index: 1;
+    }
+
+    .ProseMirror {
+      width: 816px;
+      box-sizing: border-box;
+      padding: 96px;
+      outline: none;
+      background: transparent;
+    }
+
+    .ProseMirror table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    .ProseMirror td,
+    .ProseMirror th {
+      border: 1px solid #888;
+      padding: 8px;
+      vertical-align: top;
+    }
+
+    .page-break {
+      border-top: 1px dashed #c00;
+      height: 0;
+    }
+
+    .badge-warn {
+      margin-left: 10px;
+      background: #b45309;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+  </style>
 </head>
+
 <body>
-<div id="bar">
- fixture: <select id="fx">
-   <option value="mini" selected>mini (linear - suportado)</option>
-   <option value="PE-S">PE-S (tabular - indisponível)</option>
-   <option value="PE-M">PE-M (tabular - indisponível)</option>
-   <option value="PE-L">PE-L (tabular - indisponível)</option>
- </select>
- modo: <strong>composed</strong> (oficial)
- <button id="go">recarregar</button> <span id="diag"></span>
- <span class="badge-warn">⚠️ Cenários tabulares indisponíveis (sem @tiptap/extension-table) — fluxo linear, headings e edição suportados</span>
-</div>
-<div id="stage"><div id="presentation-host"></div><div id="editor"></div></div>
-<script type="module" src="./main.ts"></script>
+  <div id="bar">
+    fixture: <select id="fx">
+      <option value="mini" selected>mini (linear - suportado)</option>
+      <option value="PE-S">PE-S (tabular - indisponível)</option>
+      <option value="PE-M">PE-M (tabular - indisponível)</option>
+      <option value="PE-L">PE-L (tabular - indisponível)</option>
+    </select>
+    modo: <strong>composed</strong> (oficial)
+    <button id="go">recarregar</button> <span id="diag"></span>
+    <span class="badge-warn">⚠️ Cenários tabulares indisponíveis (sem @tiptap/extension-table) — fluxo linear, headings
+      e edição suportados</span>
+  </div>
+  <div id="stage">
+    <div id="presentation-host"></div>
+    <div id="editor"></div>
+  </div>
+  <script type="module" src="./main.ts"></script>
 </body>
+
 </html>
