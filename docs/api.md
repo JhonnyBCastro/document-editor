@@ -11,8 +11,7 @@ O consumidor monta seu Editor e schema Tiptap/PM. A extensão insere Decorations
 | Opção | Contrato |
 |---|---|
 | `layout` | `LayoutConfig`: page, policies e runningContent. Defaults da extensão:816×1056, margens96, gap20; cabeçalho desativado e rodapé `Página {page} de {total}`. |
-| `visualMode` | `'legacy' \| 'composed'`, omissão=legacy. Fixo na criação do controller. Inválido rejeitado por TypeError sem fallback. |
-| `chromeLayerElement` | Host externo opcional do chrome legado. Qualquer valor definido conflita com composed e é rejeitado. |
+| `visualMode` | `'composed'`, omissão=`'composed'`. Fixo na criação do controller. `'composed'` é a única arquitetura suportada. Outros valores são estritamente rejeitados com `TypeError`. |
 | `manualBreakNodeName` | Default `pageBreak`; schema/parse/render semânticos pertencem ao consumidor. |
 | `onLayoutStable` | Callback com `LayoutSnapshot` após estabilização local do cálculo. |
 

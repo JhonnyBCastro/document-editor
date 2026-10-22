@@ -21,17 +21,20 @@ import '@jhonny_bcastro/document-editor/presentation.css';
 
 Core oferece extensão, snapshots e preparação de impressão. Presentation consome snapshots para pintar superfícies/header/footer; não cria Editor nem schema. O consumidor fornece schema, conteúdo, DOM, UI e coordenação de montagem. Detalhes em [API](docs/api.md) e [arquitetura](docs/architecture.md).
 
-## Seleção de pintura
+## Arquitetura oficial (`composed`) e descontinuação do `legacy`
 
-`PaginationExtension.configure({ visualMode: 'legacy' })` preserva o comportamento legado. Omissão equivale a `legacy`. `visualMode: 'composed'` é opt-in e fixo durante a instância: Core deixa de produzir pintura documental/chrome legado, conserva geometria e estilos do consumidor e mantém as arestas decorativas B1 de 1px solid transparent. Valor inválido ou `chromeLayerElement` definido no composto é rejeitado sem fallback.
+A biblioteca adota o modo `composed` como sua arquitetura oficial e padrão. A omissão de `visualMode` equivale a `'composed'`:
 
-Composto sozinho não monta um documento pronto: factory/bridge oficial, insets automáticos, atualização suportada e impressão composta permanecem pendentes. Não mude opções de uma instância esperando troca de modo; crie outra instância respeitando o lifecycle.
+- **Core limpo e sem poluição de DOM:** O Core calcula a paginação e injeta apenas as quebras estruturais e compensações geométricas de entrelinhas (com arestas decorativas transparentes B1 `1px solid transparent`). Não injeta camadas de chrome artificial (`.document-editor-chrome-layer`), fundos brancos `#fff` ou sombras sobre o editor do ProseMirror.
+- **Camada de apresentação dedicada:** A renderização das páginas (folhas de papel, cabeçalhos e rodapés) é realizada de forma desacoplada pelo módulo `@jhonny_bcastro/document-editor/presentation` (`createDocumentPresentation`), que consome os snapshots e projeções geométricas emitidos pelo Core.
+- **Descontinuação do `legacy`:** O modo `'legacy'` e a opção `chromeLayerElement` foram descontinuados e removidos do código executável e das definições de tipo (`PaginationVisualMode = 'composed'`). Iniciar instâncias com valores diferentes de `'composed'` (inclusive `'legacy'`) lança estritamente `TypeError` sem fallback silencioso. Consulte o dossiê [CONS-013](docs/consolidation/CONS-013-COMPOSED-CONSOLIDATION-HANDOFF.md) para o handoff completo.
 
 ## Exemplos existentes
 
-- `examples/vanilla-consumer`: editor/schema/PageBreak, modo legado, dependência no tarball **RC.4 histórico**, Tiptap2.27.3. Não é exemplo ligado automaticamente ao código consolidado.
-- `examples/presentation-consumer`: renderização de **snapshot sintético**, sem editor integrado. Importa o pacote, mas seu manifesto não declara a dependência local instalada: reprodução autônoma permanece pendente.
-- `examples/vanilla-consumer.bak`: histórico Tiptap3/file:root; package/lock diferem do exemplo ativo. Não usar como fallback de instalação.
+- `examples/live-demo`: Demonstração operacional oficial da working tree, executando o editor integrado a `DocumentPresentation` em modo `composed` na porta 8544.
+- `examples/vanilla-consumer`: Consumidor experimental antigo, dependente do tarball **RC.4 histórico** e modo legado na porta 8545. Preservado no disco nesta etapa para decisão posterior de limpeza pelo usuário.
+- `examples/presentation-consumer`: Renderização de **snapshot sintético** via Presentation, sem editor ProseMirror integrado.
+- `examples/vanilla-consumer.bak`: Backup histórico legado com Tiptap 3; mantido para referência técnica.
 
 As árvores/tarballs foram preservados. Não existe nesta entrega comando de lançamento composto oficial ou sessão browser aprovada.
 

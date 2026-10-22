@@ -80,7 +80,7 @@ export const CustomTableHeader = Node.create({
     renderHTML() { return ['th', 0]; }
 });
 
-export function createTestLayout(overrides: Partial<LayoutConfig['page']> = {}, visualMode: 'legacy' | 'composed' = 'legacy'): LayoutConfig {
+export function createTestLayout(overrides: Partial<LayoutConfig['page']> = {}, visualMode: PaginationVisualMode = 'composed'): LayoutConfig {
     return {
         page: {
             width: 800,
@@ -156,7 +156,7 @@ describe('Pagination Budget Recurrence, Manual Breaks & Finitude — Bloco B', (
     function createEditor(
         content: string,
         layout: LayoutConfig = createTestLayout(),
-        visualMode: 'legacy' | 'composed' = 'legacy',
+        visualMode: PaginationVisualMode = 'composed',
         extraExtensions: any[] = []
     ) {
         let lastSnapshot: LayoutSnapshot | null = null;
@@ -368,8 +368,8 @@ describe('Pagination Budget Recurrence, Manual Breaks & Finitude — Bloco B', (
             }
         };
 
-        it('M6 Variantes: marcador inicial, marcadores consecutivos e marcador seguido de linear em legado e composto', () => {
-            for (const mode of ['legacy', 'composed'] as const) {
+        it('M6 Variantes: marcador inicial, marcadores consecutivos e marcador seguido de linear em modo composed oficial', () => {
+            for (const mode of ['composed'] as const) {
                 // 1. Marcador manual inicial em pos=0
                 const contentInitial = '<div data-type="page-break"></div><p>Conteúdo pós quebra</p>';
                 const { editor: ed1, controller: ctrl1, getSnapshot: snap1 } = createEditor(contentInitial, m6Layout, mode);
@@ -685,7 +685,7 @@ describe('Pagination Budget Recurrence, Manual Breaks & Finitude — Bloco B', (
                 </table>
                 <p>Conteúdo posterior</p>
             `;
-            const { editor, controller } = createEditor(tableContent, createTestLayout(), 'legacy');
+            const { editor, controller } = createEditor(tableContent, createTestLayout(), 'composed');
 
             let row2Pos = -1;
             editor.view.state.doc.descendants((node, pos) => {
@@ -744,10 +744,10 @@ describe('Pagination Budget Recurrence, Manual Breaks & Finitude — Bloco B', (
             expect(() => (ctrlA as any).performLayout()).not.toThrow();
         });
 
-        it('TB-12: quebra manual consecutiva e isolada sob legacy e composed calcula folga e atualiza alvo', () => {
+        it('TB-12: quebra manual consecutiva e isolada sob composed oficial calcula folga e atualiza alvo', () => {
             const content = '<p>Antes</p><div data-type="page-break"></div><p>Depois</p>';
             
-            for (const mode of ['legacy', 'composed'] as const) {
+            for (const mode of ['composed'] as const) {
                 const { editor, controller } = createEditor(content, createTestLayout(), mode);
 
                 vi.spyOn(editor.view, 'coordsAtPos').mockImplementation((pos) => ({

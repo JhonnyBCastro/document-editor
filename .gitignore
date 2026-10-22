@@ -26,3 +26,6 @@ lerna-debug.log*
 *.swo
 *.sublime-project
 *.sublime-workspace
+
+# Unignore e2e test PNG fixtures
+!tests/e2e/*.png

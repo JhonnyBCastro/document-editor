@@ -39,38 +39,18 @@ function mockView(manual = false) {
     const view = { dom, state: { doc, tr }, coordsAtPos: vi.fn(() => ({ top: 0, bottom: 20, left: 0, right: 20 })), dispatch: vi.fn() } as unknown as EditorView;
     return { view, parent, dom };
 }
-function create(view: EditorView, mode?: PaginationVisualMode, chrome?: HTMLElement) {
-    const controller = new PaginationController(view, layout, undefined, 'pageBreak', chrome, mode);
+function create(view: EditorView, mode?: PaginationVisualMode) {
+    const controller = new PaginationController(view, layout, undefined, 'pageBreak', mode);
     controllers.push(controller);
     return controller;
 }
 function perform(controller: PaginationController) {
-    // Exercise the layout output synchronously without changing or testing scheduler semantics.
     (controller as unknown as { performLayout(): void }).performLayout();
 }
 function widgetDOM(deco: Decoration): HTMLElement {
     return (deco as unknown as { type: { toDOM: HTMLElement } }).type.toDOM;
 }
-function withoutPaint(root: HTMLElement): string {
-    const clone = root.cloneNode(true) as HTMLElement;
-    // Only the approved edge colors may differ; widths/styles remain observable.
-    const bottom = clone.children[0] as HTMLElement;
-    const top = clone.children[2] as HTMLElement;
-    // Canonicalize shorthand/longhand representation using the observed dimensions.
-    if (bottom.style.borderBottom) bottom.style.borderBottom = `${bottom.style.borderBottomWidth} ${bottom.style.borderBottomStyle} #ccc`;
-    if (top.style.borderTop) top.style.borderTop = `${top.style.borderTopWidth} ${top.style.borderTopStyle} #ccc`;
-    for (const node of [clone, ...clone.querySelectorAll<HTMLElement>('*')]) {
-        // Rebuild declarations to handle JSDOM background shorthand behavior.
-        const retained = Array.from(node.style)
-            .filter(property => !/^(background(?:-|$)|box-shadow$)/.test(property))
-            .map(property => [property, node.style.getPropertyValue(property), node.style.getPropertyPriority(property)]);
-        node.style.cssText = '';
-        for (const [property, value, priority] of retained) node.style.setProperty(property, value, priority);
-        if (!node.style.length) node.removeAttribute('style');
-    }
-    return clone.outerHTML;
-}
-function expectEdgeBorders(root: HTMLElement, mode: PaginationVisualMode) {
+function expectEdgeBorders(root: HTMLElement) {
     expect(root.children).toHaveLength(3);
     for (const node of [root, ...root.querySelectorAll<HTMLElement>('*')]) {
         for (const edge of ['top', 'right', 'bottom', 'left']) {
@@ -78,14 +58,12 @@ function expectEdgeBorders(root: HTMLElement, mode: PaginationVisualMode) {
                 (node === root.children[2] && edge === 'top');
             expect(node.style.getPropertyValue(`border-${edge}-width`)).toBe(approved ? '1px' : '');
             expect(node.style.getPropertyValue(`border-${edge}-style`)).toBe(approved ? 'solid' : '');
-            expect(node.style.getPropertyValue(`border-${edge}-color`)).toBe(
-                approved ? (mode === 'composed' ? 'transparent' : 'rgb(204, 204, 204)') : ''
-            );
+            expect(node.style.getPropertyValue(`border-${edge}-color`)).toBe(approved ? 'transparent' : '');
         }
     }
 }
 function expectComposedPaintContract(root: HTMLElement) {
-    expectEdgeBorders(root, 'composed');
+    expectEdgeBorders(root);
     for (const node of [root, ...root.querySelectorAll<HTMLElement>('*')]) {
         expect(Array.from(node.style).filter(p => /^(background(?:-|$)|box-shadow$)/.test(p))).toEqual([]);
         expect(node.style.display).not.toBe('none');
@@ -102,54 +80,30 @@ afterEach(() => {
     vi.useRealTimers();
 });
 
-describe('paint mode: controller ownership and validation', () => {
-    it.each([undefined, 'legacy'] as const)('keeps legacy paint and chrome for %s', mode => {
-        const { view, dom, parent } = mockView();
-        const controller = create(view, mode);
-        expect(parent.style.position).toBe('relative');
-        perform(controller);
-        expect(dom.style.background).toBe('white');
-        expect(dom.style.boxShadow).toBe('0 1px 3px rgba(0,0,0,0.2)');
-        expect(parent.querySelector('.page-chrome-header')?.textContent).toBe('Header 1');
-        expect(parent.querySelector('.page-chrome-footer')?.textContent).toBe('Footer 1 of 1');
-        controller.destroy();
-        expect(parent.querySelector('.document-editor-chrome-layer')).toBeNull();
-        expect(parent.style.position).toBe('static');
-    });
-
-    it('preserves the previous five-argument controller call and external chrome host', () => {
-        const { view } = mockView();
-        const chrome = document.createElement('div');
-        const thirdParty = document.createElement('span');
-        chrome.appendChild(thirdParty);
-        const controller = new PaginationController(view, layout, undefined, 'pageBreak', chrome);
-        controllers.push(controller);
-        perform(controller);
-        expect(chrome.querySelector('.page-chrome-footer')).not.toBeNull();
-        controller.destroy();
-        expect(chrome.children).toHaveLength(1);
-        expect(chrome.firstChild).toBe(thirdParty);
-    });
-
-    it('composed never writes consumer styles, creates chrome or changes parent positioning', () => {
+describe('composed architecture: controller ownership and clean contract', () => {
+    it.each([undefined, 'composed'] as const)('default and composed never write consumer styles or inject chrome layer for %s', mode => {
         const { view, dom, parent } = mockView();
         dom.style.cssText = 'background: pink; box-shadow: 2px 3px 4px blue; padding: 7px; border: 2px solid red';
         const original = dom.getAttribute('style');
         const createElement = vi.spyOn(document, 'createElement');
         const computedStyle = vi.spyOn(window, 'getComputedStyle');
-        const controller = create(view, 'composed');
+        const controller = create(view, mode);
         expect(createElement).not.toHaveBeenCalled();
         expect(computedStyle).not.toHaveBeenCalled();
-        perform(controller);
         perform(controller);
         expect(dom.getAttribute('style')).toBe(original);
         expect(parent.children).toHaveLength(1);
         expect(parent.style.position).toBe('static');
-        controller.destroy();
+        expect(parent.querySelector('.document-editor-chrome-layer')).toBeNull();
         controller.destroy();
         expect(dom.parentNode).toBe(parent);
         expect(dom.getAttribute('style')).toBe(original);
         expect(parent.style.position).toBe('static');
+    });
+
+    it('rejects legacy mode strictly without fallback', () => {
+        const { view } = mockView();
+        expect(() => create(view, 'legacy' as unknown as PaginationVisualMode)).toThrow('Invalid pagination visualMode');
     });
 
     it.each(['unknown', '', null, false, 0, {}])('rejects invalid mode %j before controller DOM effects', mode => {
@@ -166,19 +120,6 @@ describe('paint mode: controller ownership and validation', () => {
         expect(dom.parentNode).toBe(parent);
     });
 
-    it.each(['element', 'null'] as const)('rejects a defined %s chrome host in composed before effects', kind => {
-        const { view, parent } = mockView();
-        const chrome = kind === 'element' ? document.createElement('div') : null;
-        const createElement = vi.spyOn(document, 'createElement');
-        const computedStyle = vi.spyOn(window, 'getComputedStyle');
-        const html = parent.outerHTML;
-        expect(() => create(view, 'composed', chrome as unknown as HTMLElement)).toThrow('chromeLayerElement');
-        expect(createElement).not.toHaveBeenCalled();
-        expect(computedStyle).not.toHaveBeenCalled();
-        expect(parent.outerHTML).toBe(html);
-        if (chrome) expect(chrome.children).toHaveLength(0);
-    });
-
     it('passes captured composed mode to actual manual-break decoration creation', () => {
         const { view, dom } = mockView(true);
         const controller = create(view, 'composed');
@@ -193,8 +134,8 @@ describe('paint mode: controller ownership and validation', () => {
     });
 });
 
-describe('paint mode: extension selection and fixed lifetime', () => {
-    it.each([undefined, 'legacy', 'composed'] as const)('captures %s despite later original/extension option mutation', mode => {
+describe('composed architecture: extension defaults and lifetime', () => {
+    it.each([undefined, 'composed'] as const)('operates in clean composed mode for %s despite option mutation', mode => {
         vi.useFakeTimers();
         const options = { layout, visualMode: mode };
         const extension = PaginationExtension.configure(options);
@@ -205,80 +146,55 @@ describe('paint mode: extension selection and fixed lifetime', () => {
         const controller = editor.storage.pagination.controller as PaginationController;
         const dom = editor.view.dom;
         vi.spyOn(dom, 'getBoundingClientRect').mockReturnValue({ top: 0, left: 0, width: 800, height: 1000 } as DOMRect);
-        options.visualMode = mode === 'composed' ? 'legacy' : 'composed';
-        const configured = editor.extensionManager.extensions.find(e => e.name === 'pagination')!;
-        configured.options.visualMode = options.visualMode;
         perform(controller);
-        const composed = mode === 'composed';
-        expect(dom.style.background).toBe(composed ? '' : 'white');
-        expect(dom.style.boxShadow === '').toBe(composed);
-        expect(dom.parentElement?.querySelector('.document-editor-chrome-layer') === null).toBe(composed);
-        perform(controller);
-        expect(dom.style.background).toBe(composed ? '' : 'white');
+        expect(dom.style.background).toBe('');
+        expect(dom.style.boxShadow).toBe('');
+        expect(dom.parentElement?.querySelector('.document-editor-chrome-layer')).toBeNull();
     });
 
-    it('importing Presentation does not change default selection', async () => {
-        await import('../../src/presentation');
-        const { view, parent } = mockView();
-        create(view);
-        expect(parent.querySelector('.document-editor-chrome-layer')).not.toBeNull();
-        expect(PaginationExtension.options.visualMode).toBe('legacy');
+    it('default extension selection is composed', () => {
+        expect(PaginationExtension.options.visualMode).toBe('composed');
     });
 });
 
-describe('paint mode: decorations preserve geometry and metadata', () => {
+describe('composed architecture: decorations preserve geometry and B1 transparent borders', () => {
     const doc = { nodeAt: () => ({ nodeSize: 12 }) };
-    it.each(['linear-widget', 'manual-spacer', 'table-row-spacer'] as const)('preserves B1 border dimensions and neutralizes paint for %s', renderer => {
+    it.each(['linear-widget', 'manual-spacer', 'table-row-spacer'] as const)('preserves B1 border dimensions and transparent paint for %s', renderer => {
         const decision: BreakDecision = {
             status: 'accepted', origin: renderer === 'manual-spacer' ? 'manual' : 'automatic',
             pos: 10, effectiveDisplacement: 240, reasons: ['fixture_reason'], renderer, colspan: 2
         };
         const gap = layout.page.marginBottom + layout.page.pageGap + layout.page.marginTop;
         const omitted = createDecorationFromDecision(decision, layout, gap, doc);
-        const legacy = createDecorationFromDecision(decision, layout, gap, doc, 'legacy');
         const composed = createDecorationFromDecision(decision, layout, gap, doc, 'composed');
         expect(composed).toHaveLength(renderer === 'table-row-spacer' ? 2 : 1);
-        for (let i = 0; i < legacy.length; i++) {
-            expect(composed[i].from).toBe(legacy[i].from);
-            expect(composed[i].to).toBe(legacy[i].to);
-            expect(composed[i].spec).toEqual(legacy[i].spec);
-        }
         const isTable = renderer === 'table-row-spacer';
         const index = isTable ? 1 : 0;
-        const oldRoot = widgetDOM(legacy[index]);
-        const newRoot = widgetDOM(composed[index]);
-        expect(widgetDOM(omitted[index]).outerHTML).toBe(oldRoot.outerHTML);
-        expect(withoutPaint(newRoot)).toBe(withoutPaint(oldRoot));
-        expectComposedPaintContract(newRoot);
-        expectEdgeBorders(oldRoot, 'legacy');
-        expectEdgeBorders(widgetDOM(omitted[index]), 'legacy');
-        expect(newRoot.children).toHaveLength(3);
-        const [bottom, pageGap, top] = Array.from(newRoot.children) as HTMLElement[];
+        const root = widgetDOM(composed[index]);
+        expect(widgetDOM(omitted[index]).outerHTML).toBe(root.outerHTML);
+        expectComposedPaintContract(root);
+        expect(root.children).toHaveLength(3);
+        const [bottom, pageGap, top] = Array.from(root.children) as HTMLElement[];
         expect(bottom.style.height).toBe('120px');
         expect(pageGap.style.height).toBe('20px');
         expect(pageGap.style.top).toBe('120px');
         expect(top.style.height).toBe('100px');
-        expect(newRoot.style.height).toBe('240px');
-        expect(oldRoot.children[0].getAttribute('style')).toContain('background: white');
-        expect(oldRoot.children[0].getAttribute('style')).toContain('border-bottom:');
-        expect(oldRoot.children[0].getAttribute('style')).toContain('box-shadow:');
-        expect((oldRoot.children[1] as HTMLElement).style.background).toBe('rgb(238, 238, 238)');
+        expect(root.style.height).toBe('240px');
         if (isTable) {
             const attrs = (composed[0] as unknown as { type: { attrs: Record<string, string> } }).type.attrs;
             expect(attrs).toEqual({ class: 'page-break-row', style: '--page-break-gap: 240px;', 'data-reasons': 'fixture_reason', 'data-displacement': '240' });
-            expect(attrs).toEqual((legacy[0] as unknown as { type: { attrs: unknown } }).type.attrs);
-            expect(newRoot.style.top).toBe('-240px');
-            expect(newRoot.style.left).toBe('-50px');
-            expect(newRoot.style.width).toBe('800px');
-            expect(newRoot.style.pointerEvents).toBe('none');
+            expect(root.style.top).toBe('-240px');
+            expect(root.style.left).toBe('-50px');
+            expect(root.style.width).toBe('800px');
+            expect(root.style.pointerEvents).toBe('none');
             expect(composed[1].from).toBe(12);
             expect(composed[1].spec).toEqual({ side: -1, ignoreSelection: true });
         } else {
-            expect(newRoot.style.marginLeft).toBe('-50px');
-            expect(newRoot.style.marginRight).toBe('-60px');
-            expect(newRoot.className).toBe('page-break-widget');
-            expect(newRoot.contentEditable).toBe('false');
-            expect(newRoot.getAttribute('data-displacement')).toBe('240');
+            expect(root.style.marginLeft).toBe('-50px');
+            expect(root.style.marginRight).toBe('-60px');
+            expect(root.className).toBe('page-break-widget');
+            expect(root.contentEditable).toBe('false');
+            expect(root.getAttribute('data-displacement')).toBe('240');
             expect(composed[0].spec).toEqual({ side: 1, effectiveDisplacement: 240, reasons: ['fixture_reason'], ignoreSelection: true });
         }
     });
@@ -298,44 +214,28 @@ describe('paint mode: decorations preserve geometry and metadata', () => {
             status: 'accepted', origin: renderer === 'manual-spacer' ? 'manual' : 'automatic',
             pos: 10, effectiveDisplacement: displacement, reasons: ['fixture_reason'], renderer, colspan: 2
         };
-        const omitted = createDecorationFromDecision(decision, config, totalGap, doc);
-        const legacy = createDecorationFromDecision(decision, config, totalGap, doc, 'legacy');
         const composed = createDecorationFromDecision(decision, config, totalGap, doc, 'composed');
         const index = renderer === 'table-row-spacer' ? 1 : 0;
-        const oldRoot = widgetDOM(legacy[index]);
-        const newRoot = widgetDOM(composed[index]);
-        expect(widgetDOM(omitted[index]).outerHTML).toBe(oldRoot.outerHTML);
-        expect(withoutPaint(newRoot)).toBe(withoutPaint(oldRoot));
-        expectEdgeBorders(oldRoot, 'legacy');
-        expectEdgeBorders(widgetDOM(omitted[index]), 'legacy');
-        expectComposedPaintContract(newRoot);
-        expect(composed).toHaveLength(legacy.length);
-        for (let i = 0; i < composed.length; i++) {
-            expect(composed[i].from).toBe(legacy[i].from);
-            expect(composed[i].to).toBe(legacy[i].to);
-            expect(composed[i].spec).toEqual(legacy[i].spec);
-        }
+        const root = widgetDOM(composed[index]);
+        expectComposedPaintContract(root);
         if (renderer === 'table-row-spacer') {
             const attrs = (composed[0] as unknown as { type: { attrs: Record<string, string> } }).type.attrs;
-            expect(attrs).toEqual((legacy[0] as unknown as { type: { attrs: unknown } }).type.attrs);
             expect(attrs.style).toBe(`--page-break-gap: ${displacement}px;`);
-            expect(newRoot.style.top).toBe(`-${displacement}px`);
+            expect(root.style.top).toBe(`-${displacement}px`);
         } else {
-            expect(newRoot.getAttribute('data-displacement')).toBe(`${displacement}`);
+            expect(root.getAttribute('data-displacement')).toBe(`${displacement}`);
         }
-        const [pageBottom, gap, pageTop] = Array.from(newRoot.children) as HTMLElement[];
-        expect(newRoot.style.height).toBe(`${displacement}px`);
+        const [pageBottom, gap, pageTop] = Array.from(root.children) as HTMLElement[];
+        expect(root.style.height).toBe(`${displacement}px`);
         expect(pageBottom.style.height).toBe(`${bottom}px`);
         expect(pageBottom.style.top).toBe('0px');
         expect(gap.style.top).toBe(`${bottom}px`);
         expect(gap.style.height).toBe(`${page.pageGap}px`);
         expect(pageTop.style.height).toBe(`${page.marginTop}px`);
         expect(pageTop.style.bottom).toBe('0px');
-        for (const node of [newRoot, pageBottom, gap, pageTop]) {
+        for (const node of [root, pageBottom, gap, pageTop]) {
             expect(node.style.padding).toBe('');
             expect(node.style.boxSizing).toBe('');
         }
-        // Style/DOM checks only: no simulated rect/client/offset measurement.
     });
-
 });

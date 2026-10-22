@@ -17,3 +17,11 @@ npm test deixou de encadear E2E: apenasunit. Tipagens, build técnico e browser 
 ## Estado preservado
 
 Sem arquivamentoB/movimento de auxiliares, tgz, PNG, logs, resultados ou .bak. Integração oficial/factory/atualização/insets/print composto e homologação permanecem pendentes. M1/S/C/SLP-B-02 e margens horizontais/anomalias visuais conservam seus registros. A working tree é entregue para revisão e decisão de commit porBoby, não para release automático.
+
+---
+
+## Consolidação experimental da arquitetura `composed` (21/10/2026)
+
+Para o relatório completo da consolidação do `composed`, resolução do congelamento em texto contínuo, eliminação dos caminhos executáveis e tipos de `legacy`, e guia de revisão para as Frentes A e B, consulte:
+- [CONS-013 — Dossiê Técnico de Consolidação da Arquitetura Composed e Handoff para as Frentes A e B](CONS-013-COMPOSED-CONSOLIDATION-HANDOFF.md)
+

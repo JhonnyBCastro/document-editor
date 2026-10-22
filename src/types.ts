@@ -51,6 +51,7 @@ export type BreakCandidate = {
     tableNode?: any;
     tablePos?: number;
     map?: any; // TableMap
+    lastBreakPos?: number;
 };
 
 export type BreakDecision = {
@@ -100,22 +101,15 @@ export type LayoutSnapshot = {
     diagnostics: readonly LayoutDiagnostic[];
 };
 
-/** Documentary paint ownership, selected once when pagination is created. */
-export type PaginationVisualMode = 'legacy' | 'composed';
+/** Documentary paint ownership: 'composed' é a arquitetura oficial e padrão do editor. */
+export type PaginationVisualMode = 'composed';
 
 export type PaginationOptions = {
     layout: LayoutConfig;
     onLayoutStable?: (snapshot: LayoutSnapshot) => void;
     manualBreakNodeName?: string;
-    chromeLayerElement?: HTMLElement;
     /**
-     * Defaults to legacy. Fixed for the controller lifetime; later option mutations
-     * do not switch modes. Unknown values are rejected without fallback.
-     * Composed suppresses Core documentary paint while preserving geometry and
-     * consumer styles. The bottom/top decorative edges retain 1px solid borders
-     * with transparent color in composed mode as geometric contributions (B1).
-     * It rejects any defined chromeLayerElement and does not
-     * provide document composition, automatic insets, or Presentation mounting.
+     * Modo de apresentação visual. Padrão: 'composed' (única arquitetura suportada).
      */
     visualMode?: PaginationVisualMode;
 };

@@ -4,6 +4,15 @@ import { EditorView } from '@tiptap/pm/view';
 
 export function evaluateLinearPolicies(candidate: BreakCandidate, view: EditorView, layout: LayoutConfig): BreakDecision {
     const { lines, naturalLineIndex: K, hasHeadingBefore, headingPos } = candidate;
+    if (candidate.blockStart !== undefined && candidate.lastBreakPos !== undefined && candidate.blockStart <= candidate.lastBreakPos) {
+        return {
+            status: 'accepted',
+            pos: candidate.exactPos,
+            effectiveDisplacement: 0,
+            reasons: ['multi_page_block_overflow'],
+            renderer: 'linear-widget'
+        };
+    }
     if (!lines || K === undefined) {
         return {
             status: 'accepted',
@@ -82,7 +91,12 @@ export function evaluateLinearPolicies(candidate: BreakCandidate, view: EditorVi
     if (moveHeadingToNextPage) {
         decisionPos = headingPos!;
     } else if (targetLine === 0) {
-        decisionPos = candidate.blockStart!;
+        if (candidate.blockStart !== undefined && candidate.blockStart <= 1) {
+            decisionPos = candidate.exactPos;
+            reasons = ['natural_overflow'];
+        } else {
+            decisionPos = candidate.blockStart!;
+        }
     } else if (targetLine !== K) {
         const targetLineTop = lines[targetLine].top + 2; 
         const editorRect = view.dom.getBoundingClientRect();

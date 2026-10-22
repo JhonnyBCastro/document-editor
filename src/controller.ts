@@ -7,7 +7,6 @@ import { getVisualLines } from './measurement';
 import { evaluateLinearPolicies, evaluateTablePolicies, checkProgressRule } from './policies';
 import { createDecorationFromDecision } from './decorations';
 import { calculatePageProjections } from './projection';
-import { updateChromeLayer } from './chrome';
 
 export interface PaginationDecorationBridge {
     read(view: EditorView): DecorationSet;
@@ -38,6 +37,17 @@ function isValidDenseStringArray(val: unknown): val is string[] {
 }
 
 const CANONICAL_RENDERERS = new Set(['linear-widget', 'table-row-spacer', 'manual-spacer']);
+
+/**
+ * Passo de amostragem (em posições ProseMirror) do laço principal de performLayout.
+ * Quando não há overflow, `pos` avança este valor por iteração; o ponto exato do overflow é
+ * localizado depois por varredura regressiva. O valor foi preservado (20); medições em navegador
+ * (passos 10/20/40) produziram quebras idênticas, de modo que ele afeta custo, não resultado.
+ */
+const SCAN_STRIDE = 20;
+
+/** Código de diagnóstico emitido quando o laço termina antes de alcançar o fim do documento. */
+export const LAYOUT_ITERATION_LIMIT_CODE = 'LAYOUT_ITERATION_LIMIT';
 
 function validateStructuralDecoration(deco: { from: number; to?: number; spec: any }, docSize: number): void {
     if (typeof deco.from !== 'number' || !Number.isFinite(deco.from) || deco.from < 0 || deco.from > docSize) {
@@ -96,48 +106,24 @@ export class PaginationController {
     private stableListeners: Array<(snapshot: LayoutSnapshot) => void> = [];
     private revision: number = 0;
     private manualBreakNodeName: string;
-    private chromeLayer?: HTMLElement;
     private readonly visualMode: PaginationVisualMode;
-    private originalParentPosition?: string;
-    
-    constructor(view: EditorView, layout: LayoutConfig, onLayoutStable?: (snapshot: LayoutSnapshot) => void, manualBreakNodeName: string = 'pageBreak', chromeLayerElement?: HTMLElement, visualMode: PaginationVisualMode = 'legacy', decorationBridge?: PaginationDecorationBridge) {
-        if (visualMode !== 'legacy' && visualMode !== 'composed') {
-            throw new TypeError('Invalid pagination visualMode: expected legacy or composed.');
+
+    constructor(view: EditorView, layout: LayoutConfig, onLayoutStable?: (snapshot: LayoutSnapshot) => void, manualBreakNodeName: string = 'pageBreak', visualMode: PaginationVisualMode = 'composed', decorationBridge?: PaginationDecorationBridge) {
+        if (visualMode !== 'composed') {
+            throw new TypeError('Invalid pagination visualMode: expected "composed".');
         }
-        if (visualMode === 'composed' && chromeLayerElement !== undefined) {
-            throw new TypeError('chromeLayerElement is not allowed in composed visualMode.');
-        }
-        this.visualMode = visualMode;
+        this.visualMode = 'composed';
         this.view = view;
         this.layout = layout;
         this.onLayoutStable = onLayoutStable;
         this.manualBreakNodeName = manualBreakNodeName;
         this.decorationBridge = decorationBridge;
-        
-        if (this.visualMode === 'legacy') {
-            this.chromeLayer = document.createElement('div');
-            this.chromeLayer.className = 'document-editor-chrome-layer';
-        
-            if (chromeLayerElement) {
-                chromeLayerElement.appendChild(this.chromeLayer);
-            } else {
-                const parent = this.view.dom.parentElement;
-                if (parent) {
-                    const style = window.getComputedStyle(parent);
-                    if (style.position === 'static') {
-                        this.originalParentPosition = parent.style.position;
-                        parent.style.position = 'relative';
-                    }
-                    parent.insertBefore(this.chromeLayer, this.view.dom);
-                }
-            }
-        }
     }
-    
+
     public getLayout(): LayoutConfig {
         return this.layout;
     }
-    
+
     public async whenLayoutStable(): Promise<LayoutSnapshot> {
         if (!this.isCalculating && !this.renderTimeout && this.view) {
             // Already stable (or at least no render pending)
@@ -153,12 +139,24 @@ export class PaginationController {
             }
         });
     }
-    
+
     public setLayout(layout: LayoutConfig) {
         this.layout = layout;
         this.scheduleRender();
     }
-    
+
+    /**
+     * Orçamento de iterações do laço de performLayout (proteção contra execução interminável).
+     * O trabalho útil é ~ceil(docSize / SCAN_STRIDE) iterações; medido entre 1,05x e 1,11x disso
+     * (parágrafos sintéticos até 367k posições, PE-M, PE-L; passos 10/20/40), incluindo as varreduras
+     * repetidas após cada quebra. O orçamento usa 2x como margem sobre o máximo medido, mais uma folga
+     * fixa para documentos minúsculos. Se for excedido, o resultado é parcial e é sinalizado por
+     * diagnóstico LAYOUT_ITERATION_LIMIT (nunca silenciosamente).
+     */
+    private getIterationBudget(docSize: number): number {
+        return 2 * Math.ceil(docSize / SCAN_STRIDE) + 100;
+    }
+
     private getActiveDecorations(): DecorationSet {
         if (this.isDestroyed) {
             return DecorationSet.empty;
@@ -168,11 +166,11 @@ export class PaginationController {
         }
         return this.currentDecorations;
     }
-    
+
     public getDecorations(): DecorationSet {
         return this.getActiveDecorations();
     }
-    
+
     public scheduleRender() {
         if (this.isDestroyed) return;
         if (this.renderTimeout) clearTimeout(this.renderTimeout);
@@ -182,7 +180,7 @@ export class PaginationController {
             this.renderVirtualPages();
         }, 100);
     }
-    
+
     public destroy() {
         this.isDestroyed = true;
         if (this.renderTimeout) {
@@ -190,20 +188,12 @@ export class PaginationController {
             this.renderTimeout = null;
         }
         this.currentDecorations = DecorationSet.empty;
-        
-        if (this.chromeLayer && this.chromeLayer.parentNode) {
-            const parent = this.chromeLayer.parentNode as HTMLElement;
-            if (this.originalParentPosition !== undefined) {
-                parent.style.position = this.originalParentPosition;
-            }
-            parent.removeChild(this.chromeLayer);
-        }
     }
-    
+
     private renderVirtualPages() {
         if (this.isDestroyed || !this.view || this.isCalculating) return;
         this.isCalculating = true;
-        
+
         if (document.fonts && document.fonts.status === 'loading') {
             document.fonts.ready.then(() => {
                 if (this.isDestroyed) return;
@@ -212,7 +202,7 @@ export class PaginationController {
             });
             return;
         }
-        
+
         requestAnimationFrame(() => {
             if (this.isDestroyed) {
                 this.isCalculating = false;
@@ -227,7 +217,7 @@ export class PaginationController {
             }
         });
     }
-    
+
     private performLayout() {
         if (this.isDestroyed) return;
         const { height, marginTop, marginBottom, pageGap } = this.layout.page;
@@ -239,28 +229,28 @@ export class PaginationController {
         ) {
             throw new Error('PaginationController: dimensões da página devem ser números finitos.');
         }
-        
+
         const usableHeight = height - marginTop - marginBottom;
         const totalGapSize = marginBottom + pageGap + marginTop;
-        
+
         if (!Number.isFinite(usableHeight) || usableHeight <= 0 || !Number.isFinite(totalGapSize) || totalGapSize < 0) {
             throw new Error(`PaginationController: dimensões inválidas de página (usableHeight=${usableHeight}, totalGapSize=${totalGapSize}).`);
         }
-        
+
         const docSize = this.view.state.doc.content.size;
         const editorEl = this.view.dom as HTMLElement;
         const editorRect = editorEl.getBoundingClientRect();
-        
+
         if (editorRect.width === 0 || editorRect.height === 0) {
             this.scheduleRender();
             return;
         }
-        
+
         if (typeof editorRect.top !== 'number' || !Number.isFinite(editorRect.top)) {
             console.error("PaginationController: editorRect.top não-finito. Abortando rodada de layout.");
             return;
         }
-        
+
         const startY = editorRect.top + marginTop;
         if (!Number.isFinite(startY)) {
             console.error("PaginationController: startY não-finito. Abortando rodada de layout.");
@@ -271,18 +261,18 @@ export class PaginationController {
             console.error("PaginationController: T_1 não-finito. Abortando rodada de layout.");
             return;
         }
-        
+
         const initialDoc = this.view.state.doc;
         const initialInstalledSet = this.getActiveDecorations();
-        
+
         // Protocolo: extrair e validar lista de decorações estruturais do conjunto realmente instalado
         const rawStructural = initialInstalledSet.find().filter(d => d.spec && d.spec.structural === true);
-        
+
         for (let i = 0; i < rawStructural.length; i++) {
             const d = rawStructural[i];
             validateStructuralDecoration(d, docSize);
         }
-        
+
         // Ordenar cópia por from e rejeitar duplicatas estruturais de posição como inconsistência
         const currentStructural = rawStructural.slice().sort((a, b) => a.from - b.from);
         for (let i = 1; i < currentStructural.length; i++) {
@@ -290,14 +280,14 @@ export class PaginationController {
                 throw new PaginationCorruptedSpecError(currentStructural[i].from, `Duplicata estrutural detectada na posição ${currentStructural[i].from}.`);
             }
         }
-        
+
         // Acumulador usando a lista validada
         const getCumulativeDisplacement = (atPos: number): number => {
             let total = 0;
             for (let i = 0; i < currentStructural.length; i++) {
                 const d = currentStructural[i];
                 if (d.from >= atPos) break;
-                
+
                 const disp = d.spec.effectiveDisplacement;
                 const nextTotal = total + disp;
                 if (!Number.isFinite(nextTotal)) {
@@ -307,10 +297,10 @@ export class PaginationController {
             }
             return total;
         };
-        
+
         const breaks: BreakDecision[] = [];
         const diagnostics: LayoutDiagnostic[] = [];
-        
+
         const manualBreaks: number[] = [];
         this.view.state.doc.descendants((node, p) => {
             if (node.type.name === this.manualBreakNodeName) {
@@ -318,19 +308,20 @@ export class PaginationController {
             }
         });
         let nextManualIdx = 0;
-        
+
         let pos = 0;
         let failsafe = 0;
         let blockedRegionStart = -1;
         let blockedRegionEnd = -1;
-        
-        while (pos < docSize && failsafe < 5000) {
+        const iterationBudget = this.getIterationBudget(docSize);
+
+        while (pos < docSize && failsafe < iterationBudget) {
             failsafe++;
             if (pos >= blockedRegionStart && pos <= blockedRegionEnd && blockedRegionEnd !== -1) {
                 pos = blockedRegionEnd + 1;
                 continue;
             }
-            
+
             while (nextManualIdx < manualBreaks.length) {
                 const bPos = manualBreaks[nextManualIdx];
                 const bNode = this.view.state.doc.nodeAt(bPos);
@@ -344,24 +335,24 @@ export class PaginationController {
             const nextManualPos = nextManualIdx < manualBreaks.length ? manualBreaks[nextManualIdx] : Infinity;
             const manualNode = nextManualPos !== Infinity ? this.view.state.doc.nodeAt(nextManualPos) : null;
             const manualNodeSize = manualNode ? manualNode.nodeSize : 2;
-            
+
             let coords;
             try {
                 coords = this.view.coordsAtPos(Math.max(1, pos));
             } catch (e) {
-                let jump = 20;
+                let jump = SCAN_STRIDE;
                 if (pos + jump > nextManualPos) {
                     jump = Math.max(1, nextManualPos - pos);
                 }
                 pos += jump;
                 continue;
             }
-            
+
             if (typeof coords.top !== 'number' || !Number.isFinite(coords.top)) {
                 console.error(`PaginationController: coords.top não-finito em pos=${pos}. Abortando rodada.`);
                 return;
             }
-            
+
             const cumulativeDisplacement = getCumulativeDisplacement(pos);
             const neutralY = coords.top - cumulativeDisplacement;
             if (!Number.isFinite(neutralY)) {
@@ -380,13 +371,13 @@ export class PaginationController {
                 const effectiveDisplacement = totalGapSize + spaceLeft;
                 const intermediate = targetNeutralY + usableHeight;
                 const nextTarget = intermediate - spaceLeft;
-                
+
                 // Validação atômica antes de incorporar a decisão
                 if (!Number.isFinite(spaceLeft) || !Number.isFinite(effectiveDisplacement) || !Number.isFinite(intermediate) || !Number.isFinite(nextTarget)) {
                     console.error(`PaginationController: derivação não-finita em quebra manual (pos=${nextManualPos}). Abortando rodada.`);
                     return;
                 }
-                
+
                 const decision: BreakDecision = {
                     status: 'accepted',
                     origin: 'manual',
@@ -395,17 +386,17 @@ export class PaginationController {
                     reasons: ['manual_page_break'],
                     renderer: 'manual-spacer'
                 };
-                
+
                 // Validação da forma da decisão manual antes de prosseguir
                 validatePolicyDecision(decision, docSize);
-                
+
                 // Regra de progresso também para manual?
                 // lastBreakPos
                 const { isStale } = checkProgressRule(decision, breaks);
                 if (!isStale) {
                     breaks.push(decision);
                     targetNeutralY = nextTarget; // T_{i+1} = T_i + U - r_i
-                    pos = decision.pos; 
+                    pos = decision.pos;
                     nextManualIdx++;
                     continue;
                 }
@@ -435,10 +426,10 @@ export class PaginationController {
                         exactPos--;
                     }
                 }
-                
+
                 const exactRes = this.view.state.doc.resolve(exactPos);
                 let candidate: BreakCandidate | null = null;
-                
+
                 let insideTableAtDepth = -1;
                 for (let d = exactRes.depth; d > 0; d--) {
                     if (exactRes.node(d).type.name === 'table') {
@@ -446,30 +437,50 @@ export class PaginationController {
                         break;
                     }
                 }
-                
+
+                const currentLastBreakPos = breaks.length > 0 ? breaks[breaks.length - 1].pos : 0;
+
                 if (insideTableAtDepth > 0) {
                     const tablePos = exactRes.before(insideTableAtDepth);
                     const tableNode = exactRes.node(insideTableAtDepth);
                     const map = TableMap.get(tableNode);
-                    
+
                     candidate = {
                         kind: 'table', exactPos, naturalPos: exactPos, targetNeutralY,
                         tableNode, tablePos, map,
-                        dom: this.view.nodeDOM(tablePos) as HTMLElement
+                        dom: this.view.nodeDOM(tablePos) as HTMLElement,
+                        lastBreakPos: currentLastBreakPos
                     };
                 } else {
                     const node = exactRes.parent;
                     const blockStart = exactRes.start();
-                    const dom = this.view.nodeDOM(blockStart) as HTMLElement;
-                    
+                    const blockBefore = exactRes.depth > 0 ? exactRes.before(exactRes.depth) : null;
+
+                    let dom: HTMLElement | null = null;
+                    const rawBefore = blockBefore !== null ? this.view.nodeDOM(blockBefore) : null;
+                    if (rawBefore && rawBefore.nodeType === 1) {
+                        dom = rawBefore as HTMLElement;
+                    } else {
+                        const rawStart = this.view.nodeDOM(blockStart);
+                        if (rawStart) {
+                            dom = (rawStart.nodeType === 1 ? rawStart : rawStart.parentElement) as HTMLElement;
+                        }
+                    }
+                    if (!dom || dom.nodeType !== 1) {
+                        const domAt = this.view.domAtPos(blockStart);
+                        if (domAt && domAt.node) {
+                            dom = (domAt.node.nodeType === 1 ? domAt.node : domAt.node.parentElement) as HTMLElement;
+                        }
+                    }
+
                     let lines: DOMRect[] = [];
                     let K = 0;
                     const isParagraph = node.type.name === 'paragraph';
-                    
+
                     let hasHeadingBefore = false;
                     let headingPos = -1;
                     let headingNode = null;
-                    
+
                     if (isParagraph) {
                         const prevPos = Math.max(0, blockStart - 1);
                         const prevRes = this.view.state.doc.resolve(prevPos);
@@ -480,7 +491,7 @@ export class PaginationController {
                             headingNode = prevNode;
                         }
                     }
-                    
+
                     if (dom && dom.nodeType === 1 && (isParagraph || node.type.name === 'heading')) {
                         const visualLines = getVisualLines(dom);
                         lines = visualLines.map(l => {
@@ -492,10 +503,10 @@ export class PaginationController {
                             );
                             return unionRect;
                         });
-                        
+
                         const exactCoords = this.view.coordsAtPos(exactPos);
                         let closestDist = Infinity;
-                        
+
                         for (let i = 0; i < lines.length; i++) {
                             const l = lines[i];
                             const midY = l.top + l.height / 2;
@@ -506,14 +517,19 @@ export class PaginationController {
                             }
                         }
                     }
-                    
+
                     candidate = {
                         kind: 'linear', exactPos, naturalPos: exactPos, targetNeutralY,
                         isParagraph, blockStart, blockEnd: blockStart + node.nodeSize - 2,
-                        dom, lines, naturalLineIndex: K, hasHeadingBefore, headingPos, headingNode
+                        dom: dom || undefined, lines, naturalLineIndex: K, hasHeadingBefore, headingPos, headingNode,
+                        lastBreakPos: currentLastBreakPos
                     };
                 }
-                
+
+                if (!candidate) {
+                    pos += SCAN_STRIDE;
+                    continue;
+                }
 
                 let decision: BreakDecision;
                 if (candidate.kind === 'linear') {
@@ -521,18 +537,18 @@ export class PaginationController {
                 } else {
                     decision = evaluateTablePolicies(candidate, this.view, this.layout);
                 }
-                
+
                 // B-R2: Validar forma de posição/renderer/origin/reasons ao receber decisão de política,
                 // antes de join ou normalização, inclusive no diagnóstico blocked
                 validatePolicyDecision(decision, docSize);
-                
+
                 if (decision.status === 'blocked') {
                     diagnostics.push({
                         code: decision.code || 'BLOCKED',
                         pos: decision.pos,
                         message: decision.reasons.join(', ')
                     });
-                    
+
                     if (candidate.kind === 'table') {
                         blockedRegionStart = candidate.tablePos!;
                         blockedRegionEnd = candidate.tablePos! + candidate.tableNode.nodeSize;
@@ -543,21 +559,41 @@ export class PaginationController {
                     pos = blockedRegionEnd + 1;
                     continue;
                 }
-                
+
                 // ── Regra de Progresso ───────────────────────────────────────────────
                 const { isStale, lastBreakPos } = checkProgressRule(decision, breaks);
                 if (isStale) {
-                    diagnostics.push({
-                        code: 'STALE_BREAK',
-                        pos,
-                        message: `Break decision at pos=${decision.pos} não avançou além da última quebra em ${lastBreakPos}. Avançando forçadamente.`
-                    });
-                    pos += 1;
-                    continue;
+                    if (candidate.exactPos > lastBreakPos) {
+                        diagnostics.push({
+                            code: 'STALE_BREAK',
+                            pos: candidate.exactPos,
+                            message: `Break decision at pos=${decision.pos} não avançou além da última quebra em ${lastBreakPos}. Recuperada para candidate.exactPos=${candidate.exactPos}.`
+                        });
+                        decision = {
+                            status: 'accepted',
+                            pos: candidate.exactPos,
+                            effectiveDisplacement: 0,
+                            reasons: [...decision.reasons, 'stale_break_recovered_to_exact_pos'],
+                            renderer: candidate.kind === 'table' ? 'table-row-spacer' : 'linear-widget',
+                            origin: 'automatic'
+                        };
+                    } else {
+                        diagnostics.push({
+                            code: 'STALE_BREAK',
+                            pos,
+                            message: `Break decision at pos=${decision.pos} e exactPos=${candidate.exactPos} não avançaram além de ${lastBreakPos}. Avançando forçadamente.`
+                        });
+                        pos = Math.max(pos + SCAN_STRIDE, lastBreakPos + 1);
+                        continue;
+                    }
                 }
 
                 if (!decision.origin) {
                     decision.origin = 'automatic';
+                }
+
+                if (decision.pos < docSize && this.view.state.doc.textBetween(decision.pos, decision.pos + 1) === '\n') {
+                    decision.pos++;
                 }
 
                 const coordsBefore = this.view.coordsAtPos(decision.pos);
@@ -580,34 +616,45 @@ export class PaginationController {
                 const effectiveDisplacement = totalGapSize + spaceLeft; // D_i = G + r_i
                 const intermediate = targetNeutralY + usableHeight;
                 const nextTarget = intermediate - spaceLeft; // T_{i+1} = T_i + U - r_i
-                
+
                 // Validação estrita antes de incorporar a quebra aceita
                 if (!Number.isFinite(spaceLeft) || !Number.isFinite(effectiveDisplacement) || !Number.isFinite(intermediate) || !Number.isFinite(nextTarget)) {
                     console.error(`PaginationController: derivação não-finita em quebra aceita (pos=${decision.pos}). Abortando rodada.`);
                     return;
                 }
                 decision.effectiveDisplacement = effectiveDisplacement;
-                
+
                 breaks.push(decision);
-                
+
                 targetNeutralY = nextTarget;
                 pos = decision.pos + 1;
                 continue;
             }
-            
-            let jump = 20;
+
+            let jump = SCAN_STRIDE;
             if (pos + jump > nextManualPos) {
                 jump = Math.max(1, nextManualPos - pos);
             }
             pos += jump;
         }
-        
+
+        // O laço só termina com pos < docSize se o orçamento de iterações foi esgotado.
+        // O resultado (quebras até pos) é publicado, mas explicitamente marcado como incompleto.
+        if (pos < docSize) {
+            diagnostics.push({
+                code: LAYOUT_ITERATION_LIMIT_CODE,
+                pos,
+                message: `Paginação interrompida em pos=${pos} de ${docSize} após ${failsafe} iterações (orçamento ${iterationBudget}). O restante do documento NÃO foi paginado.`
+            });
+            console.warn(`PaginationController: ${LAYOUT_ITERATION_LIMIT_CODE} pos=${pos}/${docSize} iterações=${failsafe}`);
+        }
+
         // Guarda de reentrância: verificar se doc ou conjunto instalado mudaram durante o laço
         if (this.view.state.doc !== initialDoc || this.getActiveDecorations() !== initialInstalledSet) {
             console.error("PaginationController: documento ou conjunto instalado foi modificado durante o cálculo do layout. Abortando publicação reentrante.");
             return;
         }
-        
+
         // B-R2: Validar ambas as coleções antes do comparador e toda a lista nova antes da fábrica,
         // inclusive quando o resultado seria changed=false
         for (let i = 0; i < currentStructural.length; i++) {
@@ -621,7 +668,7 @@ export class PaginationController {
                 throw new PaginationCorruptedSpecError(b.pos, `Carrier estrutural com effectiveDisplacement corrompido: ${disp}`);
             }
         }
-        
+
         // Comparação canônica estável e ordenada por posição
         let changed = breaks.length !== currentStructural.length;
         if (!changed) {
@@ -629,14 +676,14 @@ export class PaginationController {
                 const b = breaks[i];
                 const cur = currentStructural[i];
                 const curSpec = cur.spec;
-                
+
                 if (b.pos !== cur.from ||
                     b.effectiveDisplacement !== curSpec.effectiveDisplacement ||
                     b.origin !== curSpec.origin ||
                     b.renderer !== curSpec.renderer) {
                     changed = true; break;
                 }
-                
+
                 // B-R1: Sem fallback `reasons || []`. Coleções previamente validadas por comprimento e valor ordenado
                 const bReasons = b.reasons;
                 const curReasons = curSpec.reasons;
@@ -651,7 +698,7 @@ export class PaginationController {
                 if (changed) break;
             }
         }
-        
+
         if (changed) {
             const decos = breaks.flatMap(b => createDecorationFromDecision(b, this.layout, totalGapSize, this.view.state.doc, this.visualMode));
             const newSet = DecorationSet.create(this.view.state.doc, decos);
@@ -666,21 +713,13 @@ export class PaginationController {
             }
             this.revision++;
         }
-        
+
         if (this.isDestroyed) {
             return;
         }
-        
+
         const projections = calculatePageProjections(breaks, this.layout);
-        if (this.chromeLayer) {
-            updateChromeLayer(this.chromeLayer, projections, this.layout);
-        }
-        
-        if (this.visualMode === 'legacy') {
-            editorEl.style.background = 'white';
-            editorEl.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
-        }
-        
+
         const snapshot: LayoutSnapshot = {
             revision: this.revision,
             pages: projections,
@@ -691,7 +730,7 @@ export class PaginationController {
         if (this.onLayoutStable) {
             this.onLayoutStable(snapshot);
         }
-        
+
         const listeners = [...this.stableListeners];
         this.stableListeners = [];
         for (const listener of listeners) {

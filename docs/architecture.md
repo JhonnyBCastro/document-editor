@@ -36,17 +36,19 @@ A reavaliação de layout adota um comparador canônico que ordena as decoraçõ
 
 Presentation é entrada independente: pinta sheets/running content a partir do snapshot no host coordenado, com render/clear/destroy e disposers locais. Não calcula paginação, não cria Editor, não promete editor integrado. Integração oficial deverá definir fonte de layout, ownership, insets, atualização, estabilidade e descarte; permanece planejada. Consumidor experimental não equivale a factory/bridge pública pronta.
 
-## Legacy/default e composto opt-in
+## Arquitetura oficial (`composed`) e descontinuação do `legacy`
 
-`visualMode` é seleção explícita e fixa. Omissão=legacy preserva chrome/pintura histórica; host externo chromeLayerElement continua opção legado. Composed rejeita esse host, não cria chrome legado e não escreve pintura documental do Core nos estilos do consumidor. Mantém os mecanismos geométricos e quatro arestas decorativas 1px/solid com cor transparente (B1), em vez de retirar contribuição de borda. Linear/manual/tabular, nós/dimensões/metadados/compensações não receberam redesign.
+A biblioteca consolidou o modo `composed` como sua arquitetura padrão e oficial de funcionamento:
 
-Composed não fornece sozinho folha/insets/rolagem ou running content pronto. Presentation deve ser montada e coordenada pelo consumidor segundo contratos próprios; automação de insets, atualização pública e composição/print oficial permanecem pendentes.
+- **Contrato limpo do Core:** O Core (`PaginationExtension` / `PaginationController`) foca estritamente no cálculo do layout contínuo e na inserção dos carriers estruturais e de deslocamento geométrico. Não cria camadas de chrome de fundo, não altera estilos arbitrários do elemento pai ou do editor (`editorEl.style.background = 'white'`), e unifica as arestas dos widgets de quebra com bordas decorativas B1 (`1px solid transparent`), preservando a espessura física de 1 px no box model sem poluir a renderização.
+- **Camada de apresentação (Presentation):** O módulo `presentation` consome as projeções do layout (`calculatePageProjections`) emitidas via snapshot do Core para desenhar as superfícies das folhas, sombras, margens visuais, cabeçalhos e rodapés de forma totalmente desacoplada do ProseMirror.
+- **Descontinuação do modo legado:** O modo `legacy` foi encerrado do código executável e dos tipos públicos (`PaginationVisualMode = 'composed'`). O arquivo `src/chrome.ts`, o campo `chromeLayerElement` e suas classes CSS associadas (`.document-editor-chrome-layer`, `.page-chrome-*`) foram completamente removidos. Chamadas com qualquer modo diferente de `'composed'` (inclusive `'legacy'`) são estritamente rejeitadas com `TypeError` sem fallback. Para histórico e fundamentação técnica completa, consulte o dossiê [CONS-013](consolidation/CONS-013-COMPOSED-CONSOLIDATION-HANDOFF.md).
 
 ## Estabilidade e atualização
 
-Correção mínima: scheduleRender libera renderTimeout=null quando o callback é consumido, antes de renderVirtualPages; debounce 100ms existente preservado. Promessas/callbacks representam conclusão local da rodada. Não são garantia de geometria permanente ou de todos os eventos de alteração de layout.
+Correção de estabilidade: `scheduleRender` libera `renderTimeout = null` quando o callback é consumido, antes de `renderVirtualPages`; debounce de 100ms preservado.
 
-O plugin agenda por tamanho de conteúdo/metadado de configuração. Mudança sem diferença de tamanho pode alterar medidas e não ser coberta por esse trigger. Há fonts.ready/frame cuja cobertura integral de cancelamento não é demonstrada. Não ampliar scheduler/triggers/políticas/snapshot nesta consolidação.
+O plugin em `extension.ts` agenda recálculos quando `state.doc !== prevState.doc && (state.doc.content.size !== prevState.doc.content.size || !state.doc.eq(prevState.doc))`, assegurando que mutações estruturais que preservem o tamanho em caracteres (como conversão de blocos ou trocas pontuais de texto) disparem o recálculo do layout. Contudo, mudanças puramente externas de CSS ou carregamento tardio de webfonts sem transação do ProseMirror não geram eventos de atualização automática.
 
 ## Lifecycle e impressão
 

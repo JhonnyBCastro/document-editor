@@ -535,7 +535,7 @@ describe('DOCUMENT-EDITOR-BLOCO-A-RECTIFICATION-001 — Associação de Decoraç
     // 6. Compatibilidade e ciclo de vida
     // ─────────────────────────────────────────────────────────────────────────────
     describe('6. Compatibilidade e ciclo de vida', () => {
-        it('preserva chamadas diretas com 5 e 6 argumentos nos modos legacy e composed (standalone)', () => {
+        it('preserva chamadas diretas com 5 e 6 argumentos (standalone)', () => {
             const parent = document.createElement('div');
             const dom = document.createElement('div');
             parent.appendChild(dom);
@@ -547,18 +547,18 @@ describe('DOCUMENT-EDITOR-BLOCO-A-RECTIFICATION-001 — Associação de Decoraç
                 content: '<p>conteúdo direto</p>'
             });
 
-            // 5 argumentos (omissão do 6º=legacy, omissão do 7º=standalone)
-            const c5 = new PaginationController(auxEditor.view, defaultLayout, undefined, 'pageBreak', undefined);
+            // 4 argumentos (omissão do 5º=composed oficial, omissão do 6º=standalone)
+            const c4 = new PaginationController(auxEditor.view, defaultLayout, undefined, 'pageBreak');
+            controllers.push(c4);
+            expect(c4.getDecorations()).toBe(DecorationSet.empty);
+
+            // 5 argumentos (composed visualMode, omissão do 6º=standalone)
+            const c5 = new PaginationController(auxEditor.view, defaultLayout, undefined, 'pageBreak', 'composed');
             controllers.push(c5);
             expect(c5.getDecorations()).toBe(DecorationSet.empty);
 
-            // 6 argumentos (composed visualMode, omissão do 7º=standalone)
-            const c6 = new PaginationController(auxEditor.view, defaultLayout, undefined, 'pageBreak', undefined, 'composed');
-            controllers.push(c6);
-            expect(c6.getDecorations()).toBe(DecorationSet.empty);
-
+            c4.destroy();
             c5.destroy();
-            c6.destroy();
             auxEditor.destroy();
             if (parent.parentNode) parent.parentNode.removeChild(parent);
         });

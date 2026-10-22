@@ -1,40 +1,13 @@
 /* src/pagination/style.css */
 
-/* Regras essenciais para o Chrome Layer e Paginador Virtual */
-#pages-layer {
-  position: absolute;
-  top: 20px;
-  pointer-events: none;
-  z-index: 1;
-}
-
-#chrome-layer, .document-editor-chrome-layer {
-  position: absolute;
-  top: 20px;
-  pointer-events: none;
-  z-index: 3;
-}
-
-/* Os widgets e quebras virtuais */
-.page-chrome-gap {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: absolute;
-  box-sizing: border-box;
-}
-
-.page-chrome-header, .page-chrome-footer {
-  width: 100%;
-}
-
+/* Regras essenciais para espaçamento de linhas em tabelas */
 .page-break-row > td, .page-break-row > th {
   /* O acréscimo de 8px justifica-se pela compensação do padding natural do .ProseMirror td/th (8px)
      garantindo que o deslocamento adicionado não roube espaço físico do conteúdo da célula. */
   padding-top: calc(var(--page-break-gap, 0px) + var(--tiptap-cell-padding, 8px)) !important;
 }
 
-/* Na hora de imprimir o PDF */
+/* Impressão e PDF */
 @media print {
   @page { 
     size: 8.5in 11in; 
@@ -45,16 +18,6 @@
     margin: 0; 
     padding: 0; 
     background: white; 
-  }
-  
-  /* Remove margens e ajusta os overlays virtualizados */
-  #pages-layer, #chrome-layer, .document-editor-chrome-layer {
-    top: 0 !important;
-  }
-  
-  /* Oculta os placeholders decorativos do gap da paginação virtual, pois viraram 0 */
-  .page-chrome-gap { 
-    display: none !important; 
   }
   
   .ProseMirror { 

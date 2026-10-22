@@ -125,7 +125,7 @@ describe('Carrier Contributions, Dense Reasons & Protocol Guards — Bloco B', (
     function createEditor(
         content: string = '<p>Paragraph 1</p><p>Paragraph 2</p><p>Paragraph 3</p>',
         layout: LayoutConfig = defaultLayout,
-        visualMode: 'legacy' | 'composed' = 'legacy',
+        visualMode: PaginationVisualMode = 'composed',
         extraExtensions: any[] = []
     ) {
         let lastSnapshot: LayoutSnapshot | null = null;
