@@ -1,14 +1,38 @@
-// Demo mínima: consome src/ do working tree (via alias em vite.config.ts), sem tarball.
+// Demo minima: consome src/ do working tree (via alias em vite.config.ts), sem tarball.
 import { Editor, Node } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
-import { Table } from '@tiptap/extension-table';
-import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
 import { PaginationExtension } from '../../src/index';
 import { createDocumentPresentation } from '../../src/presentation/index';
 import '../../src/presentation/presentation.css';
-import '../../src/style.css'; // CSS do Core (alias para o CSS do pacote quando DEMO_LIB=rc4)
+import '../../src/style.css';
+
+const DocumentNode = Node.create({
+  name: 'doc',
+  topNode: true,
+  content: 'block+',
+});
+
+const ParagraphNode = Node.create({
+  name: 'paragraph',
+  group: 'block',
+  content: 'inline*',
+  parseHTML() { return [{ tag: 'p' }]; },
+  renderHTML() { return ['p', 0]; },
+});
+
+const TextNode = Node.create({
+  name: 'text',
+  group: 'inline',
+});
+
+const HeadingNode = Node.create({
+  name: 'heading',
+  group: 'block',
+  content: 'inline*',
+  defining: true,
+  addAttributes() { return { level: { default: 1 } }; },
+  parseHTML() { return [1, 2, 3, 4, 5, 6].map(level => ({ tag: `h${level}`, attrs: { level } })); },
+  renderHTML({ node }) { return [`h${node.attrs.level}`, 0]; },
+});
 
 const PageBreak = Node.create({
   name: 'pageBreak', group: 'block',
@@ -18,11 +42,20 @@ const PageBreak = Node.create({
 
 const fixtures = import.meta.glob('../../tests/fixtures/*.json', { eager: true, import: 'default' }) as Record<string, any>;
 const mini = { type: 'doc', content: Array.from({ length: 60 }, (_, i) => ({ type: 'paragraph', content: [{ type: 'text', text: `Parágrafo ${i + 1}. ` + 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(3) }] })) };
-const get = (n: string) => n === 'mini' ? mini : fixtures[`../../tests/fixtures/${n}.json`];
+
+const $ = (id: string) => document.getElementById(id) as any;
+
+const get = (n: string) => {
+  if (n === 'mini') return mini;
+  if (n === 'PE-S' || n === 'PE-M' || n === 'PE-L') {
+    $('diag').textContent = `[AVISO] Cenário tabular ${n} indisponível nesta árvore (sem @tiptap/extension-table). Carregando cenário 'mini'.`;
+    return mini;
+  }
+  return fixtures[`../../tests/fixtures/${n}.json`] || mini;
+};
 
 let editor: Editor | null = null;
 let presentation: ReturnType<typeof createDocumentPresentation> | null = null;
-const $ = (id: string) => document.getElementById(id) as any;
 
 function start() {
   editor?.destroy(); presentation?.destroy();
@@ -32,7 +65,8 @@ function start() {
   });
   editor = new Editor({
     element: $('editor'),
-    extensions: [StarterKit, Table, TableRow, TableHeader, TableCell, PageBreak,
+    extensions: [
+      DocumentNode, ParagraphNode, TextNode, HeadingNode, PageBreak,
       PaginationExtension.configure({
         layout: {
           page: { width: 816, height: 1056, marginTop: 96, marginRight: 96, marginBottom: 96, marginLeft: 96, pageGap: 20 },
@@ -44,7 +78,8 @@ function start() {
           presentation?.render(snap);
           $('diag').textContent = `rev ${snap.revision} | páginas ${snap.pages.length} | quebras ${snap.breaks.length} | diagnósticos ${snap.diagnostics.length}`;
         },
-      })],
+      })
+    ],
     content: get($('fx').value),
   });
   (window as any).__editor = editor;

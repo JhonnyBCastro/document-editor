@@ -152,3 +152,17 @@ Em conformidade com a autorização técnica, a arquitetura `composed` foi conso
 Para o handoff técnico completo com métricas, diagnóstico de regressão e guia de revisão para as Frentes A e B, consulte:
 - [CONS-013 — Dossiê Técnico de Consolidação da Arquitetura Composed e Handoff para as Frentes A e B](../../docs/consolidation/CONS-013-COMPOSED-CONSOLIDATION-HANDOFF.md)
 
+
+---
+
+## Adaptação focal da Live Demo — CONS-014 (2026-10-22)
+
+Em conformidade com a autorização da Frente A de 22/10/2026:
+1. **Resolução de Dependências da Raiz Isolada:**
+   - A configuração `vite.config.ts` foi desacoplada de `examples/vanilla-consumer` e aponta diretamente para a raiz provisionada do repositório (`../../node_modules`).
+   - Removidas todas as referências ativas a `DEMO_LIB=rc4` e substituições por pacotes legados.
+   - Cache isolado localmente em `../../node_modules/.vite-live-demo-8544`.
+2. **Delimitação Explícita de Funcionalidades Indisponíveis (Cenários Tabulares):**
+   - Na raiz provisionada do projeto, os pacotes `@tiptap/extension-table`, `@tiptap/extension-table-row`, `@tiptap/extension-table-cell` e `@tiptap/extension-table-header` estão **ausentes** (existiam unicamente no consumidor legado).
+   - Conforme autorização formal, esta versão da Demo fica delimitada ao fluxo linear, headings e edição, **com indicação explícita na interface e nas notas de que os cenários tabulares (PE-S, PE-M, PE-L) estão indisponíveis**.
+   - Os cenários de fluxo linear e parágrafos sintéticos (`mini`, `p:370`, `p:600`) permanecem integralmente suportados e validados pelo `check.cjs`.
