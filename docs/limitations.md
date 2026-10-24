@@ -1,6 +1,6 @@
 # Limitações
 
-Referência: linha `dev/cons014-composed-20261022`, commit `1962cdbb3456cc989b064017137d48a8df143d3d`. Estas ressalvas descrevem o estado conhecido; documentação organizada não constitui homologação geral.
+Referência: linha `feature/compose-next`, commit `1c3b5add4ec8201ff176d67fd83f6677502cdd1d` (anterior a esta edição documental). Estas ressalvas descrevem o estado conhecido; documentação organizada não constitui homologação geral.
 
 ## Implementação e contratos
 
@@ -10,7 +10,17 @@ Referência: linha `dev/cons014-composed-20261022`, commit `1962cdbb3456cc989b06
 - **Tabelas:** políticas do Core trabalham em fronteiras de linhas. Linhas/células e rowspans que exigem fragmentação intralinha podem produzir `TABLE_INTRAROW_UNSUPPORTED`. Não há garantia geral para tabelas arbitrárias.
 - **Impressão/multi-instância:** `preparePrintSession` usa classe global no body e lock de sessão. Não é geração de PDF nem certificação de impressão composta, coexistência de editores ou equivalência com renderizadores externos.
 - **Browser:** medição depende de DOM, CSS e fontes. SSR não substitui paginação visual. Não há certificação geral de navegadores.
-- **Dependências:** peers declaram Tiptap 2/3, mas isso não certifica todos os minors ou um singleton global ProseMirror. O ambiente ensaiado misturava Core/PM 2.27.3 e StarterKit 3.31.4. Instalação limpa e matriz ampla permanecem sem comprovação nesta etapa.
+- **Dependências:** peers declaram Tiptap 2/3, mas isso não certifica todos os minors ou um singleton global ProseMirror. O ambiente anterior da Live Demo misturava Core/PM 2.27.3 e StarterKit 3.31.4, enquanto o consumidor independente posterior utilizou Tiptap 3.32.0. Instalação limpa e matriz ampla permanecem sem comprovação nesta etapa.
+
+## Consumo de pacote e tipagem — evidência focal de 23/10/2026
+
+O tarball de SHA-256 `fa869168a25bd9c6266188a1075fe714d2db15c3fa5fdf964ec35584e37dee14` foi exercitado num consumidor temporário sem imports das fontes. TypeScript 7.0.2 rejeitou os imports CSS com TS2882 quando faltavam declarações ativas de assets, inclusive no CSS local da aplicação. Vite 8.3.5 gerou bundle nessa condição, portanto esse sucesso não comprovou tipos. A diretiva ativa `/// <reference types="vite/client" />` eliminou os erros no ensaio, sem desligar checagens; uma declaração ambiente equivalente também passou. Os CSS físicos e seus exports existiam. A solução mínima documentada é do ambiente de assets do consumidor, não uma correção aplicada ao pacote. Outras configurações TypeScript não estão universalmente certificadas.
+
+O merge profundo de um patch `pageGap` preservou defaults em runtime com Tiptap 3.32.0, mas a assinatura pública rejeitou o objeto aninhado incompleto com TS2740. O [Quick Start](quick-start.md) usa um layout completo derivado dos defaults, não uma API nova de configuração parcial.
+
+O primeiro executor relatou oito → nove páginas; a receita focal posterior, com outro conteúdo, foi observada em sete → doze. Core isolado calculou páginas sem desenhar folhas; Presentation isolada desenhou snapshot externo sem Editor. Não se compara essas contagens como benchmark. O descarte removeu os elementos observados, sem auditoria exaustiva de memória.
+
+A receita integrada focal registrou HTTP 404 de origem não investigada; não há evidência para atribuí-lo à biblioteca ou identificá-lo como o mesmo erro das campanhas anteriores. O relato inicial de console sem erros e esse registro posterior pertencem a execuções diferentes. Instalação limpa, formatos CommonJS/UMD e matrizes amplas de versões não foram revalidados.
 
 ## Resultado conhecido do checker da Demo — CONS-014, 22/10/2026
 

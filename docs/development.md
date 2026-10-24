@@ -1,12 +1,24 @@
 # Desenvolvimento
 
-Trabalhe em um checkout identificado da linha `dev/cons014-composed-20261022`. A base desta documentação é `1962cdbb3456cc989b064017137d48a8df143d3d`. Os comandos abaixo são instruções, não registros de novas execuções desta revisão.
+Trabalhe em um checkout identificado da linha `feature/compose-next`. A referência desta atualização é `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`. Os comandos abaixo são instruções, não registros de novas execuções desta revisão.
+
+Para testar consumo de pacote, use o [Quick Start](quick-start.md), em pasta separada. As instruções abaixo sobre build/testes da biblioteca são outro fluxo; não importar `src/` para contornar problemas do pacote.
 
 ## Ambiente e instalação
 
 O ciclo CONS-014 utilizou Node 22.23.3, Vite 6.4.3, Vitest 5.0.3 e JSDOM 30.1.1. São versões observadas, não requisitos mínimos certificados. O [manifesto](../package.json) e o [lockfile](../package-lock.json) descrevem dependências; o manifesto mistura Core/PM Tiptap 2 e StarterKit 3. Não se presume compatibilidade universal ou isolamento de todo subpath ProseMirror.
 
 A validação registrada usou dependências provisionadas fisicamente de uma instalação local preservada. Não demonstrou instalação limpa. Em um ambiente novo, a resolução pelo lockfile deve ser tratada como preparação ainda não validada; não usar `--force`, alterar versões ou recuperar dependências dos consumidores removidos para ocultar incompatibilidades. Esta documentação não anuncia um pacote npm correspondente à branch.
+
+## Experimento do pacote: tipos, bundle e browser
+
+O consumidor independente resolveu Core/PM/StarterKit 3.32.0, TypeScript 7.0.2 e Vite 8.3.5. O primeiro executor relatou instalação e uso favoráveis. A investigação focal posterior reutilizou cópia física dessa resolução; não certificou uma instalação limpa do novo manifesto de exemplo.
+
+Com `vite/client` comentado, tsc retornou TS2882 para os dois CSS do pacote e o CSS local; Vite isolado gerou bundle. Com a diretiva de três barras ativa, tsc passou; uma declaração ambiente CSS equivalente também passou. A receita final foi verificada com `noUncheckedSideEffectImports: true`. Não desativar a opção nem usar `skipLibCheck` como justificativa para ignorar erro no código da aplicação.
+
+No consumidor, `npm run dev` executa Vite e não comprova tipos. O Quick Start define `check` separado e `build` encadeando check e Vite. A inspeção headless confirmou montagem, edição e descarte no alcance dos exemplos; registrou um HTTP 404 não investigado no fluxo integrado. Nenhum desses resultados comprova geometria ou idempotência.
+
+Os comandos e códigos de retorno foram registrados separadamente na investigação externa de 23/10/2026. Esta atualização documental não repetiu essas execuções.
 
 ## Testes e builds
 

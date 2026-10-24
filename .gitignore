@@ -10,6 +10,9 @@ examples/**/dist
 **.png
 **/*.png
 
+# obs
+obs.md
+
 # OS generated
 .DS_Store
 

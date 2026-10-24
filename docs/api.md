@@ -1,6 +1,8 @@
 # API
 
-Referência de implementação: linha `dev/cons014-composed-20261022`, commit `1962cdbb3456cc989b064017137d48a8df143d3d`. As entradas declaradas no [manifesto](../package.json) não comprovam publicação npm do estado atual.
+Referência de implementação: linha `feature/compose-next`, commit `1c3b5add4ec8201ff176d67fd83f6677502cdd1d` (antes desta atualização documental). As entradas declaradas no [manifesto](../package.json) não comprovam publicação npm do estado atual.
+
+Para instalação, schema, hosts e CSS, comece pelo [Quick Start](quick-start.md). Os exemplos usam somente entradas do pacote local identificado, não fontes ou a Live Demo.
 
 ## Core
 
@@ -25,6 +27,21 @@ const pagination = PaginationExtension.configure({ visualMode: 'composed' });
 
 Esse trecho pressupõe o import da extensão e sua inclusão nas extensões de um Editor. Não monta Presentation, schema, insets ou área de rolagem. Alterar opções depois da criação não troca o modo visual do controller. Não há factory pública de editor composto nem operação pública `updateLayout` de composição.
 
+### Configuração parcial: limite dos tipos atuais
+
+No Tiptap 3.32.0 ensaiado, `configure` faz merge profundo em runtime, mas sua assinatura é `Partial<Options>`. O objeto `layout` continua tipado como `LayoutConfig` completo: passar apenas `layout.page.pageGap` produziu TS2740. Não se anuncia suporte tipado a DeepPartial por essa constatação.
+
+Para personalizar só o gap sem repetir os defaults nem usar casts:
+
+```ts
+import { PaginationExtension, type LayoutConfig } from '@jhonny_bcastro/document-editor';
+const defaults = PaginationExtension.options.layout;
+const layout: LayoutConfig = { ...defaults, page: { ...defaults.page, pageGap: 32 } };
+const pagination = PaginationExtension.configure({ layout });
+```
+
+O consumidor também precisa derivar seus estilos geométricos do mesmo `layout.page`, como no Quick Start. Alterar apenas o Core não atualiza automaticamente os hosts. Não existe `Core({ gap })`, normalizador público ou factory de composição neste pacote.
+
 ### Atualização e reatividade
 
 Na [extensão](../src/extension.ts), o hook `update` agenda layout quando:
@@ -44,7 +61,7 @@ O sinal interno `paginationSettingsChanged` é lido em `apply` a cada transaçã
 
 `LayoutSnapshot` contém `revision`, `pages`, `breaks` e `diagnostics`. `pages` contém as projeções de folha, cabeçalho e rodapé em DocumentLayoutSpace (CSS px lógicos); o deslocamento por `pageGap` já está embutido nas posições das folhas.
 
-`await whenLayoutStable(editor)` exige um controller inicializado e aguarda sua estabilização local. Não promete uma nova rodada de layout a cada chamada, igualdade entre rodadas, estabilidade após mudanças externas de fontes/CSS ou ausência de violações geométricas. Em abortos por inconsistência, aguardantes podem permanecer pendentes; o host deve considerar essa limitação.
+`await whenLayoutStable(editor)` exige um controller inicializado e aguarda sua estabilização local. Quando o controller está ocioso, o helper atual pode agendar uma rodada; não deve ser tratado como simples getter passivo. Não garante uma rodada distinta por chamada concorrente, igualdade entre rodadas, estabilidade após mudanças externas de fontes/CSS ou ausência de violações geométricas. Em abortos por inconsistência, aguardantes podem permanecer pendentes; o host deve considerar essa limitação.
 
 ### Preparação de impressão
 
@@ -72,6 +89,10 @@ Entrada: `@jhonny_bcastro/document-editor/presentation`; CSS: `@jhonny_bcastro/d
 - `destroy()`: descarta estruturas próprias e previne renderizações; chamadas repetidas são ignoradas.
 
 As opções `renderHeader` e `renderFooter` recebem contexto readonly e um ponto de montagem; podem retornar uma função de descarte. O conteúdo é visual, não interativo: não inserir elementos focáveis nem alterar a geometria do ponto de montagem.
+
+Core isolado calcula e emite snapshots sem exigir Presentation. Presentation isolada pode renderizar snapshots fornecidos externamente, sem Editor ou cálculo de paginação; o [Quick Start](quick-start.md) inclui um exemplo sintético.
+
+`RunningContentContext.pageIndex` é zero-based; `PageProjection.index` é one-based. Callbacks são opcionais e somente eles montam running content na Presentation: `layout.runningContent` não é encaminhado automaticamente. `render` recria os elementos e descarta recursos anteriores; `clear`/`destroy` também executam os disposers retornados. O contexto readonly é contrato TypeScript, não congelamento geral em runtime. Metadados via closure e nova chamada a render são coordenação da aplicação, não uma API dedicada de metadados. A camada é aria-hidden; não inserir controles focáveis nem depender exclusivamente dela para informação acessível essencial.
 
 O host deve compartilhar origem e escala com DocumentLayoutSpace. O consumidor coordena insets, snapshots, Editor, Presentation e descarte. Não deve adicionar `pageGap` novamente aos retângulos recebidos. O contrato de descarte da Presentation não implica idempotência do cálculo de paginação.
 
