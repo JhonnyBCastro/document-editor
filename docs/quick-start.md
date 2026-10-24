@@ -1,12 +1,12 @@
 # Quick Start — consumo de um pacote local identificado
 
-**Atualizado em 23/10/2026.** Receita baseada na investigação focal de um consumidor independente. Alvo: tarball oriundo de `feature/compose-next`, commit `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`, SHA-256 `fa869168a25bd9c6266188a1075fe714d2db15c3fa5fdf964ec35584e37dee14`.
+**Atualizado em 24/10/2026.** Guia de montagem de um consumidor Vite + TypeScript. Artefato de referência: tarball oriundo de `feature/compose-next`, commit `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`, SHA-256 `fa869168a25bd9c6266188a1075fe714d2db15c3fa5fdf964ec35584e37dee14`.
 
-O pacote declara `0.1.0-rc.4`, mas este artefato não se identifica somente pelo nome de versão nem deve ser confundido com o RC.4 histórico. Não há publicação npm anunciada.
+O manifesto declara `0.1.0-rc.4`; identifique o artefato pelo commit de origem e pelo hash, não apenas pela versão. As instruções usam um tarball local, sem presumir publicação npm. Este guia é posterior ao commit de origem do pacote.
 
 ## 1. Preparar uma aplicação independente
 
-Use uma pasta nova, fora da biblioteca. Copie o `.tgz` fornecido para `package-input/library.tgz` e confira seu SHA-256 antes de instalar. As versões abaixo foram usadas nesta verificação; não são certificação de toda a faixa dos peers.
+Use uma pasta nova, fora da biblioteca. Copie o `.tgz` fornecido para `package-input/library.tgz` e confira seu SHA-256 antes de instalar. As versões abaixo foram exercitadas no consumidor de referência; não certificam toda a faixa dos peers.
 
 Crie os arquivos apresentados neste guia. O manifesto da aplicação é:
 
@@ -34,7 +34,7 @@ Crie os arquivos apresentados neste guia. O manifesto da aplicação é:
 }
 ```
 
-Depois, a instalação normal desse manifesto seria `npm install`. Essa instalação limpa **não foi repetida na investigação que fundamenta este guia**: a verificação usou cópia física das dependências já resolvidas do consumidor preservado, sem rede. O manifesto de exemplo declara dependências diretas explícitas e versões de topo fixas; produza e preserve o lockfile ao instalar em seu ambiente. A resolução transitiva dessa nova instalação ainda não foi validada por este guia.
+Execute `npm install` e preserve o lockfile gerado. A receita foi exercitada com dependências previamente resolvidas; uma instalação limpa desse manifesto e seu novo grafo transitivo não foram validados. As versões diretas estão fixadas para delimitar o ambiente de referência, não para garantir qualquer resolução transitiva.
 
 Core/PM são peers da biblioteca. StarterKit é uma conveniência para este exemplo e fornece schema e comportamentos Tiptap; não é dependência obrigatória do Core. O esquema mínimo precisa de documento, texto e bloco válido. Headings, listas ou marcas requerem extensões correspondentes. Nó de quebra manual só é necessário se essa funcionalidade for usada; o StarterKit não fornece automaticamente o nó `pageBreak` da aplicação.
 
@@ -172,7 +172,7 @@ export const getSnapshot = () => latest;
 
 O código usa somente entradas públicas do pacote. `editor`, `presentation`, `layout`, `dispose` e `getSnapshot` exportados no fim são recursos locais da aplicação de exemplo, não novas funções públicas da biblioteca. Pode remover esses exports se não usar um harness de inspeção.
 
-`PaginationExtension.options.layout` fornece os defaults presentes na extensão. O exemplo cria um `LayoutConfig` completo e substitui o objeto `page` sem modificar os defaults. É possível personalizar `pageGap` nesse objeto. A tipagem atual rejeita `configure({ layout: { page: { pageGap: 32 } } })`, embora o merge de runtime testado preserve os demais defaults; por isso o guia não usa esse atalho nem `as any`.
+`PaginationExtension.options.layout` fornece os defaults presentes na extensão. O exemplo cria um `LayoutConfig` completo e substitui o objeto `page` sem modificar os defaults. É possível personalizar `pageGap` nesse objeto. A tipagem atual exige o `LayoutConfig` aninhado completo; por isso o guia deriva os valores dos defaults, sem usar `configure({ layout: { page: { pageGap: 32 } } })` ou `as any`.
 
 `src/style.css`:
 
@@ -207,21 +207,21 @@ frame (.qs-frame, relativo; largura da página; sem padding/borda próprios)
 
 O contrato desta receita depende do CSS mostrado, sem regras externas que acrescentem offset, borda, padding, transformação ou escala a apenas uma camada. O `padding: 24px` do body desloca o conjunto, não somente uma das camadas. A margem automática do frame centraliza ambas. O z-index mantém texto acima do papel; ele não corrige origem ou escala.
 
-| Elemento | Relação estática esperada | Limite da evidência |
-|---|---|---|
-| Frame | Largura vem de `layout.page.width`; min-height inicial vem da altura e depois alcança o fim da última folha | A fórmula reserva extensão visual; não prova posição de cada linha. |
-| Hosts pages/editor | Mesma origem local do frame: pages por `inset: 0`, editor pelo fluxo normal sem insets adicionais | Coerência por leitura de HTML/CSS; não houve comparação de `getBoundingClientRect()` desses hosts na coleta preservada. |
-| Editor ProseMirror | Borda externa alinhada aos hosts; padding define área útil. Com os defaults, largura útil nominal 624 e altura útil 864 CSS px | Fontes, margens dos blocos e entrelinha continuam afetando medidas. Padding inicial/final não é padding repetido manualmente por página. |
-| Folhas | Snapshot usa top local `i * (height + pageGap)`, com i zero-based; não somar outro gap em CSS | Browser registrou estilos inline 816×1056 e tops 0/1076 nas duas primeiras folhas, não seus retângulos globais medidos. |
-| Header/footer | Nos defaults, left 96, width 624; footer começa em 960 na primeira folha | Derivado de `PageProjection`, não validação empírica de todas as margens. O renderer não deve recuar outra vez o conteúdo. |
+| Elemento | Relação geométrica da receita |
+|---|---|
+| Frame | Largura de `layout.page.width`; altura mínima inicial da página, atualizada até o fim da última folha pelo callback. Essa extensão não comprova a posição de cada linha. |
+| Hosts pages/editor | Mesma origem local: pages por `inset: 0`, editor pelo fluxo normal sem insets adicionais. |
+| Editor ProseMirror | Box externo alinhado aos hosts; padding das margens. Área útil nominal de 624×864 CSS px nos defaults. Fontes, margens dos blocos e entrelinha afetam medidas; o padding externo não se repete manualmente por página. |
+| Folhas | Top local `i * (height + pageGap)`, com i zero-based; não acrescentar outro gap em CSS. |
+| Header/footer | Nos defaults, left 96 e width 624; footer começa em 960 na primeira folha. O renderer não deve acrescentar novamente o recuo de página. |
 
-O snapshot está em coordenadas locais de layout, enquanto a medição do Core usa o DOM/viewport e compensa a origem do editor. A receita procura tornar essas origens compatíveis; não converte coordenadas aplicando o deslocamento do body aos rects do snapshot. Somente uma medição conjunta de frame, hosts, editor, folhas e linhas poderia comprovar o alinhamento físico no ambiente alvo. Essa medição completa **não foi realizada** na evidência disponível.
+O snapshot usa coordenadas locais de layout; a medição do Core usa DOM/viewport e a origem do Editor. Não some o deslocamento do body aos retângulos recebidos. Manter essa montagem coerente é necessário, mas o alinhamento físico completo entre hosts, folhas e texto não foi validado.
 
-### O que o browser confirmou e o que não confirmou
+A receita pressupõe Editor com dimensões mensuráveis e conteúdo com largura útil coerente com a folha. A largura da página não é aplicada ao Editor pelo Core. Se a viewport for menor, o exemplo não reduz a folha nem escolhe um perfil responsivo: a aplicação define a rolagem externa. Reduzir apenas a largura do Editor altera a quebra de linhas sem ajustar a folha. Mesmo uma transformação comum às duas camadas não tem garantia de paginação: o cálculo mistura medidas DOM com dimensões configuradas e não normaliza escala CSS. Zoom e transformações permanecem não certificados.
 
-A coleta headless registrou editor editável, sete folhas e seis quebras, depois doze folhas/onze quebras após inserção, numeração atualizada e remoção dos elementos observados no descarte. O campo chamado `rects` no JSON preservado contém `style.width`, `style.height` e `style.top`, e não uma leitura global de `getBoundingClientRect()`.
+Cores, sombras e fundo das folhas podem ser personalizados sem mudar seus retângulos. Fontes, entrelinha, margens de blocos, bordas que alterem medidas e tamanhos de imagens influenciam a paginação. Em tabelas, preserve a regra estrutural `.page-break-row > td` / `.page-break-row > th` de `style.css`, que acrescenta o deslocamento ao padding superior. Se personalizar o padding-base das células, alinhe também `--tiptap-cell-padding` (fallback 8px); não substitua o padding estrutural por um valor fixo. Isso não certifica tabelas arbitrárias. O CSS Core também contém regras globais de impressão Letter, que não acompanham automaticamente outro perfil de página.
 
-Não foram validados nessa coleta: alinhamento físico completo entre hosts e texto, cortes sem violações, precisão de margens, zoom/transformações, outras tipografias, responsividade, impressão ou idempotência. O HTTP 404 permaneceu sem origem identificada. Nenhum desses pontos foi convertido em aprovação pela abertura do exemplo.
+Estabilize, quando possível, fontes e dimensões dos recursos antes de montar. Carregamento tardio de imagens e mudanças externas de CSS/tamanho não são observados automaticamente. Veja [invalidação e atualização](api.md#atualização-e-reatividade) antes de depender de recálculo após esses eventos; não reutilize um snapshot antigo como prova de novo cálculo.
 
 ## 4. Executar e interpretar
 
@@ -233,7 +233,7 @@ npm run dev
 
 `check` verifica tipos. `build` encadeia checagem e bundle; o Vite isolado não é um substituto para tsc. O servidor informa a URL disponível. Não é necessário acessar fontes, `dist` ou configuração da biblioteca original: todos os imports passam pelo pacote instalado.
 
-Na verificação focal do consumidor temporário, o tsc e o bundle do exemplo passaram. A inspeção headless observou 7 folhas e 6 quebras; após inserção, 12 folhas e 11 quebras, com numeração atualizada. A quantidade depende do conteúdo e do ambiente; esses números não são critérios fixos do produto. Houve HTTP 404 não investigado, sem impedir a montagem observada. Não foi aprovado layout geométrico geral ou idempotência.
+Após iniciar o servidor, verifique se há uma área editável, folhas e numeração; acrescente conteúdo suficiente para observar novas páginas. No descarte, o exemplo encerra Editor e Presentation. Essas observações não substituem os limites de validação ao fim deste guia.
 
 ## 5. Core isolado — cálculo sem folhas da Presentation
 
@@ -275,7 +275,7 @@ export { editor, dispose };
 export const getSnapshot = () => snapshot;
 ```
 
-O exemplo foi observado com Editor editável, 7 páginas calculadas e zero folhas da Presentation. Não é uma classe/função `Core({ gap })`; essa API conceitual não existe.
+Este fluxo mantém Editor e cálculo de paginação, sem desenhar folhas da Presentation. Consulte o último snapshot com `getSnapshot()`. A quantidade de páginas depende do conteúdo e do ambiente.
 
 ## 6. Presentation isolada — visualização de dados fornecidos
 
@@ -314,11 +314,15 @@ if (import.meta.hot) import.meta.hot.dispose(dispose);
 export { presentation, dispose };
 ```
 
-Usa o mesmo CSS da receita, com fallbacks do perfil Letter. Uma aplicação que fornece outro snapshot também precisa dimensionar seu host de forma coerente. O fluxo foi observado com uma folha, footer e nenhuma área editável; não se apresenta como editor independente ou gerador de snapshots.
+Usa o mesmo CSS da receita, com fallbacks do perfil Letter. Uma aplicação que fornece outro snapshot também precisa dimensionar seu host de forma coerente. Este exemplo desenha uma folha com footer, sem área editável; não é um editor independente nem um gerador de snapshots.
 
 ## 7. Callbacks e recursos
 
-`onLayoutStable` entrega snapshot do Core. `whenLayoutStable(editor)` também está exportado, mas não é necessário chamar ambos para pintar o exemplo; o helper não prova idempotência e pode agendar cálculo quando o controller está ocioso.
+`onLayoutStable` entrega o snapshot ao fim de uma rodada local; o exemplo usa esse callback para atualizar a Presentation, sem precisar chamar também `whenLayoutStable(editor)`.
+
+Quando o controller está ocioso, `whenLayoutStable(editor)` agenda cálculo. Com timer ou cálculo em curso, aguarda uma conclusão sem garantir rodada adicional. Não é uma operação geral de invalidação nem certifica que o snapshot reflita mudanças externas posteriores. A promise pode continuar pendente se o percurso não alcançar a emissão do snapshot; um aborto não implica necessariamente pendência permanente. Consulte o [contrato de estabilidade](api.md#snapshots-e-estabilidade) antes de usá-lo para coordenar mudanças externas.
+
+O snapshot pode conter paginação parcial acompanhada de diagnóstico. Examine `diagnostics`; concluir uma rodada não comprova processamento integral nem geometria atual correta. `presentation.render(snapshot)` só atualiza a apresentação dos dados recebidos, sem solicitar cálculo ao Core.
 
 `renderHeader`/`renderFooter` são opcionais, recebem contexto e mount e podem retornar disposer. `pageIndex` é zero-based; `PageProjection.index` é one-based. As opções `runningContent` do Core não são convertidas automaticamente em renderers da Presentation.
 
@@ -326,14 +330,12 @@ A Presentation recria seus elementos em `render` e executa disposers anteriores.
 
 ## 8. Limites que acompanham o exemplo
 
-Não certifica tabelas arbitrárias, impressão composta, SSR, múltiplos editores, fontes externas ou compatibilidade geral Tiptap 2/3. Mudanças de texto, marcas ou atributos com tamanho constante podem não disparar o predicado atual. A tarefa focal C-05 é independente deste artefato.
+A receita foi exercitada com checagem TypeScript, bundle e montagem no browser: edição paginada e atualização da numeração foram observadas, assim como a remoção dos elementos no descarte. Isso não constitui auditoria de memória, benchmark ou certificação geométrica. Não houve nova execução para esta revisão editorial.
 
-Resultados anteriores `freshLayoutRound: true` e `idempotent: false`, violações geométricas e inconsistências visuais não conclusivas permanecem registrados. Um exemplo que abre no browser não encerra essas pendências.
+Não há garantia geral de idempotência do cálculo, ausência de violações geométricas ou alinhamento físico completo. Zoom/transformações, impressão composta, SSR, múltiplos editores, tabelas arbitrárias e compatibilidade geral Tiptap 2/3 não estão certificados por esta receita. Mudanças de texto, marcas ou atributos que preservem tamanho e estrutura podem não agendar novo cálculo; recursos tardios também não têm recálculo automático garantido.
 
-## Referências e níveis de evidência
+## Referências
 
-O relato do primeiro executor descreveu TS2882, inclusão de `vite/client` e StarterKit e edição de oito para nove páginas. Na investigação focal posterior, houve reprodução direta do TS2882 com a diretiva comentada e aprovação do tsc com ela ativa; o Vite isolado produziu bundle mesmo na rodada cujo tsc falhou. Uma declaração ambiente CSS equivalente também passou. Isso não equivale a defeito físico dos CSS nem a certificação para toda configuração TypeScript.
+A composição do exemplo pertence à aplicação; este guia não introduz factory, configuração compartilhada automática ou API de atualização dinâmica. Veja [API](api.md) para o contrato público, [limitações](limitations.md) para as ressalvas conhecidas e [desenvolvimento](development.md) para os registros técnicos e de validação.
 
-O 404 registrado no fluxo integrado dessa investigação não teve causa identificada e não deve ser automaticamente atribuído ao pacote ou equiparado ao 404 de campanhas anteriores. Não foi corrigido para produzir aprovação. Resultados de typecheck, bundle e browser são distintos.
-
-API de configuração compartilhada, factory e atualização dinâmica de layout não existem neste pacote por força deste guia. A composição acima é código da aplicação. Veja [API](api.md), [limitações](limitations.md) e [desenvolvimento](development.md) para o contrato atual. Os guias complementares ficam no repositório e não acompanham necessariamente o tarball; o README contém a receita integrada sem exigir acesso a eles.
+Os guias complementares ficam no repositório e não acompanham necessariamente o tarball; o README contém uma receita integrada sem exigir acesso a eles.

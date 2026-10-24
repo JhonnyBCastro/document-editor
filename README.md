@@ -1,14 +1,24 @@
 # document-editor
 
-Biblioteca de paginação visual de documentos contínuos para Tiptap/ProseMirror. As quebras automáticas são decorações transitórias, separadas do documento semântico.
+Biblioteca de paginação visual de documentos contínuos para Tiptap/ProseMirror. Calcula quebras, aplica decorações transitórias e fornece projeções de páginas, mantendo as quebras automáticas fora do documento semântico persistido.
+
+Destina-se a aplicações que precisam acrescentar uma visualização paginada a um editor Tiptap. Não fornece um editor completo, menus ou uma interface de aplicação pronta.
+
+## Responsabilidades
+
+| Camada | Responsabilidade |
+|---|---|
+| Core | Mede o documento no DOM, avalia políticas, calcula e aplica quebras estruturais e emite snapshots. |
+| Presentation | Desenha folhas e regiões de cabeçalho/rodapé conforme as projeções e os renderizadores fornecidos; não calcula paginação nem cria área editável. |
+| Editor e aplicação | O Editor fornece o modelo e as operações de edição; a aplicação fornece schema/extensões, conteúdo, hosts, CSS geométrico, renderizadores e coordenação do descarte. Interface, persistência e regras de negócio continuam na aplicação. |
+
+Somente o modo `composed` é suportado pela biblioteca. Essa restrição descreve o modo disponível, não certifica a geometria nem a montagem completa. A receita abaixo conecta manualmente Core e Presentation; não há factory pública de composição. A geometria precisa ser coordenada pela aplicação, e mudanças externas não têm recálculo automaticamente garantido. Consulte os [limites essenciais](#limites-essenciais) antes de adotar.
 
 ## Estado e distribuição
 
-Linha ativa: `feature/compose-next`. Este guia foi preparado sobre `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`, antes destas alterações documentais. A linha anterior `dev/cons014-composed-20261022` pertence à proveniência CONS-014.
+Linha de desenvolvimento: `feature/compose-next`. O manifesto declara `@jhonny_bcastro/document-editor`, versão `0.1.0-rc.4`; essa declaração não comprova publicação npm do código atual.
 
-O manifesto declara `@jhonny_bcastro/document-editor` e `0.1.0-rc.4`. Isso não identifica o código atual como o tarball RC.4 histórico, não anuncia nova versão e não comprova publicação npm. O artefato local ensaiado tem SHA-256 `fa869168a25bd9c6266188a1075fe714d2db15c3fa5fdf964ec35584e37dee14`.
-
-Core mede e calcula quebras/snapshots; Presentation desenha páginas a partir deles. A aplicação cria Editor, schema, hosts DOM e sua coordenação. Somente `composed` é suportado; outros modos são rejeitados. Não há factory de composição nem API de atualização dinâmica de layout neste Quick Start.
+A receita usa o tarball local originado de `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`, SHA-256 `fa869168a25bd9c6266188a1075fe714d2db15c3fa5fdf964ec35584e37dee14`. Identifique-o por origem e hash, não apenas pela versão; não presuma equivalência automática com o HEAD atual. A documentação é posterior a esse commit; o histórico da linha está em [proveniência](docs/provenance.md).
 
 ## Receita integrada autocontida
 
@@ -16,7 +26,7 @@ As próximas seções permitem preparar a aplicação sem importar fontes, confi
 
 ## 1. Preparar uma aplicação independente
 
-Use uma pasta nova, fora da biblioteca. Copie o `.tgz` fornecido para `package-input/library.tgz` e confira seu SHA-256 antes de instalar. As versões abaixo foram usadas nesta verificação; não são certificação de toda a faixa dos peers.
+Use uma pasta nova, fora da biblioteca. Copie o `.tgz` fornecido para `package-input/library.tgz` e confira seu SHA-256 antes de instalar. As versões abaixo foram exercitadas no consumidor de referência; não certificam toda a faixa dos peers.
 
 Crie os arquivos apresentados neste guia. O manifesto da aplicação é:
 
@@ -44,7 +54,7 @@ Crie os arquivos apresentados neste guia. O manifesto da aplicação é:
 }
 ```
 
-Depois, a instalação normal desse manifesto seria `npm install`. Essa instalação limpa **não foi repetida na investigação que fundamenta este guia**: a verificação usou cópia física das dependências já resolvidas do consumidor preservado, sem rede. O manifesto de exemplo declara dependências diretas explícitas e versões de topo fixas; produza e preserve o lockfile ao instalar em seu ambiente. A resolução transitiva dessa nova instalação ainda não foi validada por este guia.
+Execute `npm install` e preserve o lockfile gerado. A receita foi exercitada com dependências previamente resolvidas; uma instalação limpa desse manifesto e seu novo grafo transitivo não foram validados. As versões diretas estão fixadas para delimitar o ambiente de referência, não para garantir qualquer resolução transitiva.
 
 Core/PM são peers da biblioteca. StarterKit é uma conveniência para este exemplo e fornece schema e comportamentos Tiptap; não é dependência obrigatória do Core. O esquema mínimo precisa de documento, texto e bloco válido. Headings, listas ou marcas requerem extensões correspondentes. Nó de quebra manual só é necessário se essa funcionalidade for usada; o StarterKit não fornece automaticamente o nó `pageBreak` da aplicação.
 
@@ -180,9 +190,9 @@ export { editor, presentation, layout, dispose };
 export const getSnapshot = () => latest;
 ```
 
-O código usa somente entradas públicas do pacote. `editor`, `presentation`, `layout`, `dispose` e `getSnapshot` exportados no fim são recursos locais da aplicação de exemplo, não novas funções públicas da biblioteca. Pode remover esses exports se não usar um harness de inspeção.
+O código usa somente entradas públicas do pacote. `editor`, `presentation`, `layout`, `dispose` e `getSnapshot` exportados no fim são recursos locais da aplicação de exemplo, não novas funções públicas da biblioteca. Pode remover esses exports se não precisar acessar os recursos a partir de outro módulo da aplicação.
 
-`PaginationExtension.options.layout` fornece os defaults presentes na extensão. O exemplo cria um `LayoutConfig` completo e substitui o objeto `page` sem modificar os defaults. É possível personalizar `pageGap` nesse objeto. A tipagem atual rejeita `configure({ layout: { page: { pageGap: 32 } } })`, embora o merge de runtime testado preserve os demais defaults; por isso o guia não usa esse atalho nem `as any`.
+`PaginationExtension.options.layout` fornece os defaults presentes na extensão. O exemplo cria um `LayoutConfig` completo e substitui o objeto `page` sem modificar os defaults. É possível personalizar `pageGap` nesse objeto. A tipagem atual exige o `LayoutConfig` aninhado completo; por isso o guia deriva os valores dos defaults, sem usar `configure({ layout: { page: { pageGap: 32 } } })` ou `as any`.
 
 `src/style.css`:
 
@@ -201,7 +211,7 @@ body { margin: 0; padding: 24px; background: #e8e8e8; font-family: system-ui, sa
 
 As variáveis definidas pela aplicação vêm do mesmo `layout.page` passado ao Core. Os fallbacks CSS correspondem ao perfil atual e servem à receita sem inicialização geométrica; não são outra configuração da Presentation. Ao personalizar, mantenha os valores efetivos nas variáveis, não números independentes em cada host. Este mapeamento ainda é trabalho da aplicação; não é uma API de composição já oferecida pela biblioteca.
 
-A Presentation posiciona as folhas e as regiões conforme o snapshot. Não some o gap novamente. O footer já recebe um rect com margem esquerda e largura útil; não acrescente outra margem/padding de página. Alterar fontes ou estilos métricos pode exigir novo cálculo, que não é automaticamente garantido pelo contrato atual.
+A Presentation posiciona as folhas e as regiões conforme o snapshot. Não some o gap novamente. O footer já recebe um rect com margem esquerda e largura útil; não acrescente outra margem/padding de página. Alterar fontes, estilos métricos ou o tamanho de imagens após o carregamento pode exigir novo cálculo: não há observação automática de imagens, resize ou mutações DOM. Configure largura e padding do Editor antes da montagem; `page.width` não aplica esses estilos por você. Repintar um snapshot antigo na Presentation não recalcula paginação.
 
 A área editável fica acima da Presentation, com fundo transparente. O exemplo usa folha 816×1056, margens 96 e gap 20, equivalentes ao perfil Letter atual em CSS px. Não é A4. Cores/sombras podem usar as variáveis existentes da Presentation, como `--document-editor-page-background` e `--document-editor-page-shadow`, sem alterar retângulos.
 
@@ -217,21 +227,9 @@ frame (.qs-frame, relativo; largura da página; sem padding/borda próprios)
 
 O contrato desta receita depende do CSS mostrado, sem regras externas que acrescentem offset, borda, padding, transformação ou escala a apenas uma camada. O `padding: 24px` do body desloca o conjunto, não somente uma das camadas. A margem automática do frame centraliza ambas. O z-index mantém texto acima do papel; ele não corrige origem ou escala.
 
-| Elemento | Relação estática esperada | Limite da evidência |
-|---|---|---|
-| Frame | Largura vem de `layout.page.width`; min-height inicial vem da altura e depois alcança o fim da última folha | A fórmula reserva extensão visual; não prova posição de cada linha. |
-| Hosts pages/editor | Mesma origem local do frame: pages por `inset: 0`, editor pelo fluxo normal sem insets adicionais | Coerência por leitura de HTML/CSS; não houve comparação de `getBoundingClientRect()` desses hosts na coleta preservada. |
-| Editor ProseMirror | Borda externa alinhada aos hosts; padding define área útil. Com os defaults, largura útil nominal 624 e altura útil 864 CSS px | Fontes, margens dos blocos e entrelinha continuam afetando medidas. Padding inicial/final não é padding repetido manualmente por página. |
-| Folhas | Snapshot usa top local `i * (height + pageGap)`, com i zero-based; não somar outro gap em CSS | Browser registrou estilos inline 816×1056 e tops 0/1076 nas duas primeiras folhas, não seus retângulos globais medidos. |
-| Header/footer | Nos defaults, left 96, width 624; footer começa em 960 na primeira folha | Derivado de `PageProjection`, não validação empírica de todas as margens. O renderer não deve recuar outra vez o conteúdo. |
+Mantenha a largura e o padding do Editor derivados de `layout.page`. As projeções usam coordenadas locais de layout (`DocumentLayoutSpace`), em CSS px: não some o deslocamento do body nem outro gap aos retângulos recebidos. A altura do frame acompanha o fim da última folha, mas isso não comprova a posição de cada linha. O alinhamento físico completo ainda não foi validado.
 
-O snapshot está em coordenadas locais de layout, enquanto a medição do Core usa o DOM/viewport e compensa a origem do editor. A receita procura tornar essas origens compatíveis; não converte coordenadas aplicando o deslocamento do body aos rects do snapshot. Somente uma medição conjunta de frame, hosts, editor, folhas e linhas poderia comprovar o alinhamento físico no ambiente alvo. Essa medição completa **não foi realizada** na evidência disponível.
-
-### O que o browser confirmou e o que não confirmou
-
-A coleta headless registrou editor editável, sete folhas e seis quebras, depois doze folhas/onze quebras após inserção, numeração atualizada e remoção dos elementos observados no descarte. O campo chamado `rects` no JSON preservado contém `style.width`, `style.height` e `style.top`, e não uma leitura global de `getBoundingClientRect()`.
-
-Não foram validados nessa coleta: alinhamento físico completo entre hosts e texto, cortes sem violações, precisão de margens, zoom/transformações, outras tipografias, responsividade, impressão ou idempotência. O HTTP 404 permaneceu sem origem identificada. Nenhum desses pontos foi convertido em aprovação pela abertura do exemplo.
+A receita não reduz automaticamente a folha para caber na viewport; a aplicação define a rolagem externa. O [Quick Start](docs/quick-start.md#coerência-geométrica-da-montagem) detalha os requisitos de montagem, personalização e estilos estruturais.
 
 ## 4. Executar e interpretar
 
@@ -243,10 +241,9 @@ npm run dev
 
 `check` verifica tipos. `build` encadeia checagem e bundle; o Vite isolado não é um substituto para tsc. O servidor informa a URL disponível. Não é necessário acessar fontes, `dist` ou configuração da biblioteca original: todos os imports passam pelo pacote instalado.
 
-Na verificação focal do consumidor temporário, o tsc e o bundle do exemplo passaram. A inspeção headless observou 7 folhas e 6 quebras; após inserção, 12 folhas e 11 quebras, com numeração atualizada. A quantidade depende do conteúdo e do ambiente; esses números não são critérios fixos do produto. Houve HTTP 404 não investigado, sem impedir a montagem observada. Não foi aprovado layout geométrico geral ou idempotência.
+Depois de iniciar, verifique a área editável, as folhas e a numeração; acrescente conteúdo suficiente para observar novas páginas. O exemplo encerra Editor e Presentation no descarte. Essa verificação manual não equivale a teste de aceitação nem comprova correção geométrica, idempotência ou compatibilidade ampla; não substitui uma validação da aplicação no seu ambiente.
 
-
-## Fluxos separados e limites
+## Fluxos separados
 
 - **Core isolado:** use Editor/schema, `PaginationExtension` e `style.css`, recebendo snapshots por `onLayoutStable`; não crie Presentation. O Core mantém decorações e cálculo, mas não desenha papel/header/footer. Os hosts e insets do editor continuam necessários.
 - **Presentation isolada:** use `createDocumentPresentation` e `presentation.css`, recebendo um `LayoutSnapshot` externo. Não cria Editor, não mede conteúdo e não calcula paginação. Importar um tipo `LayoutSnapshot` não carrega o Core em runtime.
@@ -254,9 +251,14 @@ Na verificação focal do consumidor temporário, o tsc e o bundle do exemplo pa
 
 O [Quick Start completo](docs/quick-start.md) traz as duas receitas isoladas e detalhes de callbacks, índices e descarte. Esses guias estão no repositório e não são incluídos no tarball atual (`files: dist`). Esta receita integrada no README não depende deles.
 
-O primeiro executor relatou oito → nove páginas depois de configurar schema/CSS. A investigação focal posterior observou sete → doze com outro conteúdo, typecheck e bundle aprovados, e um HTTP 404 de origem não investigada no fluxo integrado. Não comparar as contagens como benchmark ou regressão.
+## Limites essenciais
 
-Continuam abertas as ressalvas de reatividade de mudanças isométricas, geometria, idempotência, impressão composta, multi-instância, dependências e tabelas. `freshLayoutRound: true` não significa `idempotent: true`; os resultados negativos anteriores permanecem registrados. Nenhum Quick Start funcional constitui homologação completa.
+- **Geometria e atualização:** origem, largura e margens dos hosts precisam permanecer coerentes. Mudanças de mesmo tamanho e estrutura, CSS ou recursos tardios podem deixar as quebras desatualizadas sem novo cálculo automático.
+- **Estabilidade:** quando o controller está ocioso, `whenLayoutStable(editor)` agenda cálculo; com timer ou cálculo em curso, aguarda o trabalho acompanhado pelo controller, sem garantir uma rodada adicional. Não é uma API geral de invalidação, não certifica a geometria atual e pode permanecer pendente em determinados caminhos de falha.
+- **Resultados:** snapshots podem conter paginação parcial diagnosticada. Há registros de idempotência negativa e violações geométricas; concluir uma rodada ou observar edição responsiva não demonstra que esses problemas foram resolvidos.
+- **Conteúdo e ambientes:** schema válido não garante suporte a qualquer nó. Tabelas arbitrárias, conteúdo personalizado, impressão composta, múltiplos editores, zoom e compatibilidade geral de navegadores/Tiptap 2/3 não estão certificados.
+
+Veja [API](docs/api.md#snapshots-e-estabilidade) para o contrato de atualização, [Quick Start](docs/quick-start.md) para os fluxos completos e [limitações](docs/limitations.md) para resultados, ressalvas e questões abertas. Não há homologação geral da biblioteca.
 
 ## Documentação do repositório
 

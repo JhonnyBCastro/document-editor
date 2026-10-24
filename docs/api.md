@@ -1,6 +1,6 @@
 # API
 
-Referência de implementação: linha `feature/compose-next`, commit `1c3b5add4ec8201ff176d67fd83f6677502cdd1d` (antes desta atualização documental). As entradas declaradas no [manifesto](../package.json) não comprovam publicação npm do estado atual.
+Código conferido por inspeção estática em `feature/compose-next`, HEAD `f7f1e617fae73394011cc332f6e1c4b59e5be8f7`; as fontes inspecionadas coincidem com `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`. Este guia é uma atualização documental posterior. As entradas declaradas no [manifesto](../package.json) não comprovam publicação npm do estado atual.
 
 Para instalação, schema, hosts e CSS, comece pelo [Quick Start](quick-start.md). Os exemplos usam somente entradas do pacote local identificado, não fontes ou a Live Demo.
 
@@ -19,7 +19,7 @@ O consumidor cria seu Editor e schema. Quebras automáticas são decorações; o
 | `layout` | `LayoutConfig`: `page`, `policies` e `runningContent`. Defaults da extensão: 816×1056 CSS px, margens 96, gap 20; cabeçalho desativado e rodapé configurado como `Página {page} de {total}`. A Presentation usa seus próprios callbacks para pintar running content. |
 | `visualMode` | Somente `'composed'`, também usado por omissão. O controller rejeita outros valores com `TypeError`. |
 | `manualBreakNodeName` | Default `pageBreak`. Nome do nó semântico que o consumidor deve fornecer no schema. |
-| `onLayoutStable` | Callback com `LayoutSnapshot` após a estabilização local do cálculo. Não constitui certificação geométrica. |
+| `onLayoutStable` | Callback com `LayoutSnapshot` ao fim de uma rodada local, inclusive quando há paginação parcial diagnosticada. Não constitui certificação geométrica. |
 
 ```ts
 const pagination = PaginationExtension.configure({ visualMode: 'composed' });
@@ -42,26 +42,49 @@ const pagination = PaginationExtension.configure({ layout });
 
 O consumidor também precisa derivar seus estilos geométricos do mesmo `layout.page`, como no Quick Start. Alterar apenas o Core não atualiza automaticamente os hosts. Não existe `Core({ gap })`, normalizador público ou factory de composição neste pacote.
 
+### Geometria e montagem
+
+O Core usa `height - marginTop - marginBottom` como altura útil nominal e `marginBottom + pageGap + marginTop` como deslocamento básico entre áreas de conteúdo. Sua origem vertical é `editorRect.top + marginTop`, em coordenadas da viewport; os deslocamentos estruturais já instalados são descontados das medidas. A largura do texto vem do DOM efetivo: `page.width` e as margens horizontais dimensionam as projeções, mas não configuram a largura ou o padding do Editor.
+
+Na composição, o consumidor precisa manter largura e insets do Editor coerentes com `layout.page` e alinhar a origem dos hosts às projeções locais. O Core aplica decorações; a Presentation aplica os retângulos recebidos, sem medir ou corrigir esse alinhamento. O [Quick Start](quick-start.md#coerência-geométrica-da-montagem) deriva os estilos de uma única configuração. Esse mapeamento manual é necessário hoje, não uma exigência de duplicar números independentes nem uma garantia automática de coerência. A geometria nominal não certifica cada corte físico.
+
+### Conteúdo e schema reconhecidos
+
+O controller percorre posições ProseMirror e consulta `coordsAtPos`. Para nós chamados `paragraph` e `heading`, agrupa retângulos DOM de `Range.getClientRects()` para orientar as políticas de linhas; keep-with-next reconhece a relação heading/parágrafo. Renomear esses nós pode retirar esse tratamento especializado, mesmo que o schema continue válido.
+
+O caminho tabular reconhece `table`, procura células `tableCell`/`tableHeader` e usa `TableMap`. Exige estrutura compatível com prosemirror-tables: tabela/linhas/células, `tableRole` apropriado e atributos como `colspan`, `rowspan` e `colwidth`. Só renomear um nó ou renderizar HTML de tabela não estabelece esse contrato. Linhas maiores que a altura útil e certos grupos com rowspan podem ser bloqueados com diagnósticos, sem fragmentação intralinha geral.
+
+Outros nós passam pelo caminho linear sem essa medição especializada de linhas. Não há protocolo público específico de medição/fragmentação para imagens, NodeViews ou blocos personalizados indivisíveis. Um bloco maior que a área útil não tem garantia geral de acomodação, divisão ou redução automática. O consumidor fornece schema, DOM e dimensões do conteúdo; isso não transfere a ele a obrigação de implementar quebras para simular suporte inexistente. Conteúdo personalizado precisa de validação própria antes de ser considerado suportado.
+
 ### Atualização e reatividade
 
-Na [extensão](../src/extension.ts), o hook `update` agenda layout quando:
+O Core agenda cálculo na inicialização, em determinadas alterações documentais e quando recebe o sinal interno de configuração. Esse sinal não aplica opções por si só nem constitui uma API pública de atualização.
 
-```ts
-state.doc !== prevState.doc && (
-  state.doc.content.size !== prevState.doc.content.size ||
-  hasStructuralChange(state.doc, prevState.doc)
-)
-```
+A detecção documental exige mudança de referência do documento combinada com mudança de tamanho ou de quantidade/tipos de nós, recursivamente nos blocos. Não compara genericamente texto, marcas e atributos. Alterações que preservem tamanho e estrutura podem não provocar cálculo, mesmo quando mudam a geometria. Seleção pura, sem outro sinal, não provoca agendamento. O remapeamento de decorações, por si só, não garante atualização das quebras.
 
-Também agenda quando o estado do plugin registra `settingsChanged`. `hasStructuralChange` compara quantidade e tipos de nós, recursivamente nos blocos; não compara genericamente texto, marcas ou atributos. Não usa `doc.eq()`. Assim, alterações de mesmo tamanho que preservem essa estrutura podem não reagendar layout.
+O Core não observa continuamente alterações externas de CSS, dimensões, imagens ou fontes. Verifica o estado das fontes quando inicia uma rodada e espera seu carregamento se necessário, mas não garante atualização após carregamentos posteriores. Prepare a geometria e as dimensões dos recursos conhecidos antes da montagem quando possível.
 
-O sinal interno `paginationSettingsChanged` é lido em `apply` a cada transação. Na transação seguinte sem esse metadado, `settingsChanged` volta a `false`; o hook `update` não o consome por mutação. A existência desse canal interno não constitui uma API pública de atualização de configurações. Seleção pura, sem outro sinal, não satisfaz o predicado de alteração documental.
+`presentation.render(snapshot)` atualiza a apresentação com as projeções fornecidas; não solicita novo cálculo ao Core. A coordenação dos recursos e das mudanças externas continua necessária, mas não há API pública dedicada que garanta invalidação e recálculo após qualquer mudança externa. O helper abaixo não substitui esse contrato.
 
 ### Snapshots e estabilidade
 
-`LayoutSnapshot` contém `revision`, `pages`, `breaks` e `diagnostics`. `pages` contém as projeções de folha, cabeçalho e rodapé em DocumentLayoutSpace (CSS px lógicos); o deslocamento por `pageGap` já está embutido nas posições das folhas.
+`LayoutSnapshot` contém `revision`, `pages`, `breaks` e `diagnostics`. As projeções usam coordenadas locais de layout (`DocumentLayoutSpace`), em CSS px; o deslocamento por `pageGap` já está incluído.
 
-`await whenLayoutStable(editor)` exige um controller inicializado e aguarda sua estabilização local. Quando o controller está ocioso, o helper atual pode agendar uma rodada; não deve ser tratado como simples getter passivo. Não garante uma rodada distinta por chamada concorrente, igualdade entre rodadas, estabilidade após mudanças externas de fontes/CSS ou ausência de violações geométricas. Em abortos por inconsistência, aguardantes podem permanecer pendentes; o host deve considerar essa limitação.
+`revision` é um contador local do controller, iniciado em zero. Incrementa uma vez quando o comparador detecta diferenças entre as quebras calculadas e as decorações estruturais instaladas e a publicação termina sem erro ou destruição do controller antes do incremento. Não conta rodadas de cálculo nem todas as mudanças de geometria.
+
+`whenLayoutStable(editor)` exige o controller inicializado pela `PaginationExtension`; sem ele, a promise rejeita. Com o controller disponível, o comportamento é:
+
+| Estado na chamada | Comportamento |
+|---|---|
+| Ocioso: sem timer e sem cálculo ativo | Registra o aguardante e agenda cálculo; não retorna um snapshot em cache. |
+| Timer pendente | Aguarda uma conclusão sem garantir rodada adicional ou reiniciar o timer por essa chamada. |
+| Cálculo em curso | Aguarda uma conclusão sem garantir rodada adicional posterior à chamada ou a uma mudança externa. |
+
+Chamadas concorrentes podem receber o mesmo snapshot. Concluir uma rodada não comprova ausência de trabalho pendente, processamento integral nem geometria atual correta. Um snapshot pode representar paginação parcial acompanhada de diagnóstico, como `LAYOUT_ITERATION_LIMIT`; examine `diagnostics` antes de interpretar o resultado como completo.
+
+Se o percurso não alcançar a emissão do snapshot, por exemplo em determinados abortos, erros ou destruição, a promise pode permanecer pendente, sem rejeição automática por esses caminhos. Isso não significa que todo aborto gere pendência permanente: uma conclusão posterior pode resolver aguardantes preservados. Não há garantia geral de resolução dentro de um prazo.
+
+Agendar cálculo, concluir uma rodada e obter um resultado que reflita a geometria atual são condições distintas. O helper não certifica alinhamento físico, idempotência ou atualização após mudanças externas posteriores.
 
 ### Preparação de impressão
 
