@@ -1,13 +1,13 @@
 # Backlog
 
-Estado documental da linha `feature/compose-next`, referência `1c3b5add4ec8201ff176d67fd83f6677502cdd1d` (antes desta edição). Esta lista separa implementação, evidência e trabalho futuro; não reabre automaticamente decisões encerradas.
+Base documental anterior: `feature/compose-next`, referência `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`. Atualização focal em 27/10/2026: correção de reatividade presente no commit local `4f3577446204bf7f99848394e3b48b3136df6630`; push não verificado nesta revisão. Esta lista separa implementação, evidência e trabalho futuro; não reabre automaticamente decisões encerradas.
 
 ## Implementado
 
 - Core/Presentation separados e modo único `composed`; rejeição de outros modos e remoção de `chromeLayerElement`.
 - Ownership transacional de decorações no plugin, bridge interna e remapeamento.
 - Recorrência de capacidade e validação de carriers/decisões estruturais.
-- Reatividade por tamanho/estrutura e sinal de configuração, com os limites descritos na [API](api.md).
+- Reatividade por identidade, tamanho e igualdade documental (`Node.eq`), incluindo diferenças de texto, marcas e atributos com tamanho/estrutura preservados; mantido o sinal interno de configuração, com os limites descritos na [API](api.md).
 - Live Demo independente dos consumidores removidos, com texto linear, títulos e edição; cenários tabulares explicitamente indisponíveis.
 - Linha de desenvolvimento consolidada localmente e enviada ao remoto, preservando a proveniência canônica e experimental.
 
@@ -16,6 +16,7 @@ Estado documental da linha `feature/compose-next`, referência `1c3b5add4ec8201f
 ## Observado com validação limitada
 
 - 118 testes em 11 arquivos e builds Core/Presentation aprovados no ciclo da candidata; não repetidos na edição documental.
+- Correção de reatividade: construtor reportou 10 testes de reatividade, 25 de associação, 125 unitários e tipagem sem erros. Frente A inspecionou a entrega, sem repetir testes/tipagem; estes resultados não são uma nova execução desta edição. Ensaio local em navegador (sessão `20261026-163800`) aceito no recorte A/B: edição textual de mesmo tamanho seguida de agendamento, cálculo e emissão; observação visual favorável nos recortes, sem homologação geométrica, desempenho ou idempotência.
 - Checker executado em três cenários lineares, com `freshLayoutRound: true`, mas `idempotent: false` e violações geométricas.
 - Sessão manual favorável, inclusive documento de aproximadamente 472 páginas; lentidão observada, sem benchmark ou homologação geral.
 - Reavaliação das duas inconsistências visuais anteriores sem reprodução conclusiva. Não registrar como correção comprovada.
@@ -26,7 +27,7 @@ Estado documental da linha `feature/compose-next`, referência `1c3b5add4ec8201f
 ## Planejado ou pendente
 
 1. Investigar idempotência negativa, violações geométricas e HTTP 404 com hipótese e escopo próprios; sem atribuição causal antecipada.
-2. Delimitar e validar reatividade de mudanças de texto, marcas e atributos com tamanho constante na linha atual. A tarefa focal C-05 permanece independente.
+2. Ampliar evidências de reatividade somente com hipótese e escopo próprios: a correção documental está implementada e o ensaio real cobriu duas edições textuais de mesmo tamanho, não uma matriz visual geral de marcas/atributos ou desempenho. Mudanças externas de geometria e a tarefa focal C-05 permanecem independentes.
 3. Tornar instalação e execução reproduzíveis: esclarecer o grafo Tiptap/PM, versões ensaiadas, dependências da Demo e consumo externo do pacote. Não restaurar consumidores obsoletos.
 4. Disponibilizar cenários tabulares na Demo por decisão própria, preservando os limites intralinha e de rowspan.
 5. Ampliar validação de orçamento, recuperação de `STALE_BREAK`, associação estrutural tabular e mapeamento linha visual/intervalo PM (pendências N2–N5 do CONS-013). A recorrência algébrica não fecha a integração geométrica.

@@ -1,6 +1,6 @@
 # API
 
-Código conferido por inspeção estática em `feature/compose-next`, HEAD `f7f1e617fae73394011cc332f6e1c4b59e5be8f7`; as fontes inspecionadas coincidem com `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`. Este guia é uma atualização documental posterior. As entradas declaradas no [manifesto](../package.json) não comprovam publicação npm do estado atual.
+Base da revisão documental anterior: `feature/compose-next`, HEAD `f7f1e617fae73394011cc332f6e1c4b59e5be8f7`, com fontes então comparadas a `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`. Atualização focal de reatividade por inspeção estática em 27/10/2026: correção presente no commit local `4f3577446204bf7f99848394e3b48b3136df6630`. Esta conferência não repetiu testes nem verificou push. As entradas declaradas no [manifesto](../package.json) não comprovam publicação npm do estado atual.
 
 Para instalação, schema, hosts e CSS, comece pelo [Quick Start](quick-start.md). Os exemplos usam somente entradas do pacote local identificado, não fontes ou a Live Demo.
 
@@ -60,7 +60,7 @@ Outros nós passam pelo caminho linear sem essa medição especializada de linha
 
 O Core agenda cálculo na inicialização, em determinadas alterações documentais e quando recebe o sinal interno de configuração. Esse sinal não aplica opções por si só nem constitui uma API pública de atualização.
 
-A detecção documental exige mudança de referência do documento combinada com mudança de tamanho ou de quantidade/tipos de nós, recursivamente nos blocos. Não compara genericamente texto, marcas e atributos. Alterações que preservem tamanho e estrutura podem não provocar cálculo, mesmo quando mudam a geometria. Seleção pura, sem outro sinal, não provoca agendamento. O remapeamento de decorações, por si só, não garante atualização das quebras.
+A detecção documental exige mudança de referência do documento e, então, mudança de tamanho ou diferença segundo `Node.eq` do ProseMirror. Assim, alterações de texto, marcas ou atributos representadas no documento podem agendar cálculo mesmo quando tamanho e estrutura permanecem iguais. Uma nova referência documental equivalente segundo `Node.eq`, seleção pura e publicação neutra de decorações, sem outro sinal de configuração, não provocam agendamento. Isso detecta diferenças documentais, não mudanças externas de geometria. O remapeamento de decorações, por si só, não garante atualização das quebras.
 
 O Core não observa continuamente alterações externas de CSS, dimensões, imagens ou fontes. Verifica o estado das fontes quando inicia uma rodada e espera seu carregamento se necessário, mas não garante atualização após carregamentos posteriores. Prepare a geometria e as dimensões dos recursos conhecidos antes da montagem quando possível.
 
