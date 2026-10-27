@@ -512,7 +512,7 @@ describe('DOCUMENT-EDITOR-BLOCO-A-RECTIFICATION-001 — Associação de Decoraç
             vi.useRealTimers();
         });
 
-        it('edição de mesmo tamanho remapeia decorações sem acionar scheduleRender', () => {
+        it('edição de mesmo tamanho remapeia decorações e aciona scheduleRender', () => {
             const { editor, controller } = createEditor();
             (controller as any).performLayout();
 
@@ -523,10 +523,10 @@ describe('DOCUMENT-EDITOR-BLOCO-A-RECTIFICATION-001 — Associação de Decoraç
             editor.view.dispatch(editor.state.tr.insertText('abc', 1, 4));
             expect(editor.state.doc.content.size).toBe(sizeBefore);
 
-            // scheduleRender NÃO foi acionado pela edição de mesmo tamanho
-            expect(scheduleSpy).not.toHaveBeenCalled();
+            // scheduleRender FOI acionado pela alteração documental de mesmo tamanho
+            expect(scheduleSpy).toHaveBeenCalledTimes(1);
 
-            // Porém as decorações continuam coerentes via mapping no plugin state
+            // E as decorações continuam coerentes via mapping no plugin state
             expect(controller.getDecorations()).toBeDefined();
         });
     });

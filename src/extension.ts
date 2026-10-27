@@ -18,18 +18,6 @@ interface PaginationPublicationPayload {
 
 export const PaginationPluginKey = new PluginKey<PaginationPluginState>('paginationPlugin');
 
-function hasStructuralChange(doc1: any, doc2: any): boolean {
-    if (doc1 === doc2) return false;
-    if (doc1.childCount !== doc2.childCount) return true;
-    for (let i = 0; i < doc1.childCount; i++) {
-        const c1 = doc1.child(i);
-        const c2 = doc2.child(i);
-        if (c1.type !== c2.type) return true;
-        if (c1.isBlock && hasStructuralChange(c1, c2)) return true;
-    }
-    return false;
-}
-
 export const PaginationExtension = Extension.create<PaginationOptions, { controller: PaginationController | null }>({
     name: 'pagination',
 
@@ -152,7 +140,7 @@ export const PaginationExtension = Extension.create<PaginationOptions, { control
                             const pluginState = PaginationPluginKey.getState(state);
                             const docChanged = state.doc !== prevState.doc && (
                                 state.doc.content.size !== prevState.doc.content.size ||
-                                hasStructuralChange(state.doc, prevState.doc)
+                                !state.doc.eq(prevState.doc)
                             );
                             if (docChanged || pluginState?.settingsChanged) {
                                 controller.scheduleRender();
