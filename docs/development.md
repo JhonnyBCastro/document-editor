@@ -29,13 +29,23 @@ npm test
 npm run build
 ```
 
-`npm test` executa somente `test:unit` (Vitest); o build encadeia Core e Presentation. Comandos explícitos equivalentes para o ciclo documentado:
+`npm test` executa `test:unit`. `npm run build` encadeia os builds de Core, Presentation e Compose. O manifesto também fornece `test:types:public` e `test:compose:geometry`. O script histórico `test:e2e` é um fluxo separado.
+
+As instruções abaixo são propostas para uma execução futura autorizada, não comandos executados nesta análise documental:
 
 ```sh
-node ./node_modules/vitest/vitest.mjs run --reporter=verbose
-node ./node_modules/vite/bin/vite.js build -c vite.config.lib.ts
-node ./node_modules/vite/bin/vite.js build -c vite.config.presentation.ts
+npm run test:unit
+node ./node_modules/typescript/bin/tsc --noEmit
+npm run build
+npm run test:types:public
+npm run test:compose:geometry
 ```
+
+Execute somente com as dependências locais previamente disponíveis e identificadas. Se algum executável estiver ausente, interrompa e registre a preparação necessária; estes comandos não instruem instalação, atualização ou uso de `npx`/`npm exec` com download implícito. O caminho local `node_modules/typescript/bin/tsc` e seu arquivo de entrada `lib/tsc.js` foram conferidos por leitura nesta preparação documental, sem executar o compilador; sua disponibilidade não é presumida em outras máquinas.
+
+Execute o build antes do consumo público para produzir as declarações pertinentes. A checagem TypeScript pública usa autorreferência no repositório; o E2E geométrico importa fontes locais. Esses procedimentos não comprovam instalação independente do pacote.
+
+O subpath ESM `/compose` aponta seus tipos para `dist/compose/compose/index.d.ts` e seu bundle para `dist/compose/index.es.js`. Aplicações devem importar o subpath público, não esses caminhos internos.
 
 As configurações de build geram bundles e declarações via plugin DTS. Isso não equivale a uma campanha independente e completa de checagem de tipos. `node_modules/`, caches e `dist/` são artefatos locais, não fontes do produto.
 
@@ -54,6 +64,24 @@ Não usar esses procedimentos como receita de inicialização da Demo atual nem 
 ## Evidências já registradas
 
 No ciclo CONS-014, a candidata teve 118 testes aprovados em 11 arquivos e builds Core/Presentation concluídos. O checker posterior observou `mini`, `p:370` e `p:600`; a sessão manual do usuário foi favorável em alcance exploratório. Essas evidências não aprovam idempotência, geometria geral, tabelas na Demo ou todas as versões de dependências. A suíte focal C-05 de outro workspace é independente.
+
+### Composição Coordenada V1 — evidências por procedência
+
+A implementação, a revisão independente e a homologação técnica foram concluídas no escopo autorizado e nos ambientes verificados. Esse fechamento não comprova instalação limpa, compatibilidade universal ou o estado atual do repositório remoto. A presente análise documental não executou novamente testes, compilador, build, exemplos ou medições.
+
+| Procedência | Evidência e alcance |
+|---|---|
+| Revisão conclusiva da Frente A | Registro de 163 testes unitários, quatro sondagens focais, consumo público TypeScript e verificação da composição manual com controles positivo, negativo e de identidade do snapshot. São resultados daquela revisão, não desta edição. |
+| Rodadas anteriores da Frente A | Sondagens de duas suítes de nove testes, tipagem, build, importação ESM e ensaio geométrico nos dois perfis, com 53 e 38 condições. Não apresentar como repetidos na rodada conclusiva os procedimentos que não o foram. |
+| Relatos do construtor | Comandos, contagens e resultados das devoluções são relatos identificados; não substituem reprodução independente. |
+| Preparação documental atual | Leitura de fontes, tipos, manifesto, scripts e disponibilidade dos arquivos locais das ferramentas; sem execução dos comandos documentados. |
+| Validação futura | Consumidor independente com artefato identificado, instalação e exemplos novos ainda planejados; dependem de autorização própria. |
+
+As versões registradas no ciclo de composição incluem Node 22.23.4, Tiptap Core 2.27.3, TypeScript 5.9.3, Vitest 5.0.3, Vite 6.4.3, Puppeteer na faixa relatada `^25.12.0` e Chrome 154.0.8037.57. São referências dos ambientes informados nas evidências, não requisitos mínimos certificados nem versões verificadas novamente nesta edição.
+
+A tolerância de até 1 CSS px pertence exclusivamente ao ensaio geométrico delimitado em Chromium headless. No perfil padrão, o stride é 1076 CSS px e a separação entre áreas úteis, 212; no personalizado, 1088 e 160. As verificações unitárias em jsdom não comprovam essas medidas físicas nem ausência geral de congelamentos.
+
+A decisão do responsável pelo projeto e o parecer independente são registros distintos. Consulte o [registro de aprovações](https://app.notion.com/p/40701a4f21f68173a384e3502bbb6b57) e a [investigação de composição](https://app.notion.com/p/40501a4f21f681359935df0f1d95e42c), sujeitos ao acesso ao workspace. Caminhos temporários locais não são anexos preservados remotamente. Esses registros não são dependências de runtime.
 
 ## Contribuições e documentação
 

@@ -10,17 +10,78 @@ Destina-se a aplicações que precisam acrescentar uma visualização paginada a
 |---|---|
 | Core | Mede o documento no DOM, avalia políticas, calcula e aplica quebras estruturais e emite snapshots. |
 | Presentation | Desenha folhas e regiões de cabeçalho/rodapé conforme as projeções e os renderizadores fornecidos; não calcula paginação nem cria área editável. |
-| Editor e aplicação | O Editor fornece o modelo e as operações de edição; a aplicação fornece schema/extensões, conteúdo, hosts, CSS geométrico, renderizadores e coordenação do descarte. Interface, persistência e regras de negócio continuam na aplicação. |
+| Editor e aplicação | O Editor fornece o modelo e as operações de edição. Na montagem manual, a aplicação coordena hosts, geometria, snapshots e descarte; na factory opcional, esses recursos próprios são coordenados nos limites da API. Schema/extensões, conteúdo, renderizadores, estilos não conflitantes, interface, persistência e regras de negócio continuam na aplicação. |
 
-Somente o modo `composed` é suportado pela biblioteca. Essa restrição descreve o modo disponível, não certifica a geometria nem a montagem completa. A receita abaixo conecta manualmente Core e Presentation; não há factory pública de composição. A geometria precisa ser coordenada pela aplicação, e mudanças externas não têm recálculo automaticamente garantido. Consulte os [limites essenciais](#limites-essenciais) antes de adotar.
+Somente o modo `composed` é suportado pela biblioteca. Essa restrição descreve o modo disponível, não certifica a geometria nem a montagem completa. A biblioteca permite Core isolado, Presentation isolada, composição manual e composição coordenada opcional. `composed` é o modo visual suportado; não significa que todo consumidor precise usar a factory. A entrada `/compose` oferece `createDocumentEditor(options)`, que cria e coordena recursos próprios. A montagem manual permanece disponível; mudanças externas não têm recálculo automaticamente garantido. Consulte os [limites essenciais](#limites-essenciais) antes de adotar.
 
 ## Estado e distribuição
+
+**Identidade dos exemplos:** a receita manual histórica abaixo foi exercitada com o tarball identificado nesta seção. Não se presume que esse artefato contenha a Composição Coordenada V1. Para usar `/compose`, é necessário um pacote que efetivamente inclua essa entrada e suas declarações. A versão `0.1.0-rc.4`, isoladamente, não identifica os bytes do pacote. O novo exemplo coordenado ainda depende de validação em consumidor independente.
 
 Linha de desenvolvimento: `feature/compose-next`. O manifesto declara `@jhonny_bcastro/document-editor`, versão `0.1.0-rc.4`; essa declaração não comprova publicação npm do código atual.
 
 A receita usa o tarball local originado de `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`, SHA-256 `fa869168a25bd9c6266188a1075fe714d2db15c3fa5fdf964ec35584e37dee14`. Identifique-o por origem e hash, não apenas pela versão; não presuma equivalência automática com o HEAD atual. A documentação é posterior a esse commit; o histórico da linha está em [proveniência](docs/provenance.md).
 
-## Receita integrada autocontida
+## Composição coordenada V1 — exemplo proposto
+
+**Exemplo proposto — composição coordenada V1.** As assinaturas e os caminhos públicos abaixo foram conferidos por leitura dos tipos, exports e implementação locais. Este exemplo específico não foi compilado nem executado nesta análise e ainda não foi validado em consumidor independente. Pressupõe ambiente browser, pacote identificado que contenha `/compose`, resolução de imports CSS e extensões de schema compatíveis. Não reutilize automaticamente as versões do manifesto histórico.
+
+HTML:
+
+```html
+<div id="document"></div>
+```
+
+TypeScript:
+
+```ts
+import StarterKit from '@tiptap/starter-kit';
+import {
+  createDocumentEditor,
+  type DocumentEditorOptions,
+} from '@jhonny_bcastro/document-editor/compose';
+import '@jhonny_bcastro/document-editor/style.css';
+import '@jhonny_bcastro/document-editor/presentation.css';
+
+const host = document.querySelector<HTMLElement>('#document');
+if (!host) throw new Error('Host #document não encontrado.');
+
+const options: DocumentEditorOptions = {
+  host,
+  extensions: [StarterKit],
+  content: '<p>Documento inicial</p>',
+  layout: { page: { pageGap: 32 } },
+  renderFooter(context, mountPoint) {
+    mountPoint.textContent =
+      `Página ${context.pageIndex + 1} de ${context.totalPages}`;
+  },
+  onLayoutStable(snapshot) {
+    console.log('Publicação recebida:', snapshot.pages.length);
+  },
+  onError(incident) {
+    console.error('Incidente da composição:', incident);
+  },
+};
+
+const instance = createDocumentEditor(options);
+
+// Funções da aplicação de exemplo, não novos métodos da biblioteca.
+export function replaceContent() {
+  instance.editor.commands.setContent('<p>Documento atualizado</p>');
+}
+
+export function dispose() {
+  instance.destroy();
+}
+```
+
+A composição instala a paginação: não inclua `PaginationExtension` em `extensions`. O host pertence a `options.host`. A interface retornada expõe somente `editor` e `destroy()`: não há getter de snapshot, `instance.render()` ou atualização dinâmica de layout.
+
+O footer é fornecido explicitamente por callback. Os defaults de `runningContent` do Core não são convertidos automaticamente em conteúdo da Presentation.
+
+A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A resolução das dependências, a instalação limpa e a apresentação visual deste exemplo serão verificadas no consumidor independente.
+
+## Receita manual — artefato histórico identificado
 
 As próximas seções permitem preparar a aplicação sem importar fontes, configurações ou arquivos de exemplo do repositório. O pacote fornece Core, Presentation e os subpaths `style.css` e `presentation.css`. O exemplo usa somente essas entradas públicas. `whenLayoutStable`, `PaginationPluginKey` e `preparePrintSession` também estão exportados; não são necessários para montar esta receita.
 
@@ -247,13 +308,14 @@ Depois de iniciar, verifique a área editável, as folhas e a numeração; acres
 
 - **Core isolado:** use Editor/schema, `PaginationExtension` e `style.css`, recebendo snapshots por `onLayoutStable`; não crie Presentation. O Core mantém decorações e cálculo, mas não desenha papel/header/footer. Os hosts e insets do editor continuam necessários.
 - **Presentation isolada:** use `createDocumentPresentation` e `presentation.css`, recebendo um `LayoutSnapshot` externo. Não cria Editor, não mede conteúdo e não calcula paginação. Importar um tipo `LayoutSnapshot` não carrega o Core em runtime.
-- **Integrado:** a receita acima conecta as duas partes por callback. O esquema é fornecido via StarterKit, que é conveniência deste exemplo, não dependência obrigatória da biblioteca.
+- **Manual:** a receita histórica conecta Core e Presentation por callback. StarterKit é conveniência do exemplo, não dependência obrigatória da biblioteca.
+- **Coordenado:** a factory opcional `createDocumentEditor(options)` coordena recursos próprios; o novo exemplo acima permanece proposto, pendente de validação em consumidor independente.
 
 O [Quick Start completo](docs/quick-start.md) traz as duas receitas isoladas e detalhes de callbacks, índices e descarte. Esses guias estão no repositório e não são incluídos no tarball atual (`files: dist`). Esta receita integrada no README não depende deles.
 
 ## Limites essenciais
 
-- **Geometria e atualização:** origem, largura e margens dos hosts precisam permanecer coerentes. Mudanças de mesmo tamanho e estrutura, CSS ou recursos tardios podem deixar as quebras desatualizadas sem novo cálculo automático.
+- **Geometria e atualização:** origem, largura e margens dos hosts precisam permanecer coerentes. Alterações documentais são detectadas conforme a regra de `Node.eq` descrita na API. CSS, fontes, dimensões e recursos tardios permanecem fora da observação geral automática.
 - **Estabilidade:** quando o controller está ocioso, `whenLayoutStable(editor)` agenda cálculo; com timer ou cálculo em curso, aguarda o trabalho acompanhado pelo controller, sem garantir uma rodada adicional. Não é uma API geral de invalidação, não certifica a geometria atual e pode permanecer pendente em determinados caminhos de falha.
 - **Resultados:** snapshots podem conter paginação parcial diagnosticada. Há registros de idempotência negativa e violações geométricas; concluir uma rodada ou observar edição responsiva não demonstra que esses problemas foram resolvidos.
 - **Conteúdo e ambientes:** schema válido não garante suporte a qualquer nó. Tabelas arbitrárias, conteúdo personalizado, impressão composta, múltiplos editores, zoom e compatibilidade geral de navegadores/Tiptap 2/3 não estão certificados.

@@ -11,7 +11,8 @@ Base documental anterior: `feature/compose-next`, referência `1c3b5add4ec8201ff
 - Live Demo independente dos consumidores removidos, com texto linear, títulos e edição; cenários tabulares explicitamente indisponíveis.
 - Linha de desenvolvimento consolidada localmente e enviada ao remoto, preservando a proveniência canônica e experimental.
 
-- Quick Start de pacote com schema, imports públicos, composição manual, CSS e descarte; sem factory implementada. O README contém a receita integrada mesmo quando os guias não acompanham o tarball.
+- Quick Start de pacote com schema, imports públicos, montagem manual histórica, CSS e descarte. O novo exemplo coordenado permanece proposto, sem validação prática em consumidor independente.
+- Composição Coordenada V1 implementada, revisada e homologada no escopo autorizado e nos ambientes verificados: `createDocumentEditor(options)`, `options.host`, interface mínima e entrada ESM `/compose`. Não inclui atualização dinâmica de layout.
 
 ## Observado com validação limitada
 
@@ -32,7 +33,7 @@ Base documental anterior: `feature/compose-next`, referência `1c3b5add4ec8201ff
 4. Disponibilizar cenários tabulares na Demo por decisão própria, preservando os limites intralinha e de rowspan.
 5. Ampliar validação de orçamento, recuperação de `STALE_BREAK`, associação estrutural tabular e mapeamento linha visual/intervalo PM (pendências N2–N5 do CONS-013). A recorrência algébrica não fecha a integração geométrica.
 6. Decidir o comportamento sem corte elegível (L1) e de overshoot sem fronteira anterior (L2), sem confundir essas escolhas com ressalvas de rodapé ou impressão.
-7. Revisar especificação externa de uma factory opcional: normalização inicial, insets, schema da aplicação, ownership e descarte. Nenhuma factory ou atualização dinâmica de layout foi implementada. Fontes/CSS externos, multi-instância e impressão composta continuam tarefas separadas.
+7. Validar a documentação aprovada em consumidor independente, com artefato identificado e somente imports públicos. Instalação limpa e ambientes adicionais permanecem não demonstrados. Preservar os fluxos isolados e manual; a execução depende de autorização própria. Fontes/CSS externos, multi-instância e impressão composta continuam tarefas separadas.
 8. Revisar runners E2E históricos antes de propô-los como fluxo atual: pré-requisitos, comparação semântica, propagação de falhas e saídas portáteis.
 
 ## Fora de qualquer aprovação automática

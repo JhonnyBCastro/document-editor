@@ -2,6 +2,8 @@
 
 Consumidor de desenvolvimento da linha `dev/cons014-composed-20261022`, referência `1962cdbb3456cc989b064017137d48a8df143d3d`. Importa diretamente Core e Presentation de `src/`; não valida a instalação externa de uma distribuição npm.
 
+Esta Demo exercita montagem manual. A existência da factory opcional não exige sua conversão. Para `/compose`, consulte a [seção coordenada do Quick Start](../../docs/quick-start.md#composição-coordenada-v1--exemplo-proposto). A Demo e a fixture geométrica interna não substituem a validação de um pacote instalado em consumidor independente.
+
 ## Pré-requisitos e execução
 
 A raiz precisa ter dependências compatíveis disponíveis, incluindo Vite, `@tiptap/core` e `@tiptap/pm`. O checker usa `puppeteer-core` e o Chrome do sistema em `/usr/bin/google-chrome`. Não baixa navegador automaticamente. A disponibilidade em outras máquinas não foi certificada. Veja [desenvolvimento](../../docs/development.md).

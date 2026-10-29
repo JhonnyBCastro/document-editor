@@ -1,4 +1,67 @@
-# Quick Start — consumo de um pacote local identificado
+# Quick Start — fluxos de consumo
+
+**Identidade dos exemplos:** a receita manual histórica abaixo foi exercitada com o tarball identificado nesta seção. Não se presume que esse artefato contenha a Composição Coordenada V1. Para usar `/compose`, é necessário um pacote que efetivamente inclua essa entrada e suas declarações. A versão `0.1.0-rc.4`, isoladamente, não identifica os bytes do pacote. O novo exemplo coordenado ainda depende de validação em consumidor independente.
+
+## Composição coordenada V1 — exemplo proposto
+
+**Exemplo proposto — composição coordenada V1.** As assinaturas e os caminhos públicos abaixo foram conferidos por leitura dos tipos, exports e implementação locais. Este exemplo específico não foi compilado nem executado nesta análise e ainda não foi validado em consumidor independente. Pressupõe ambiente browser, pacote identificado que contenha `/compose`, resolução de imports CSS e extensões de schema compatíveis. Não reutilize automaticamente as versões do manifesto histórico.
+
+HTML:
+
+```html
+<div id="document"></div>
+```
+
+TypeScript:
+
+```ts
+import StarterKit from '@tiptap/starter-kit';
+import {
+  createDocumentEditor,
+  type DocumentEditorOptions,
+} from '@jhonny_bcastro/document-editor/compose';
+import '@jhonny_bcastro/document-editor/style.css';
+import '@jhonny_bcastro/document-editor/presentation.css';
+
+const host = document.querySelector<HTMLElement>('#document');
+if (!host) throw new Error('Host #document não encontrado.');
+
+const options: DocumentEditorOptions = {
+  host,
+  extensions: [StarterKit],
+  content: '<p>Documento inicial</p>',
+  layout: { page: { pageGap: 32 } },
+  renderFooter(context, mountPoint) {
+    mountPoint.textContent =
+      `Página ${context.pageIndex + 1} de ${context.totalPages}`;
+  },
+  onLayoutStable(snapshot) {
+    console.log('Publicação recebida:', snapshot.pages.length);
+  },
+  onError(incident) {
+    console.error('Incidente da composição:', incident);
+  },
+};
+
+const instance = createDocumentEditor(options);
+
+// Funções da aplicação de exemplo, não novos métodos da biblioteca.
+export function replaceContent() {
+  instance.editor.commands.setContent('<p>Documento atualizado</p>');
+}
+
+export function dispose() {
+  instance.destroy();
+}
+```
+
+A composição instala a paginação: não inclua `PaginationExtension` em `extensions`. O host pertence a `options.host`. A interface retornada expõe somente `editor` e `destroy()`: não há getter de snapshot, `instance.render()` ou atualização dinâmica de layout.
+
+O footer é fornecido explicitamente por callback. Os defaults de `runningContent` do Core não são convertidos automaticamente em conteúdo da Presentation.
+
+A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A resolução das dependências, a instalação limpa e a apresentação visual deste exemplo serão verificadas no consumidor independente.
+
+## Receita manual — artefato histórico identificado
 
 **Atualizado em 24/10/2026.** Guia de montagem de um consumidor Vite + TypeScript. Artefato de referência: tarball oriundo de `feature/compose-next`, commit `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`, SHA-256 `fa869168a25bd9c6266188a1075fe714d2db15c3fa5fdf964ec35584e37dee14`.
 
@@ -333,6 +396,8 @@ A Presentation recria seus elementos em `render` e executa disposers anteriores.
 A receita foi exercitada com checagem TypeScript, bundle e montagem no browser: edição paginada e atualização da numeração foram observadas, assim como a remoção dos elementos no descarte. Isso não constitui auditoria de memória, benchmark ou certificação geométrica. Não houve nova execução para esta revisão editorial.
 
 Não há garantia geral de idempotência do cálculo, ausência de violações geométricas ou alinhamento físico completo. Zoom/transformações, impressão composta, SSR, múltiplos editores, tabelas arbitrárias e compatibilidade geral Tiptap 2/3 não estão certificados por esta receita. Mudanças de texto, marcas ou atributos que preservem tamanho e estrutura podem não agendar novo cálculo; recursos tardios também não têm recálculo automático garantido.
+
+Esta descrição pertence ao tarball histórico identificado no guia. A implementação atual usa `Node.eq`; isso não demonstra que os bytes daquele tarball contenham a correção.
 
 ## Referências
 

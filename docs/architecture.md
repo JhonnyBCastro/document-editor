@@ -12,7 +12,9 @@ Core mede DOM e coordenadas, avalia políticas, calcula quebras e produz snapsho
 
 `composed` é o único modo suportado e o padrão. O controller rejeita outros valores; `chromeLayerElement` e o ChromeLayer legado não pertencem ao contrato atual. A remoção não significa ausência de decorações estruturais no DOM: o Core ainda insere os neutralizadores necessários ao fluxo. As arestas B1 transparentes preservam sua contribuição geométrica.
 
-O consumidor monta o host da Presentation no mesmo espaço de coordenadas das projeções, sem somar novamente o gap. A Presentation cria e remove seus próprios elementos e disposers. A coordenação do Editor e de seus hosts continua a cargo do consumidor. Veja o [ADR-004 retrospectivo](decisions/ADR-004-composed-only.md).
+Na montagem manual, o consumidor monta o host da Presentation no mesmo espaço de coordenadas das projeções, sem somar novamente o gap. A Presentation cria e remove seus próprios elementos e disposers. A coordenação do Editor e de seus hosts continua a cargo do consumidor na montagem manual. Veja o [ADR-004 retrospectivo](decisions/ADR-004-composed-only.md).
+
+Na composição coordenada, a factory cria seus recursos e deriva a geometria estrutural inicial de `layout.page`. A Presentation continua aplicando projeções, sem calcular paginação. As garantias da factory não são transferidas implicitamente ao Core ou à Presentation isolados. Estilos métricos e mudanças externas continuam sujeitos aos limites documentados.
 
 ## Estado de decorações e publicação transacional
 
@@ -22,7 +24,7 @@ A publicação usa transação sem steps e payload `replaceDecorations`, vincula
 
 ## Reatividade e estabilidade
 
-O predicado atual é mudança de referência do documento combinada com mudança de tamanho ou `hasStructuralChange`, além do sinal independente `settingsChanged`. A comparação estrutural visita quantidade e tipos de nós; não compara genericamente texto, marcas ou atributos e não usa `doc.eq()`. A descrição completa está na [API](api.md).
+A detecção documental exige mudança de referência e, então, mudança de tamanho ou diferença segundo `Node.eq`. Alterações de texto, marcas ou atributos podem, portanto, agendar cálculo mesmo com tamanho e estrutura preservados. Documento equivalente, seleção pura e publicação neutra não implicam novo agendamento sem outro sinal. Isso não observa mudanças externas de geometria nem garante prazo de estabilização ou ausência de travamentos. O sinal interno independente `settingsChanged` permanece distinto dessa detecção. A descrição completa está na [API](api.md).
 
 `settingsChanged` é recalculado por `apply` em cada transação, voltando a falso quando o metadado não está presente. O debounce libera o handle do timer antes de renderizar. Isso não garante observação de CSS/fontes externas nem idempotência entre rodadas. `whenLayoutStable` observa estabilização local, não correção física permanente.
 
@@ -53,7 +55,7 @@ A reavaliação de layout adota um comparador canônico que ordena as decoraçõ
 
 As decorações tabulares operam nas fronteiras de linhas reais; fragmentação dentro de uma linha/célula não é suportada genericamente. A existência dessas políticas no Core não torna os cenários tabulares disponíveis na Demo atual.
 
-A Presentation dispõe seus próprios elementos; o consumidor destrói Editor e Presentation. O Core não monta ChromeLayer. A preparação de impressão altera temporariamente o layout e uma classe global em `document.body`, com lock; impressão composta e multi-instância continuam limitadas.
+A Presentation dispõe seus próprios elementos; na montagem manual, o consumidor destrói Editor e Presentation. O Core não monta ChromeLayer. A preparação de impressão altera temporariamente o layout e uma classe global em `document.body`, com lock; impressão composta e multi-instância continuam limitadas.
 
 ## Alcance das evidências
 

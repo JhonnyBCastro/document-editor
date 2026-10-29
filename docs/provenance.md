@@ -1,6 +1,16 @@
 # Proveniência
 
-## Linha atual e distribuição
+## Corte posterior — Composição Coordenada V1
+
+A implementação, a revisão independente e a homologação técnica da Composição Coordenada V1 foram concluídas no escopo autorizado e nos ambientes verificados, conforme a decisão do responsável pelo projeto e o parecer conclusivo já registrados. Este texto referencia esse fechamento; não cria nova decisão de homologação nem amplia seu alcance.
+
+O responsável pelo projeto declarou ter realizado o commit e enviado as alterações ao GitHub para preservar o estado do código. Não foram informados aqui hash, branch ou data dessa operação, nem houve confirmação independente do conteúdo remoto nesta análise documental. O envio não equivale a release, publicação npm ou autorização para essas ações.
+
+A leitura local de documentação, implementação, tipos e manifesto não comprova identidade com o remoto ou com qualquer tarball. As referências de commits e distribuição abaixo pertencem aos respectivos cortes históricos; não são tratadas como HEAD atual nem recebem retroativamente a Composição Coordenada V1.
+
+O [registro de aprovações](https://app.notion.com/p/40701a4f21f68173a384e3502bbb6b57) e a [investigação de composição](https://app.notion.com/p/40501a4f21f681359935df0f1d95e42c) mantêm as decisões e revisões de origem, sujeitos ao acesso ao workspace. A separação entre resultados reproduzidos na revisão conclusiva, rodadas anteriores e relatos do construtor está em [desenvolvimento](development.md#composição-coordenada-v1--evidências-por-procedência). Nenhum comando de teste ou build foi repetido para produzir esta atualização documental; não se afirma preservação remota de arquivos temporários locais.
+
+## Linha e distribuição — corte histórico de 22/10/2026
 
 Referência documental: `dev/cons014-composed-20261022`, commit `1962cdbb3456cc989b064017137d48a8df143d3d`. A branch foi enviada ao remoto e sua presença foi confirmada pelo usuário no GitHub em 22/10/2026. Isso não constitui publicação de pacote, merge ou homologação geral.
 
