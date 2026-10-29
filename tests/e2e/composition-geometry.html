@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>E2E Composition Geometry Rehearsal</title>
+  <link rel="stylesheet" href="/src/style.css">
+  <link rel="stylesheet" href="/src/presentation/presentation.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f0f0f0;
+      font-family: sans-serif;
+    }
+    .test-host {
+      position: relative;
+      margin: 40px auto;
+      border: 2px solid transparent;
+      box-sizing: content-box;
+    }
+    /* Note: NO compensatory .ProseMirror styles (width, padding, box-sizing) are provided here.
+       The composition layer natively configures .ProseMirror styles from layout.page. */
+    .header-box {
+      font-size: 11px;
+      color: #666;
+      line-height: 20px;
+      text-align: center;
+      width: 100%;
+    }
+    .footer-box {
+      font-size: 11px;
+      color: #666;
+      line-height: 20px;
+      text-align: right;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="host-a" class="test-host"></div>
+  <div id="host-b" class="test-host"></div>
+
+  <script type="module">
+    import StarterKit from "@tiptap/starter-kit";
+    import { createDocumentEditor } from "/src/compose/index.ts";
+    import { whenLayoutStable } from "/src/index.ts";
+
+    window.__initProfiles = async function() {
+      const generateContent = (numParagraphs) => {
+        let html = "";
+        for (let i = 1; i <= numParagraphs; i++) {
+          html += "<p>Paragraph " + i + ": Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>";
+        }
+        return html;
+      };
+
+      const content = generateContent(20);
+
+      // Profile A: standard (W=816, H=1056, L=96, R=96, T=96, B=96, G=20)
+      const hostA = document.getElementById("host-a");
+      const instanceA = createDocumentEditor({
+        host: hostA,
+        extensions: [StarterKit],
+        content,
+        layout: {
+          page: {
+            width: 816,
+            height: 1056,
+            marginTop: 96,
+            marginRight: 96,
+            marginBottom: 96,
+            marginLeft: 96,
+            pageGap: 20,
+          }
+        },
+        renderHeader(ctx, mountPoint) {
+          const el = document.createElement("div");
+          el.className = "header-box";
+          el.textContent = "Document Header — Page " + (ctx.pageIndex + 1) + " of " + ctx.totalPages;
+          mountPoint.appendChild(el);
+          return () => { el.remove(); };
+        },
+        renderFooter(ctx, mountPoint) {
+          const el = document.createElement("div");
+          el.className = "footer-box";
+          el.textContent = "Page " + (ctx.pageIndex + 1);
+          mountPoint.appendChild(el);
+          return () => { el.remove(); };
+        }
+      });
+
+      // Profile B: custom (W=816, H=1056, L=64, R=64, T=64, B=64, G=32)
+      const hostB = document.getElementById("host-b");
+      const instanceB = createDocumentEditor({
+        host: hostB,
+        extensions: [StarterKit],
+        content,
+        layout: {
+          page: {
+            width: 816,
+            height: 1056,
+            marginTop: 64,
+            marginRight: 64,
+            marginBottom: 64,
+            marginLeft: 64,
+            pageGap: 32,
+          }
+        },
+        renderHeader(ctx, mountPoint) {
+          const el = document.createElement("div");
+          el.className = "header-box";
+          el.textContent = "Custom Header — Page " + (ctx.pageIndex + 1) + " of " + ctx.totalPages;
+          mountPoint.appendChild(el);
+          return () => { el.remove(); };
+        },
+        renderFooter(ctx, mountPoint) {
+          const el = document.createElement("div");
+          el.className = "footer-box";
+          el.textContent = "Custom Page " + (ctx.pageIndex + 1);
+          mountPoint.appendChild(el);
+          return () => { el.remove(); };
+        }
+      });
+
+      const snapA = await whenLayoutStable(instanceA.editor);
+      const snapB = await whenLayoutStable(instanceB.editor);
+
+      window.__instances = { instanceA, instanceB, snapA, snapB };
+      return { ready: true, pagesA: snapA.pages.length, pagesB: snapB.pages.length };
+    };
+  </script>
+</body>
+</html>

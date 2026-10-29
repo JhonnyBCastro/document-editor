@@ -36,17 +36,23 @@
       "import": "./dist/presentation/index.es.js",
       "require": "./dist/presentation/index.umd.js"
     },
-    "./presentation.css": "./dist/presentation/presentation.css"
+    "./presentation.css": "./dist/presentation/presentation.css",
+    "./compose": {
+      "types": "./dist/compose/compose/index.d.ts",
+      "import": "./dist/compose/index.es.js"
+    }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "vite build -c vite.config.lib.ts && vite build -c vite.config.presentation.ts",
+    "build": "vite build -c vite.config.lib.ts && vite build -c vite.config.presentation.ts && vite build -c vite.config.compose.ts",
     "test": "npm run test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "node tests/e2e/pagination-stress.spec.cjs"
+    "test:e2e": "node tests/e2e/pagination-stress.spec.cjs",
+    "test:compose:geometry": "node tests/e2e/composition-geometry.spec.cjs",
+    "test:types:public": "tsc --noEmit --module esnext --target es2020 --lib dom,es2020 --moduleResolution bundler tests/verify-public-consumption.ts"
   },
   "devDependencies": {
     "@tiptap/core": "^2.11.0",
