@@ -8,7 +8,7 @@ Base documental anterior: `feature/compose-next`, referência `1c3b5add4ec8201ff
 - Ownership transacional de decorações no plugin, bridge interna e remapeamento.
 - Recorrência de capacidade e validação de carriers/decisões estruturais.
 - Reatividade por identidade, tamanho e igualdade documental (`Node.eq`), incluindo diferenças de texto, marcas e atributos com tamanho/estrutura preservados; mantido o sinal interno de configuração, com os limites descritos na [API](api.md).
-- Live Demo independente dos consumidores removidos, com texto linear, títulos e edição; cenários tabulares explicitamente indisponíveis.
+- Live Demo independente dos consumidores removidos, com texto linear, títulos e edição; cenários tabulares explicitamente indisponíveis. Na manutenção de 29/10/2026, imports públicos por `dist/` local e fluxos coordenado/manual foram conferidos no recorte descrito nas [notas da Demo](../examples/live-demo/NOTES.md), sem validar literalmente os exemplos completos com StarterKit.
 - Linha de desenvolvimento consolidada localmente e enviada ao remoto, preservando a proveniência canônica e experimental.
 
 - Quick Start de pacote com schema, imports públicos, montagem manual histórica, CSS e descarte. O exemplo coordenado permanece proposto: sua execução literal não foi demonstrada pelo laboratório que validou o pacote.

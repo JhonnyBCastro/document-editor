@@ -51,7 +51,7 @@ As configurações de build geram bundles e declarações via plugin DTS. Isso n
 
 ## Live Demo e checker
 
-As [instruções atuais da Demo](../examples/live-demo/NOTES.md) cobrem servidor, URL, cenários e dependências de browser. A Demo importa `src/`, não um pacote histórico. Os processos escrevem caches e usam perfil temporário de navegador; a sessão visual é uma verificação distinta do checker headless.
+As [instruções atuais da Demo](../examples/live-demo/NOTES.md) cobrem servidor, URL, cenários e dependências de browser. A Demo usa as entradas públicas do pacote, por autorreferência aos artefatos locais de `dist/`, sem alias para `src/`. Oferece montagem coordenada e manual; não equivale a uma instalação independente. A verificação focal da manutenção de 29/10/2026 está identificada nas notas da Demo, separada dos resultados históricos abaixo. Os processos escrevem caches e usam perfil temporário de navegador; a sessão visual é uma verificação distinta do checker headless.
 
 Não confundir `freshLayoutRound` com `idempotent`. Os resultados negativos e violações devem ser lidos mesmo quando o checker termina com código zero. Veja [limitações](limitations.md).
 

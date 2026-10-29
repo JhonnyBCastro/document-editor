@@ -81,6 +81,8 @@ O footer é fornecido explicitamente por callback. Os defaults de `runningConten
 
 A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A execução literal deste exemplo e a instalação limpa do manifesto histórico apresentado adiante permanecem sem evidência no laboratório examinado.
 
+Para experimentar um fluxo adaptado, consulte o [Live Demo](examples/live-demo/NOTES.md), com montagem coordenada e manual por imports públicos. Ele fornece schema mínimo e CSS de sobreposição próprios; sua checagem não equivale à execução literal deste exemplo com StarterKit.
+
 ## Receita manual — artefato histórico identificado
 
 As próximas seções permitem preparar a aplicação sem importar fontes, configurações ou arquivos de exemplo do repositório. O pacote fornece Core, Presentation e os subpaths `style.css` e `presentation.css`. O exemplo usa somente essas entradas públicas. `whenLayoutStable`, `PaginationPluginKey` e `preparePrintSession` também estão exportados; não são necessários para montar esta receita.
@@ -325,7 +327,7 @@ Veja [API](docs/api.md#snapshots-e-estabilidade) para o contrato de atualizaçã
 ## Documentação do repositório
 
 - [Quick Start](docs/quick-start.md), [API](docs/api.md) e [arquitetura](docs/architecture.md).
-- [Desenvolvimento](docs/development.md) e [Live Demo](examples/live-demo/NOTES.md); a Demo importa fontes e não substitui consumo do pacote.
+- [Desenvolvimento](docs/development.md) e [Live Demo](examples/live-demo/NOTES.md); a Demo usa entradas públicas resolvidas para `dist/` local e não substitui instalação independente do pacote.
 - [Limitações](docs/limitations.md) e [backlog](docs/backlog.md).
 - [Proveniência](docs/provenance.md), [história](docs/project-history.md) e [arquivo histórico](docs/archive/README.md).
 - Decisões: [extração](docs/decisions/ADR-001-project-consolidation.md), [independência](docs/decisions/ADR-002-product-independence.md), [ownership histórico](docs/decisions/ADR-003-host-dom-ownership.md) e [composed-only](docs/decisions/ADR-004-composed-only.md).

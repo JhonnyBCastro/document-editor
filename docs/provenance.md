@@ -22,6 +22,12 @@ O parecer combina resultados anteriores preservados, inspeção dos verificadore
 
 O fechamento do laboratório não comprova a execução literal dos exemplos propostos do README/Quick Start nem uma matriz universal de compatibilidade. A divergência de metadados `rc.4` no manifesto de origem e `rc.2` no lockfile permanece registrada, sem alteração desses arquivos por esta atualização.
 
+## Manutenção posterior — normalização de metadados e Live Demo, 29/10/2026
+
+A versão canônica de trabalho permanece `0.1.0-rc.4`, conforme o manifesto vigente. Foram alinhados apenas `package-lock.json.version` e `package-lock.json.packages[""].version`, antes em `0.1.0-rc.2`. A comparação estrutural confirmou que os demais metadados e registros de dependências do lockfile permaneceram iguais. Não houve instalação, nova versão, regeneração ou substituição do tarball validado, release ou publicação. A divergência registrada acima pertence ao artefato e ao corte de origem; está preservada como histórico, sem continuar como candidata de versão atual.
+
+O Live Demo passou a consumir entradas públicas por autorreferência aos artefatos existentes de `dist/`, com fluxos coordenado e manual. Sua checagem TypeScript, build próprio e navegação focal são evidências desta manutenção, distintas dos logs do consumidor V1. Não foi reconstruída a biblioteca nem reaberta a homologação/validação anterior. Veja [notas, alcance e resultados](../examples/live-demo/NOTES.md). Os exemplos documentais completos continuam identificados como propostos; esta manutenção verificou fluxos adaptados, não sua execução literal.
+
 ## Linha e distribuição — corte histórico de 22/10/2026
 
 Referência documental: `dev/cons014-composed-20261022`, commit `1962cdbb3456cc989b064017137d48a8df143d3d`. A branch foi enviada ao remoto e sua presença foi confirmada pelo usuário no GitHub em 22/10/2026. Isso não constitui publicação de pacote, merge ou homologação geral.

@@ -1,9 +1,11 @@
-// Demo minima: consome src/ do working tree (via alias em vite.config.ts), sem tarball.
+/// <reference types="vite/client" />
+// Consumidor de desenvolvimento: entradas públicas resolvidas para dist/ local.
 import { Editor, Node } from '@tiptap/core';
-import { PaginationExtension } from '../../src/index';
-import { createDocumentPresentation } from '../../src/presentation/index';
-import '../../src/presentation/presentation.css';
-import '../../src/style.css';
+import { PaginationExtension, type LayoutSnapshot } from '@jhonny_bcastro/document-editor';
+import { createDocumentPresentation, type RunningContentContext } from '@jhonny_bcastro/document-editor/presentation';
+import { createDocumentEditor } from '@jhonny_bcastro/document-editor/compose';
+import '@jhonny_bcastro/document-editor/style.css';
+import '@jhonny_bcastro/document-editor/presentation.css';
 
 const DocumentNode = Node.create({
   name: 'doc',
@@ -40,48 +42,100 @@ const PageBreak = Node.create({
   renderHTML({ HTMLAttributes }) { return ['div', { class: 'page-break', ...HTMLAttributes }]; },
 });
 
-const fixtures = import.meta.glob('../../tests/fixtures/*.json', { eager: true, import: 'default' }) as Record<string, any>;
 const mini = { type: 'doc', content: Array.from({ length: 60 }, (_, i) => ({ type: 'paragraph', content: [{ type: 'text', text: `Parágrafo ${i + 1}. ` + 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(3) }] })) };
-
-const $ = (id: string) => document.getElementById(id) as any;
-
-const get = (n: string) => {
-  if (n === 'mini') return mini;
-  if (n === 'PE-S' || n === 'PE-M' || n === 'PE-L') {
-    $('diag').textContent = `[AVISO] Cenário tabular ${n} indisponível nesta árvore (sem @tiptap/extension-table). Carregando cenário 'mini'.`;
-    return mini;
-  }
-  return fixtures[`../../tests/fixtures/${n}.json`] || mini;
+const element = (id: string) => {
+  const node = document.getElementById(id);
+  if (!node) throw new Error(`Elemento #${id} ausente.`);
+  return node;
 };
+const stage = element('stage');
+const schema = [DocumentNode, ParagraphNode, TextNode, HeadingNode, PageBreak];
+let disposeCurrent: (() => void) | undefined;
 
-let editor: Editor | null = null;
-let presentation: ReturnType<typeof createDocumentPresentation> | null = null;
-
-function start() {
-  editor?.destroy(); presentation?.destroy();
-  $('editor').innerHTML = ''; $('presentation-host').innerHTML = '';
-  presentation = createDocumentPresentation($('presentation-host'), {
-    renderFooter: (c, el) => { el.textContent = `Página ${c.pageIndex + 1} de ${c.totalPages}`; el.style.cssText += ';text-align:right;font-size:12px;padding-right:0'; },
-  });
-  editor = new Editor({
-    element: $('editor'),
-    extensions: [
-      DocumentNode, ParagraphNode, TextNode, HeadingNode, PageBreak,
-      PaginationExtension.configure({
-        layout: {
-          page: { width: 816, height: 1056, marginTop: 96, marginRight: 96, marginBottom: 96, marginLeft: 96, pageGap: 20 },
-          policies: { keepWithNext: true, widowOrphan: true, minLinesBeforeBreak: 2, minLinesAfterBreak: 2, keepWithNextMinLines: 2 },
-          runningContent: { header: { enabled: false, text: '', align: 'center' }, footer: { enabled: true, text: 'Página {page} de {total}', align: 'right' }, differentFirstPage: false },
-        },
-        onLayoutStable: (snap) => {
-          (window as any).__snap = snap;
-          presentation?.render(snap);
-          $('diag').textContent = `rev ${snap.revision} | páginas ${snap.pages.length} | quebras ${snap.breaks.length} | diagnósticos ${snap.diagnostics.length}`;
-        },
-      })
-    ],
-    content: get($('fx').value),
-  });
-  (window as any).__editor = editor;
+declare global {
+  interface Window {
+    // Ponte da aplicação para inspeção e checker histórico; não é API da biblioteca.
+    __editor?: Editor;
+    __snap?: LayoutSnapshot;
+  }
 }
-$('go').onclick = start; start();
+function renderFooter(context: RunningContentContext, mount: HTMLElement) {
+  mount.textContent = `Página ${context.pageIndex + 1} de ${context.totalPages}`;
+  mount.style.textAlign = 'right';
+}
+function showSnapshot(snapshot: LayoutSnapshot) {
+  window.__snap = snapshot;
+  element('diag').textContent = `rev ${snapshot.revision} | páginas ${snapshot.pages.length} | quebras ${snapshot.breaks.length} | diagnósticos ${snapshot.diagnostics.length}`;
+}
+function dispose() {
+  disposeCurrent?.();
+  disposeCurrent = undefined;
+  window.__editor = undefined;
+  window.__snap = undefined;
+}
+function start() {
+  dispose();
+  stage.replaceChildren();
+  stage.style.minHeight = '';
+  stage.className = (element('flow') as HTMLSelectElement).value;
+  if (stage.className === 'coordinated') {
+    const instance = createDocumentEditor({
+      host: stage,
+      extensions: schema,
+      content: mini,
+      renderFooter,
+      onLayoutStable: showSnapshot,
+      onError(incident) {
+        element('diag').textContent = `Incidente ${incident.operation}: ${incident.primary.phase} (${incident.state})`;
+        console.error('Incidente da composição:', incident);
+      },
+    });
+    disposeCurrent = () => instance.destroy();
+    window.__editor = instance.editor;
+  } else {
+    const pages = document.createElement('div');
+    pages.id = 'presentation-host';
+    const mount = document.createElement('div');
+    mount.id = 'editor';
+    stage.append(pages, mount);
+    const defaults = PaginationExtension.options.layout;
+    const layout = { ...defaults, page: { ...defaults.page } };
+    const page = layout.page;
+    for (const [name, value] of Object.entries({ width: page.width, height: page.height,
+      top: page.marginTop, right: page.marginRight, bottom: page.marginBottom, left: page.marginLeft })) {
+      stage.style.setProperty(`--page-${name}`, `${value}px`);
+    }
+    const presentation = createDocumentPresentation(pages, { renderFooter });
+    let closed = false;
+    let editor: Editor;
+    try {
+      editor = new Editor({
+        element: mount,
+        extensions: [...schema, PaginationExtension.configure({
+          layout,
+          onLayoutStable(snapshot) {
+            if (closed) return;
+            presentation.render(snapshot);
+            const last = snapshot.pages[snapshot.pages.length - 1];
+            stage.style.minHeight = `${last ? last.sheetRect.top + last.sheetRect.height : page.height}px`;
+            showSnapshot(snapshot);
+          },
+        })],
+        content: mini,
+      });
+    } catch (error) {
+      presentation.destroy();
+      throw error;
+    }
+    disposeCurrent = () => {
+      if (closed) return;
+      closed = true;
+      try { editor.destroy(); } finally { presentation.destroy(); }
+    };
+    window.__editor = editor;
+  }
+}
+element('go').onclick = start;
+window.addEventListener('pagehide', dispose, { once: true });
+if (import.meta.hot) import.meta.hot.dispose(dispose);
+start();

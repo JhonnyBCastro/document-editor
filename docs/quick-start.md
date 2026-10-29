@@ -61,6 +61,8 @@ O footer é fornecido explicitamente por callback. Os defaults de `runningConten
 
 A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A execução literal deste exemplo e a instalação limpa do manifesto histórico apresentado adiante permanecem sem evidência no laboratório examinado.
 
+O [Live Demo](../examples/live-demo/NOTES.md) oferece fluxos coordenado e manual adaptados, usando entradas públicas de `dist/` local, schema mínimo e CSS de sobreposição próprios. Não comprova a execução literal deste exemplo com StarterKit nem uma instalação independente.
+
 ## Receita manual — artefato histórico identificado
 
 **Atualizado em 24/10/2026.** Guia de montagem de um consumidor Vite + TypeScript. Artefato de referência: tarball oriundo de `feature/compose-next`, commit `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`, SHA-256 `fa869168a25bd9c6266188a1075fe714d2db15c3fa5fdf964ec35584e37dee14`.

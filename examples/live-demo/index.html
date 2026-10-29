@@ -3,7 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Live demo — working tree (src/)</title>
+  <link rel="icon" href="data:," />
+  <title>Live Demo — Core e Presentation</title>
   <style>
     body {
       margin: 0;
@@ -23,7 +24,7 @@
 
     #stage {
       position: relative;
-      width: 816px;
+      width: var(--page-width, 816px);
       margin: 20px auto;
     }
 
@@ -31,7 +32,7 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 816px;
+      width: var(--page-width, 816px);
       pointer-events: none;
       z-index: 0;
     }
@@ -41,24 +42,18 @@
       z-index: 1;
     }
 
-    .ProseMirror {
-      width: 816px;
+    .manual .ProseMirror {
+      width: var(--page-width, 816px);
       box-sizing: border-box;
-      padding: 96px;
+      padding: var(--page-top, 96px) var(--page-right, 96px) var(--page-bottom, 96px) var(--page-left, 96px);
       outline: none;
       background: transparent;
     }
 
-    .ProseMirror table {
-      border-collapse: collapse;
-      width: 100%;
-    }
-
-    .ProseMirror td,
-    .ProseMirror th {
-      border: 1px solid #888;
-      padding: 8px;
-      vertical-align: top;
+    /* A aplicação mantém o texto editável acima das folhas decorativas. */
+    .coordinated .ProseMirror {
+      position: relative;
+      z-index: 2;
     }
 
     .page-break {
@@ -79,20 +74,15 @@
 
 <body>
   <div id="bar">
-    fixture: <select id="fx">
-      <option value="mini" selected>mini (linear - suportado)</option>
-      <option value="PE-S">PE-S (tabular - indisponível)</option>
-      <option value="PE-M">PE-M (tabular - indisponível)</option>
-      <option value="PE-L">PE-L (tabular - indisponível)</option>
-    </select>
-    modo: <strong>composed</strong> (oficial)
-    <button id="go">recarregar</button> <span id="diag"></span>
-    <span class="badge-warn">⚠️ Cenários tabulares indisponíveis (sem @tiptap/extension-table) — fluxo linear, headings
-      e edição suportados</span>
+    conteúdo: <select id="fx"><option value="mini">mini (linear)</option>
+      <option disabled>PE-S / PE-M / PE-L: tabelas fora deste schema</option></select>
+    fluxo: <select id="flow"><option value="coordinated">Coordenado V1</option><option value="manual">Manual: Core + Presentation</option></select>
+    modo visual: <strong>composed</strong>
+    <button id="go">Recriar editor</button> <span id="diag"></span>
+    <span class="badge-warn">Tabelas indisponíveis neste schema; texto, títulos e edição disponíveis</span>
   </div>
   <div id="stage">
-    <div id="presentation-host"></div>
-    <div id="editor"></div>
+
   </div>
   <script type="module" src="./main.ts"></script>
 </body>

@@ -1,40 +1,43 @@
 # Live Demo — instruções atuais
 
-Consumidor de desenvolvimento da linha `dev/cons014-composed-20261022`, referência `1962cdbb3456cc989b064017137d48a8df143d3d`. Importa diretamente Core e Presentation de `src/`; não valida a instalação externa de uma distribuição npm.
-
-Esta Demo exercita montagem manual. A existência da factory opcional não exige sua conversão. Para `/compose`, consulte a [seção coordenada do Quick Start](../../docs/quick-start.md#composição-coordenada-v1--exemplo-proposto). A Demo e a fixture geométrica interna não substituem a validação de um pacote instalado em consumidor independente.
+Exemplo de desenvolvimento com dois fluxos: **Coordenado V1**, via `createDocumentEditor({ host, ... })`, e **Manual**, via Editor, PaginationExtension e Presentation. Todos os imports da biblioteca usam o nome público do pacote e os subpaths exportados, incluindo CSS. A autorreferência resolve para os artefatos já existentes em `dist/` deste checkout; não há alias para `src/`, import de fixtures internas ou instalação por tarball neste Demo. Isso não substitui o consumidor independente V1, cuja validação permanece encerrada com ressalvas.
 
 ## Pré-requisitos e execução
 
-A raiz precisa ter dependências compatíveis disponíveis, incluindo Vite, `@tiptap/core` e `@tiptap/pm`. O checker usa `puppeteer-core` e o Chrome do sistema em `/usr/bin/google-chrome`. Não baixa navegador automaticamente. A disponibilidade em outras máquinas não foi certificada. Veja [desenvolvimento](../../docs/development.md).
+São necessários Node, Vite, Tiptap Core/PM e artefatos `dist/` que contenham as entradas públicas e suas declarações. Consulte [desenvolvimento](../../docs/development.md) antes de preparar um ambiente novo. Se os artefatos estiverem ausentes ou desatualizados em relação às fontes, o Demo não comprova o código-fonte atual: será necessária uma preparação separada do build da biblioteca.
 
-A partir da raiz do repositório, inicie o servidor:
+A partir da raiz, com as dependências já disponíveis:
 
 ```sh
 node ./node_modules/vite/bin/vite.js examples/live-demo --config examples/live-demo/vite.config.ts --host 127.0.0.1 --port 8544
 ```
 
-Acesse `http://127.0.0.1:8544/`. A configuração resolve aliases Tiptap pela raiz `node_modules/`, usa porta estrita e cache local `node_modules/.vite-live-demo-8544`. `DEMO_PORT` altera a porta configurada e o sufixo do cache; se usar outra porta, alinhe a URL do checker. Não são necessários o antigo consumidor ou um tarball RC.4.
+Acesse `http://127.0.0.1:8544/`. O seletor escolhe o fluxo; **Recriar editor** descarta a instância anterior e monta novamente o conteúdo linear. Edite diretamente na folha. A configuração mantém porta estrita, deduplicação dos módulos Tiptap/ProseMirror e cache em `node_modules/.vite-live-demo-8544`. `DEMO_PORT` altera a porta configurada e o sufixo do cache. Encerre o servidor ao terminar. Nenhum comando instrui instalação automática.
 
-Com o servidor ativo, em outro terminal na raiz:
+## Conteúdo e relação com os exemplos públicos
 
-```sh
-BASE=http://127.0.0.1:8544/ node examples/live-demo/check.cjs
-```
+O schema mínimo usa `Node.create` para documento, parágrafo, texto, títulos e quebra manual. Não usa StarterKit. No ambiente local observado em 29/10/2026, Core/PM eram 2.27.3 e StarterKit 3.31.4; esta manutenção não altera nem certifica essa combinação. PE-S/M/L são tabulares e aparecem como opção indisponível, sem substituir silenciosamente a escolha por outro conteúdo. A importação antes inutilizada das fixtures de testes e as regras CSS de tabelas foram removidas; cenários tabulares continuam fora do Demo.
 
-O padrão é `mini,p:370,p:600`. Para escolher um subconjunto:
+O fluxo coordenado exemplifica `options.host`, schema sem PaginationExtension duplicada, footer síncrono, atualização por `instance.editor.commands.setContent()` e descarte por `instance.destroy()`. O manual deriva layout dos defaults públicos, encaminha snapshots a `presentation.render()` e descarta os dois componentes. O CSS da aplicação coloca o texto editável acima das folhas decorativas; o modo manual também aplica largura e margens antes da montagem. Esse estilo da aplicação é necessário para a demonstração visual e não cria um novo contrato da biblioteca.
+
+Os trechos selecionados do [README](../../README.md#composição-coordenada-v1--exemplo-proposto) e do [Quick Start](../../docs/quick-start.md#composição-coordenada-v1--exemplo-proposto) foram confrontados com tipos, exports e os dois fluxos do Demo. Imports públicos, `options.host`, footer, atualização e descarte têm correspondência. O schema e o CSS são adaptações do Demo: **os exemplos completos que usam StarterKit permanecem propostos, sem execução literal demonstrada por esta manutenção**. A receita manual histórica conserva a identidade do seu próprio tarball.
+
+## Verificação focal desta manutenção — 29/10/2026
+
+- Checagem TypeScript do `main.ts`, por executável local: aprovada.
+- Build Vite somente do Demo, com saída separada em diretório temporário: aprovado. Não houve rebuild da biblioteca.
+- Navegação automatizada em Chrome 154.0.8037.57: nos dois fluxos, 5 folhas e 5 footers iniciais; após substituição, 1 folha e footer “Página 1 de 1”; texto visível e edição por teclado observados, sem erros de página ou HTTP no recorte. Capturas inspecionadas separadamente; isso não equivale a uma sessão manual exploratória pelo usuário.
+- Não houve instalação, execução do checker histórico, nova campanha de geometria/lifecycle, commit, push ou publicação. As evidências e comandos desta manutenção ficam em relatório separado; não substituem resultados negativos anteriores.
+
+## Checker histórico — uso separado
+
+O arquivo `check.cjs` foi preservado. Usa `puppeteer-core` local e Chrome do sistema em `/usr/bin/google-chrome`, sem download automático. Com o servidor ativo:
 
 ```sh
 BASE=http://127.0.0.1:8544/ SCENARIOS=mini node examples/live-demo/check.cjs
 ```
 
-Esses comandos são instruções; não foram executados na organização documental. O servidor escreve cache na raiz provisionada e o navegador utiliza perfil temporário. Encerre o servidor ao terminar e preserve resultados fora dos arquivos do produto. Não há saída de screenshot configurada no checker atual; capturas e avaliação manual são etapas separadas.
-
-## Conteúdo disponível
-
-A Demo define nós básicos de documento, parágrafo, texto, título e quebra manual com `Node.create`, sem StarterKit. Ela monta Editor e Presentation e fornece o rodapé por callback.
-
-Os cenários lineares e sintéticos estão disponíveis. `PE-S`, `PE-M` e `PE-L` são tabulares e estão indisponíveis: as extensões correspondentes não existem no runtime provisionado e o schema atual da Demo não as monta. A seleção desses cenários recai em `mini`, com indicação na interface. Não representa validação de tabelas nem remoção das políticas tabulares do Core.
+Seu padrão completo é `mini,p:370,p:600`; os sintéticos são configurados pelo próprio checker. Ele usa a ponte de inspeção da aplicação `window.__editor`/`window.__snap` e acessa o controlador interno: **não é exemplo de consumo exclusivamente público nem critério novo de aprovação**. Não foi executado nesta manutenção. O retorno zero pode acompanhar resultados desfavoráveis. A ampliação dos testes exige escopo posterior próprio.
 
 ## Como interpretar o checker
 
