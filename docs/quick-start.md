@@ -1,10 +1,10 @@
 # Quick Start — fluxos de consumo
 
-**Identidade dos exemplos:** a receita manual histórica abaixo foi exercitada com o tarball identificado nesta seção. Não se presume que esse artefato contenha a Composição Coordenada V1. Para usar `/compose`, é necessário um pacote que efetivamente inclua essa entrada e suas declarações. A versão `0.1.0-rc.4`, isoladamente, não identifica os bytes do pacote. O novo exemplo coordenado ainda depende de validação em consumidor independente.
+**Identidade dos exemplos:** a receita manual histórica abaixo foi exercitada com o tarball identificado nesta seção. Não se presume que esse artefato contenha a Composição Coordenada V1. Para usar `/compose`, é necessário um pacote que efetivamente inclua essa entrada e suas declarações. A versão `0.1.0-rc.4`, isoladamente, não identifica os bytes do pacote. A validação independente do pacote foi encerrada com ressalvas no escopo autorizado e nos ambientes verificados; veja [proveniência](provenance.md#validação-do-consumidor-v1--encerramento-de-29102026). Esse fechamento não comprova a execução literal do exemplo coordenado abaixo, que permanece proposto.
 
 ## Composição coordenada V1 — exemplo proposto
 
-**Exemplo proposto — composição coordenada V1.** As assinaturas e os caminhos públicos abaixo foram conferidos por leitura dos tipos, exports e implementação locais. Este exemplo específico não foi compilado nem executado nesta análise e ainda não foi validado em consumidor independente. Pressupõe ambiente browser, pacote identificado que contenha `/compose`, resolução de imports CSS e extensões de schema compatíveis. Não reutilize automaticamente as versões do manifesto histórico.
+**Exemplo proposto — composição coordenada V1.** As assinaturas e os caminhos públicos abaixo foram conferidos por leitura dos tipos, exports e implementação locais. A validação do pacote no laboratório não equivale à compilação e execução literal deste trecho; essa execução específica continua não demonstrada. Pressupõe ambiente browser, pacote identificado que contenha `/compose`, resolução de imports CSS e extensões de schema compatíveis. Não reutilize automaticamente as versões do manifesto histórico.
 
 HTML:
 
@@ -59,7 +59,7 @@ A composição instala a paginação: não inclua `PaginationExtension` em `exte
 
 O footer é fornecido explicitamente por callback. Os defaults de `runningContent` do Core não são convertidos automaticamente em conteúdo da Presentation.
 
-A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A resolução das dependências, a instalação limpa e a apresentação visual deste exemplo serão verificadas no consumidor independente.
+A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A execução literal deste exemplo e a instalação limpa do manifesto histórico apresentado adiante permanecem sem evidência no laboratório examinado.
 
 ## Receita manual — artefato histórico identificado
 

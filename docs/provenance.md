@@ -10,6 +10,18 @@ A leitura local de documentação, implementação, tipos e manifesto não compr
 
 O [registro de aprovações](https://app.notion.com/p/40701a4f21f68173a384e3502bbb6b57) e a [investigação de composição](https://app.notion.com/p/40501a4f21f681359935df0f1d95e42c) mantêm as decisões e revisões de origem, sujeitos ao acesso ao workspace. A separação entre resultados reproduzidos na revisão conclusiva, rodadas anteriores e relatos do construtor está em [desenvolvimento](development.md#composição-coordenada-v1--evidências-por-procedência). Nenhum comando de teste ou build foi repetido para produzir esta atualização documental; não se afirma preservação remota de arquivos temporários locais.
 
+## Validação do consumidor V1 — encerramento de 29/10/2026
+
+A validação independente do consumidor foi formalmente encerrada pelo responsável pelo projeto, com ressalvas, no escopo autorizado e nos ambientes verificados, após o parecer conclusivo da Frente A sobre a Rodada 3. Esse encerramento é distinto da homologação técnica anterior da biblioteca e não constitui nova homologação, release ou publicação npm.
+
+O laboratório usou o tarball `jhonny_bcastro-document-editor-0.1.0-rc.4.tgz`, SHA-256 `ce99cf63c920d889048806d30b238101281f255889d0cab86845fec7374c715f`. Ele não deve ser confundido com o artefato histórico de hash `fa869168a25bd9c6266188a1075fe714d2db15c3fa5fdf964ec35584e37dee14` citado na receita manual. A versão `0.1.0-rc.4`, isoladamente, não identifica esses bytes.
+
+Os registros de origem são o [encerramento definitivo](https://drive.google.com/file/d/1xaWpOYhO64jIo2PZXlsKsPs1Q-RNJt_U/view), SHA-256 `4f0a28e43478c62819b444c706c30a7a823bf54959a59b85d99a4d798508ca35`, e o [parecer independente da Rodada 3](https://drive.google.com/file/d/1oV_aovKdVbfJ42YPwjwc4zmh_SqPNnZy/view), SHA-256 `b5c2f8ccaa5b3b696cd2e341213128a23824ebc46f15abe5006ba877cd2b7ca8`. O [backup das evidências](https://drive.google.com/drive/folders/11KQASZhYEyQkql3Y7dww5bOzkGE2zlR1) preserva os relatórios e resultados anteriores; esses links podem exigir permissão e não são dependências de runtime.
+
+O parecer combina resultados anteriores preservados, inspeção dos verificadores e artefatos e recálculo independente da geometria. TypeScript e build do consumidor são sustentados pelos logs contemporâneos do executor, não por nova execução da Frente A. Os detalhes de ambiente e alcance estão em [desenvolvimento](development.md#validação-do-consumidor-v1--29-de-outubro-de-2026) e [limitações](limitations.md#consumidor-v1--alcance-do-encerramento-de-29102026).
+
+O fechamento do laboratório não comprova a execução literal dos exemplos propostos do README/Quick Start nem uma matriz universal de compatibilidade. A divergência de metadados `rc.4` no manifesto de origem e `rc.2` no lockfile permanece registrada, sem alteração desses arquivos por esta atualização.
+
 ## Linha e distribuição — corte histórico de 22/10/2026
 
 Referência documental: `dev/cons014-composed-20261022`, commit `1962cdbb3456cc989b064017137d48a8df143d3d`. A branch foi enviada ao remoto e sua presença foi confirmada pelo usuário no GitHub em 22/10/2026. Isso não constitui publicação de pacote, merge ou homologação geral.

@@ -16,7 +16,7 @@ Somente o modo `composed` é suportado pela biblioteca. Essa restrição descrev
 
 ## Estado e distribuição
 
-**Identidade dos exemplos:** a receita manual histórica abaixo foi exercitada com o tarball identificado nesta seção. Não se presume que esse artefato contenha a Composição Coordenada V1. Para usar `/compose`, é necessário um pacote que efetivamente inclua essa entrada e suas declarações. A versão `0.1.0-rc.4`, isoladamente, não identifica os bytes do pacote. O novo exemplo coordenado ainda depende de validação em consumidor independente.
+**Identidade dos exemplos:** a receita manual histórica abaixo foi exercitada com o tarball identificado nesta seção. Não se presume que esse artefato contenha a Composição Coordenada V1. Para usar `/compose`, é necessário um pacote que efetivamente inclua essa entrada e suas declarações. A versão `0.1.0-rc.4`, isoladamente, não identifica os bytes do pacote. A validação independente do pacote foi encerrada com ressalvas no escopo autorizado e nos ambientes verificados; veja [proveniência](docs/provenance.md#validação-do-consumidor-v1--encerramento-de-29102026). Esse fechamento não comprova a execução literal do exemplo coordenado abaixo, que permanece proposto.
 
 Linha de desenvolvimento: `feature/compose-next`. O manifesto declara `@jhonny_bcastro/document-editor`, versão `0.1.0-rc.4`; essa declaração não comprova publicação npm do código atual.
 
@@ -24,7 +24,7 @@ A receita usa o tarball local originado de `1c3b5add4ec8201ff176d67fd83f6677502c
 
 ## Composição coordenada V1 — exemplo proposto
 
-**Exemplo proposto — composição coordenada V1.** As assinaturas e os caminhos públicos abaixo foram conferidos por leitura dos tipos, exports e implementação locais. Este exemplo específico não foi compilado nem executado nesta análise e ainda não foi validado em consumidor independente. Pressupõe ambiente browser, pacote identificado que contenha `/compose`, resolução de imports CSS e extensões de schema compatíveis. Não reutilize automaticamente as versões do manifesto histórico.
+**Exemplo proposto — composição coordenada V1.** As assinaturas e os caminhos públicos abaixo foram conferidos por leitura dos tipos, exports e implementação locais. A validação do pacote no laboratório não equivale à compilação e execução literal deste trecho; essa execução específica continua não demonstrada. Pressupõe ambiente browser, pacote identificado que contenha `/compose`, resolução de imports CSS e extensões de schema compatíveis. Não reutilize automaticamente as versões do manifesto histórico.
 
 HTML:
 
@@ -79,7 +79,7 @@ A composição instala a paginação: não inclua `PaginationExtension` em `exte
 
 O footer é fornecido explicitamente por callback. Os defaults de `runningContent` do Core não são convertidos automaticamente em conteúdo da Presentation.
 
-A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A resolução das dependências, a instalação limpa e a apresentação visual deste exemplo serão verificadas no consumidor independente.
+A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A execução literal deste exemplo e a instalação limpa do manifesto histórico apresentado adiante permanecem sem evidência no laboratório examinado.
 
 ## Receita manual — artefato histórico identificado
 
@@ -309,7 +309,7 @@ Depois de iniciar, verifique a área editável, as folhas e a numeração; acres
 - **Core isolado:** use Editor/schema, `PaginationExtension` e `style.css`, recebendo snapshots por `onLayoutStable`; não crie Presentation. O Core mantém decorações e cálculo, mas não desenha papel/header/footer. Os hosts e insets do editor continuam necessários.
 - **Presentation isolada:** use `createDocumentPresentation` e `presentation.css`, recebendo um `LayoutSnapshot` externo. Não cria Editor, não mede conteúdo e não calcula paginação. Importar um tipo `LayoutSnapshot` não carrega o Core em runtime.
 - **Manual:** a receita histórica conecta Core e Presentation por callback. StarterKit é conveniência do exemplo, não dependência obrigatória da biblioteca.
-- **Coordenado:** a factory opcional `createDocumentEditor(options)` coordena recursos próprios; o novo exemplo acima permanece proposto, pendente de validação em consumidor independente.
+- **Coordenado:** a factory opcional `createDocumentEditor(options)` coordena recursos próprios; o exemplo acima permanece proposto, com execução literal não demonstrada.
 
 O [Quick Start completo](docs/quick-start.md) traz as duas receitas isoladas e detalhes de callbacks, índices e descarte. Esses guias estão no repositório e não são incluídos no tarball atual (`files: dist`). Esta receita integrada no README não depende deles.
 

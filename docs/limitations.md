@@ -1,6 +1,6 @@
 # Limitações
 
-Referência de código inspecionado: `feature/compose-next`, HEAD `f7f1e617fae73394011cc332f6e1c4b59e5be8f7`. A árvore `src/` não apresenta diferenças em relação ao commit `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`. Os registros de validação pertencem aos respectivos ensaios e não foram reexecutados nesta revisão. Estas ressalvas não constituem homologação geral.
+Referência histórica da inspeção anterior: `feature/compose-next`, HEAD `f7f1e617fae73394011cc332f6e1c4b59e5be8f7`. Naquele corte, a árvore `src/` foi comparada ao commit `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`, sem diferenças. Essas referências não identificam o checkout atual nem o tarball do consumidor V1. Os registros de validação pertencem aos respectivos ensaios e não foram reexecutados nesta revisão. Estas ressalvas não constituem homologação geral.
 
 ## Implementação e contratos
 
@@ -18,9 +18,19 @@ Referência de código inspecionado: `feature/compose-next`, HEAD `f7f1e617fae73
 
 - **Imports CSS:** os subpaths CSS existem no artefato identificado pelo [Quick Start](quick-start.md). O ambiente TypeScript precisa reconhecer imports de assets quando sua configuração os verifica; no exemplo Vite, use a declaração `vite/client` indicada no guia. Essa recomendação não é uma solução universal para outros bundlers ou configurações. Um bundle Vite bem-sucedido não comprova aprovação do TypeScript. O erro de tipagem observado não demonstrou ausência física dos CSS nem defeito do pacote.
 - **Configuração aninhada:** a exigência de `LayoutConfig` completo pertence ao uso direto do Core. A factory aceita o subconjunto parcial aprovado de `layout.page`, não DeepPartial de toda a configuração. O caso histórico TS2740 está na [API](api.md#configuração-parcial-limite-dos-tipos-atuais).
-- **Instalação e formatos:** a verificação focal com dependências previamente resolvidas não comprovou instalação limpa do manifesto de exemplo. `/compose` é ESM exclusivo; as quatro entradas preexistentes mantêm seus formatos. Peers declarados não equivalem a matriz testada da nova camada. A homologação técnica é limitada ao escopo autorizado e aos ambientes verificados; não encerra as ressalvas históricas gerais. CommonJS/UMD e matrizes amplas de versões não foram revalidados.
+- **Instalação e formatos:** a verificação focal histórica com dependências previamente resolvidas não comprovou instalação limpa do manifesto de exemplo. A posterior validação do consumidor V1 verificou instalação e consumo de um tarball identificado no ambiente do laboratório; não valida automaticamente aquele manifesto histórico nem outros grafos de dependências. `/compose` é ESM exclusivo; as quatro entradas preexistentes mantêm seus formatos. Peers declarados não equivalem a matriz testada da nova camada. A homologação técnica é limitada ao escopo autorizado e aos ambientes verificados; não encerra as ressalvas históricas gerais. CommonJS/UMD e matrizes amplas de versões não foram revalidados.
 
 Os detalhes de configuração TypeScript, TS2882, comandos e resultados separados de tipos, bundle e browser estão em [desenvolvimento](development.md#experimento-do-pacote-tipos-bundle-e-browser). A identidade do tarball está no Quick Start; seu número de versão não identifica sozinho o estado da branch.
+
+### Consumidor V1 — alcance do encerramento de 29/10/2026
+
+A validação foi encerrada com ressalvas no escopo autorizado e nos ambientes verificados, conforme os registros relacionados em [proveniência](provenance.md#validação-do-consumidor-v1--encerramento-de-29102026). O resultado se limita ao artefato e às versões registrados em [desenvolvimento](development.md#validação-do-consumidor-v1--29-de-outubro-de-2026), sem certificar universalmente a biblioteca ou os exemplos literais deste repositório.
+
+CON-13 corresponde a 20 ciclos de edição/substituição e publicação, não montagem/desmontagem repetida nem auditoria de vazamentos. Em CON-14, os perfis Standard e Custom tiveram 121 asserções recalculadas pela Frente A a partir dos retângulos e modelos de caixa montados, com desvio máximo de 0 CSS px. A tolerância de até 1 CSS px é exclusiva desse ensaio; a análise de interferência externa se restringe aos fatores efetivamente observados nessa execução.
+
+O encerramento do navegador e o fechamento do servidor Vite/143 após SIGTERM foram registrados. A mensagem interna de saída 0 não substitui um registro externo, pelo processo pai, do código de saída efetivo do supervisor; tal registro não consta dos artefatos examinados. Os resultados TypeScript/build pertencem aos logs contemporâneos do executor; a Frente A não os repetiu. A divergência entre `rc.4` no manifesto e `rc.2` no lockfile de origem permanece registrada separadamente da identidade do tarball, conferida pelo SHA-256 indicado em [proveniência](provenance.md#validação-do-consumidor-v1--encerramento-de-29102026).
+
+A identificação de `/favicon.ico` como o 404 observado no laboratório V1 não estabelece a origem nem a resolução dos 404 históricos da Demo ou de outros consumidores. Os resultados negativos anteriores abaixo permanecem preservados.
 
 ## Registros de validação e seu alcance
 

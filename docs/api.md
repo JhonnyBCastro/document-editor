@@ -35,7 +35,7 @@ O retorno expõe somente `readonly editor: Editor` e `destroy(): void`. O host �
 | `onLayoutStable` | `(snapshot: LayoutSnapshot) => void`. |
 | `onError` | `(incident: DocumentEditorIncident) => void`. |
 
-As definições completas estão nos [tipos públicos da composição](../src/compose/types.ts). Veja o [exemplo coordenado proposto](quick-start.md#composição-coordenada-v1--exemplo-proposto), ainda sem validação em consumidor independente.
+As definições completas estão nos [tipos públicos da composição](../src/compose/types.ts). Veja o [exemplo coordenado proposto](quick-start.md#composição-coordenada-v1--exemplo-proposto), cuja execução literal não foi demonstrada pelo laboratório. O encerramento da validação do pacote e seu alcance estão registrados em [proveniência](provenance.md#validação-do-consumidor-v1--encerramento-de-29102026); não alteram estas assinaturas e regras.
 
 ### Normalização e rejeições
 

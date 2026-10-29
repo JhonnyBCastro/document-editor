@@ -75,13 +75,29 @@ A implementação, a revisão independente e a homologação técnica foram conc
 | Rodadas anteriores da Frente A | Sondagens de duas suítes de nove testes, tipagem, build, importação ESM e ensaio geométrico nos dois perfis, com 53 e 38 condições. Não apresentar como repetidos na rodada conclusiva os procedimentos que não o foram. |
 | Relatos do construtor | Comandos, contagens e resultados das devoluções são relatos identificados; não substituem reprodução independente. |
 | Preparação documental atual | Leitura de fontes, tipos, manifesto, scripts e disponibilidade dos arquivos locais das ferramentas; sem execução dos comandos documentados. |
-| Validação futura | Consumidor independente com artefato identificado, instalação e exemplos novos ainda planejados; dependem de autorização própria. |
+| Validação do consumidor V1 — 29/10/2026 | Encerrada com ressalvas no escopo autorizado e nos ambientes verificados. O executor produziu os resultados; a Frente A inspecionou os artefatos e recalculou a geometria, sem repetir TypeScript/build ou os testes do laboratório. Os exemplos literais novos não recebem validação por associação. |
 
 As versões registradas no ciclo de composição incluem Node 22.23.4, Tiptap Core 2.27.3, TypeScript 5.9.3, Vitest 5.0.3, Vite 6.4.3, Puppeteer na faixa relatada `^25.12.0` e Chrome 154.0.8037.57. São referências dos ambientes informados nas evidências, não requisitos mínimos certificados nem versões verificadas novamente nesta edição.
 
 A tolerância de até 1 CSS px pertence exclusivamente ao ensaio geométrico delimitado em Chromium headless. No perfil padrão, o stride é 1076 CSS px e a separação entre áreas úteis, 212; no personalizado, 1088 e 160. As verificações unitárias em jsdom não comprovam essas medidas físicas nem ausência geral de congelamentos.
 
 A decisão do responsável pelo projeto e o parecer independente são registros distintos. Consulte o [registro de aprovações](https://app.notion.com/p/40701a4f21f68173a384e3502bbb6b57) e a [investigação de composição](https://app.notion.com/p/40501a4f21f681359935df0f1d95e42c), sujeitos ao acesso ao workspace. Caminhos temporários locais não são anexos preservados remotamente. Esses registros não são dependências de runtime.
+
+### Validação do consumidor V1 — 29 de outubro de 2026
+
+O [registro de encerramento e a identidade do artefato](provenance.md#validação-do-consumidor-v1--encerramento-de-29102026) distinguem a decisão do responsável pelo projeto do parecer independente. A instalação e o consumo público do tarball foram verificados no laboratório separado, preservando os fluxos coordenado, Core/Presentation isolados e montagem manual. Isso não comprova instalação limpa de todo manifesto de exemplo ou de qualquer grafo transitivo.
+
+O ambiente registrado foi Linux x64, Node 22.23.4, Tiptap Core/PM/StarterKit 2.27.3, TypeScript 5.9.3, Vite 6.4.3, puppeteer-core 25.12.0 e Chrome headless 154.0.8037.57. São versões ensaiadas, não novos requisitos mínimos nem certificação das faixas dos peers.
+
+Os logs contemporâneos do executor registram `./node_modules/.bin/tsc --noEmit --skipLibCheck false`, saída 0 e zero diagnósticos, e build Vite do consumidor com saída 0. O override explícito de `skipLibCheck` prevalece sobre o valor `true` do arquivo de configuração. A Frente A conferiu arquivos, logs e hashes; não repetiu essas execuções nem o build para estabelecer equivalência reproduzida entre fontes e bundle.
+
+CON-07 demonstrou a aplicação da segunda publicação à Presentation. CON-08 suprimiu essa aplicação e verificou a falha específica da condição de atualização, com o estado anterior preservado. CON-09 observou ausência de callbacks indevidos na janela de 1 s + 2 frames; CON-10/11/12 cobriram causalidade, contingência e limpeza nos cenários delimitados. CON-13 demonstrou 20 ciclos de edição/substituição e publicação, não 20 ciclos de montagem/descarte.
+
+Na Rodada 3, dedicada a CON-14, o executor preservou retângulos físicos e modelos de caixa antes do descarte. A Frente A recalculou 121 asserções, 68 Standard e 53 Custom, cobrindo 16 identificadores, com desvio máximo de 0 CSS px. A tolerância de até 1 CSS px vale somente para o ensaio aprovado, não para qualquer montagem ou conteúdo.
+
+O supervisor registrou fechamento do navegador e evento de fechamento do servidor Vite com código 143 após SIGTERM. A mensagem interna de saída 0 não substitui um registro externo, pelo processo pai, do código de saída efetivo do supervisor; tal registro não consta dos artefatos examinados. Ramos excepcionais do supervisor não foram todos exercidos. O GET 404 de `/favicon.ico` foi identificado nesse laboratório sem impacto observado no ensaio; isso não resolve os 404 históricos de outras execuções.
+
+Esses resultados não reexecutam nem substituem os registros anteriores de implementação, os negativos da Demo ou as ressalvas descritas em [limitações](limitations.md).
 
 ## Contribuições e documentação
 
