@@ -51,6 +51,7 @@ export type BreakCandidate = {
     tableNode?: any;
     tablePos?: number;
     map?: any; // TableMap
+    lastBreakPos?: number;
 };
 
 export type BreakDecision = {
@@ -70,6 +71,22 @@ export type LayoutDiagnostic = {
     message: string;
 };
 
+/**
+ * Projeção geométrica de uma página renderizada.
+ * Utiliza o DocumentLayoutSpace: os valores estão em CSS pixels lógicos,
+ * com origem (0,0) pré-transformação e são independentes de scroll ou DPR (Device Pixel Ratio).
+ * Os eixos direcionais são top-down (Y cresce para baixo) e left-right (X cresce para a direita).
+ * 
+ * sheetRect, headerRect e footerRect compartilham integralmente o mesmo espaço de coordenadas.
+ * 
+ * Regra do pageGap:
+ * - O distanciamento (LayoutConfig.page.pageGap) já está embutido no eixo Y (top) da folha subsequente.
+ * - A Presentation não deve somar novamente o pageGap aos Rects recebidos.
+ * - sheetRect.height reflete o tamanho exato da folha física (`LayoutConfig.page.height`) sem incluir o pageGap.
+ * 
+ * Esta estrutura é produzida por `calculatePageProjections()` e exposta na árvore do `LayoutSnapshot`
+ * gerado pelo controller e observável via `whenLayoutStable()`.
+ */
 export type PageProjection = {
     index: number;
     sheetRect: { top: number; left: number; width: number; height: number; };
@@ -84,9 +101,15 @@ export type LayoutSnapshot = {
     diagnostics: readonly LayoutDiagnostic[];
 };
 
+/** Documentary paint ownership: 'composed' é a arquitetura oficial e padrão do editor. */
+export type PaginationVisualMode = 'composed';
+
 export type PaginationOptions = {
     layout: LayoutConfig;
     onLayoutStable?: (snapshot: LayoutSnapshot) => void;
     manualBreakNodeName?: string;
-    chromeLayerElement?: HTMLElement;
+    /**
+     * Modo de apresentação visual. Padrão: 'composed' (única arquitetura suportada).
+     */
+    visualMode?: PaginationVisualMode;
 };

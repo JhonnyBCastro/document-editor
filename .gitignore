@@ -3,8 +3,15 @@
 
 # Vite build artifacts
 /dist
-examples/vanilla-consumer/node_modules
-examples/vanilla-consumer/dist
+examples/**/node_modules
+examples/**/dist
+**/node_modules
+
+**.png
+**/*.png
+
+# obs
+obs.md
 
 # OS generated
 .DS_Store
@@ -22,3 +29,6 @@ lerna-debug.log*
 *.swo
 *.sublime-project
 *.sublime-workspace
+
+# Unignore e2e test PNG fixtures
+!tests/e2e/*.png

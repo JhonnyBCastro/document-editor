@@ -1,5 +1,7 @@
 # ADR-003: Host DOM Ownership e Isolamento do ChromeLayer
 
+> Nota de evolução — 22/10/2026: registro histórico aceito no ciclo CONS-008. O princípio de ownership é preservado; a implementação ChromeLayer e `chromeLayerElement` descritos abaixo foram superados pela decisão [composed-only](ADR-004-composed-only.md). Não constituem API ou instrução de montagem atuais.
+
 ## Status
 Aceito (CONS-008)
 

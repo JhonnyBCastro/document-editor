@@ -1,5 +1,7 @@
 # ADR-002: Independência de Produto do Document Editor
 
+> Nota de evolução — 22/10/2026: a independência do produto continua vigente. Os diagnósticos de implementação abaixo descrevem a época da decisão: `manualBreakNodeName` já é configurável, `PersistedDocument` foi removido e ChromeLayer foi superado por composed-only. A declaração atual de dependências mistura Core/PM 2 e StarterKit 3; compatibilidade geral não está certificada. Consulte a [API](../api.md), as [limitações](../limitations.md) e o [ADR-004](ADR-004-composed-only.md). O texto histórico foi preservado, sem transformar pendências da época em requisitos atuais.
+
 ## Status
 Aceito
 

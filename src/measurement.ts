@@ -2,29 +2,39 @@
 import { EditorView } from '@tiptap/pm/view';
 
 export function getVisualLines(dom: HTMLElement) {
+    if (!dom || typeof document === 'undefined' || typeof document.createRange !== 'function') {
+        return [];
+    }
     const range = document.createRange();
-    range.selectNodeContents(dom);
-    const rects = Array.from(range.getClientRects());
-    const lines: { top: number, bottom: number, rects: DOMRect[] }[] = [];
-    for (const r of rects) {
-        if (r.width === 0 || r.height === 0) continue;
-        const mid = (r.top + r.bottom) / 2;
-        let found = false;
-        for (const l of lines) {
-            if (mid >= l.top && mid <= l.bottom) {
-                l.top = Math.min(l.top, r.top);
-                l.bottom = Math.max(l.bottom, r.bottom);
-                l.rects.push(r);
-                found = true;
-                break;
+    if (typeof range.getClientRects !== 'function') {
+        return [];
+    }
+    try {
+        range.selectNodeContents(dom);
+        const rects = Array.from(range.getClientRects());
+        const lines: { top: number, bottom: number, rects: DOMRect[] }[] = [];
+        for (const r of rects) {
+            if (r.width === 0 || r.height === 0) continue;
+            const mid = (r.top + r.bottom) / 2;
+            let found = false;
+            for (const l of lines) {
+                if (mid >= l.top && mid <= l.bottom) {
+                    l.top = Math.min(l.top, r.top);
+                    l.bottom = Math.max(l.bottom, r.bottom);
+                    l.rects.push(r);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                lines.push({ top: r.top, bottom: r.bottom, rects: [r] });
             }
         }
-        if (!found) {
-            lines.push({ top: r.top, bottom: r.bottom, rects: [r] });
-        }
+        lines.sort((a, b) => a.top - b.top);
+        return lines;
+    } catch {
+        return [];
     }
-    lines.sort((a, b) => a.top - b.top);
-    return lines;
 }
 
 export function getValidProseMirrorPos(view: EditorView, x: number, y: number): number | null {

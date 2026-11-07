@@ -1,5 +1,7 @@
 # ADR-001: Consolidação do Projeto document-editor
 
+> Enquadramento retrospectivo — 22/10/2026: decisão histórica de extração, preservada. Métricas, consumidores e maturidade citados abaixo pertencem ao corte de origem; não certificam a implementação atual. A evolução está na [história](../project-history.md) e na [proveniência](../provenance.md).
+
 ## Status
 Aceito
 

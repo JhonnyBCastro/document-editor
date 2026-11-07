@@ -49,22 +49,6 @@ async function waitStabilization(page) {
 }
 
 (async () => {
-  const { spawn } = require('child_process');
-  const serverProcess = spawn('npm', ['run', 'preview'], {
-      cwd: path.resolve(__dirname, '../../examples/vanilla-consumer'),
-      stdio: 'pipe'
-  });
-
-  await new Promise((resolve, reject) => {
-      serverProcess.stdout.on('data', (data) => {
-          if (data.toString().includes('http://localhost:8543')) resolve();
-      });
-      serverProcess.stderr.on('data', (data) => console.error(`Server error: ${data}`));
-      serverProcess.on('exit', (code) => {
-          if (code !== 0 && code !== null) reject(new Error(`Server exited with code ${code}`));
-      });
-  });
-
   const browser = await puppeteer.launch({ 
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,1024'],
       defaultViewport: { width: 1280, height: 1024 }
@@ -82,9 +66,12 @@ async function waitStabilization(page) {
       return page.evaluate(() => {
         const editor = window.__appeEditor;
         const json = editor.getJSON();
-        const trs = document.querySelectorAll('.tiptap table tr:not(.virtual-page-spacer)');
-        const spacers = document.querySelectorAll('.tiptap table tr.virtual-page-spacer');
-        const spacerHeights = Array.from(spacers).map(el => el.getBoundingClientRect().height);
+        const trs = document.querySelectorAll('.tiptap table tr');
+        const spacers = document.querySelectorAll('.tiptap table tr.page-break-row');
+        const spacerHeights = Array.from(spacers).map(el => {
+            const gap = el.style.getPropertyValue('--page-break-gap');
+            return parseFloat(gap) || 0;
+        });
         
         // Remove text formatting for strict semantic comparison if needed, but T60 is clean.
         
@@ -190,6 +177,5 @@ async function waitStabilization(page) {
     process.exit(1);
   } finally {
     await browser.close();
-    if (serverProcess) serverProcess.kill();
   }
 })();
