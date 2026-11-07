@@ -10,11 +10,73 @@ export function getVisualLines(dom: HTMLElement) {
         return [];
     }
     try {
-        range.selectNodeContents(dom);
-        const rects = Array.from(range.getClientRects());
+        const rects: DOMRect[] = [];
+
+        const isPaginationElement = (el: Element): boolean => {
+            return (
+                el.classList.contains('page-break-widget') ||
+                el.classList.contains('page-break-row') ||
+                el.classList.contains('page-break')
+            );
+        };
+
+        if (isPaginationElement(dom)) {
+            return [];
+        }
+
+        const walker = typeof document.createTreeWalker === 'function' ? document.createTreeWalker(
+            dom,
+            NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+            {
+                acceptNode(node) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const el = node as Element;
+                        if (isPaginationElement(el)) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                        const tag = el.tagName.toUpperCase();
+                        if (tag === 'BR' || tag === 'IMG') {
+                            return NodeFilter.FILTER_ACCEPT;
+                        }
+                        return NodeFilter.FILTER_SKIP;
+                    } else if (node.nodeType === Node.TEXT_NODE) {
+                        if (!node.textContent || node.textContent.length === 0) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                        return NodeFilter.FILTER_ACCEPT;
+                    }
+                    return NodeFilter.FILTER_SKIP;
+                }
+            }
+        ) : null;
+
+        if (walker) {
+            let currentNode = walker.nextNode();
+            while (currentNode) {
+                if (currentNode.nodeType === Node.TEXT_NODE) {
+                    range.selectNodeContents(currentNode);
+                    const clientRects = range.getClientRects();
+                    for (let i = 0; i < clientRects.length; i++) {
+                        rects.push(clientRects[i]);
+                    }
+                } else if (currentNode.nodeType === Node.ELEMENT_NODE) {
+                    range.selectNode(currentNode);
+                    const clientRects = range.getClientRects();
+                    for (let i = 0; i < clientRects.length; i++) {
+                        rects.push(clientRects[i]);
+                    }
+                }
+                currentNode = walker.nextNode();
+            }
+        }
+
+        if (rects.length === 0) {
+            return [];
+        }
+
         const lines: { top: number, bottom: number, rects: DOMRect[] }[] = [];
         for (const r of rects) {
-            if (r.width === 0 || r.height === 0) continue;
+            if (r.height === 0) continue;
             const mid = (r.top + r.bottom) / 2;
             let found = false;
             for (const l of lines) {
