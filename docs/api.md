@@ -1,6 +1,6 @@
 # API
 
-Base da revisão documental anterior: `feature/compose-next`, HEAD `f7f1e617fae73394011cc332f6e1c4b59e5be8f7`, com fontes então comparadas a `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`. Atualização focal de reatividade por inspeção estática em 27/10/2026: correção presente no commit local `4f3577446204bf7f99848394e3b48b3136df6630`. Esta conferência não repetiu testes nem verificou push. As entradas declaradas no [manifesto](../package.json) não comprovam publicação npm do estado atual.
+Base canônica vigente: branch `main`, commit `c7b5497cc58bbddbf6966f69d0409040bb3d468d` (após incorporação integral da linha `feature/compose-next` via Pull Request #3 e resolução do caso README no commit homologado `90cc59b`). As entradas declaradas no [manifesto](../package.json) identificam a versão do pacote, sem comprovar publicação npm do estado atual.
 
 Para instalação, schema, hosts e CSS, comece pelo [Quick Start](quick-start.md). Os exemplos usam somente entradas do pacote local identificado, não fontes ou a Live Demo.
 
@@ -35,7 +35,7 @@ O retorno expõe somente `readonly editor: Editor` e `destroy(): void`. O host �
 | `onLayoutStable` | `(snapshot: LayoutSnapshot) => void`. |
 | `onError` | `(incident: DocumentEditorIncident) => void`. |
 
-As definições completas estão nos [tipos públicos da composição](../src/compose/types.ts). Veja o [exemplo coordenado proposto](quick-start.md#composição-coordenada-v1--exemplo-proposto), cuja execução literal não foi demonstrada pelo laboratório. O encerramento da validação do pacote e seu alcance estão registrados em [proveniência](provenance.md#validação-do-consumidor-v1--encerramento-de-29102026); não alteram estas assinaturas e regras.
+As definições completas estão nos [tipos públicos da composição](../src/compose/types.ts). Veja o [exemplo coordenado do Quick Start](quick-start.md#composição-coordenada-v1--quick-start-primário), validado em consumidor independente. O encerramento da validação anterior do pacote e seu histórico de proveniência estão registrados em [proveniência](provenance.md); não alteram estas assinaturas e regras.
 
 ### Normalização e rejeições
 

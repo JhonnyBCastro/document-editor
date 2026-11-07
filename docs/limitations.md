@@ -1,6 +1,6 @@
 # Limitações
 
-Referência histórica da inspeção anterior: `feature/compose-next`, HEAD `f7f1e617fae73394011cc332f6e1c4b59e5be8f7`. Naquele corte, a árvore `src/` foi comparada ao commit `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`, sem diferenças. Essas referências não identificam o checkout atual nem o tarball do consumidor V1. Os registros de validação pertencem aos respectivos ensaios e não foram reexecutados nesta revisão. Estas ressalvas não constituem homologação geral.
+Base canônica vigente: branch `main`, commit `c7b5497cc58bbddbf6966f69d0409040bb3d468d` (após incorporação integral da linha `feature/compose-next` via Pull Request #3 e consolidação da correção de widow prevention no commit `90cc59b`). As ressalvas abaixo descrevem limites reais de arquitetura e contratos conhecidos da biblioteca.
 
 ## Implementação e contratos
 

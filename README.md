@@ -16,15 +16,15 @@ Somente o modo `composed` é suportado pela biblioteca. Essa restrição descrev
 
 ## Estado e distribuição
 
-**Identidade dos exemplos:** a receita manual histórica abaixo foi exercitada com o tarball identificado nesta seção. Não se presume que esse artefato contenha a Composição Coordenada V1. Para usar `/compose`, é necessário um pacote que efetivamente inclua essa entrada e suas declarações. A versão `0.1.0-rc.4`, isoladamente, não identifica os bytes do pacote. A validação independente do pacote foi encerrada com ressalvas no escopo autorizado e nos ambientes verificados; veja [proveniência](docs/provenance.md#validação-do-consumidor-v1--encerramento-de-29102026). Esse fechamento não comprova a execução literal do exemplo coordenado abaixo, que permanece proposto.
+Branch canônica permanente: `main` (commit de referência `c7b5497cc58bbddbf6966f69d0409040bb3d468d`). A branch de desenvolvimento anterior `feature/compose-next` foi incorporada integralmente via Pull Request #3 e encerrada.
 
-Linha de desenvolvimento: `feature/compose-next`. O manifesto declara `@jhonny_bcastro/document-editor`, versão `0.1.0-rc.4`; essa declaração não comprova publicação npm do código atual.
+O manifesto declara `@jhonny_bcastro/document-editor`, versão `0.1.0-rc.4`; essa declaração identifica os metadados do pacote local, mas não comprova publicação no registro público npm do estado atual da `main`. Para consumo independente demonstrado, gere o pacote a partir da base canônica com `npm run build && npm pack` e instale o arquivo `.tgz` gerado.
 
-A receita usa o tarball local originado de `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`, SHA-256 `fa869168a25bd9c6266188a1075fe714d2db15c3fa5fdf964ec35584e37dee14`. Identifique-o por origem e hash, não apenas pela versão; não presuma equivalência automática com o HEAD atual. A documentação é posterior a esse commit; o histórico da linha está em [proveniência](docs/provenance.md).
+O histórico de transição e os ensaios de validação de artefatos prévios (incluindo o corte histórico `1c3b5add`) estão preservados em [proveniência](docs/provenance.md).
 
-## Composição coordenada V1 — exemplo proposto
+## Composição coordenada V1 — Quick Start primário
 
-**Exemplo proposto — composição coordenada V1.** As assinaturas e os caminhos públicos abaixo foram conferidos por leitura dos tipos, exports e implementação locais. A validação do pacote no laboratório não equivale à compilação e execução literal deste trecho; essa execução específica continua não demonstrada. Pressupõe ambiente browser, pacote identificado que contenha `/compose`, resolução de imports CSS e extensões de schema compatíveis. Não reutilize automaticamente as versões do manifesto histórico.
+A Composição Coordenada V1 (`createDocumentEditor`) é o caminho de consumo primário e recomendado para inicializar o editor com paginação visual. O exemplo literal abaixo foi verificado em consumidor independente a partir do pacote da `main`, com compilação TypeScript (`tsc --noEmit`), build Vite, renderização de folhas e rodapés, edição e descarte limpo em navegador (Chromium). Pressupõe ambiente browser, resolução de imports CSS e extensões de schema compatíveis.
 
 HTML:
 
@@ -79,17 +79,17 @@ A composição instala a paginação: não inclua `PaginationExtension` em `exte
 
 O footer é fornecido explicitamente por callback. Os defaults de `runningContent` do Core não são convertidos automaticamente em conteúdo da Presentation.
 
-A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A execução literal deste exemplo e a instalação limpa do manifesto histórico apresentado adiante permanecem sem evidência no laboratório examinado.
+A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A execução literal deste exemplo e a resolução limpa das dependências foram verificadas com sucesso em consumidor independente no commit homologado da `main`.
 
-Para experimentar um fluxo adaptado, consulte o [Live Demo](examples/live-demo/NOTES.md), com montagem coordenada e manual por imports públicos. Ele fornece schema mínimo e CSS de sobreposição próprios; sua checagem não equivale à execução literal deste exemplo com StarterKit.
+Para experimentar um fluxo adaptado localmente, consulte o [Live Demo](examples/live-demo/NOTES.md), com montagem coordenada e manual por imports públicos.
 
-## Receita manual — artefato histórico identificado
+## Composição manual avançada
 
-As próximas seções permitem preparar a aplicação sem importar fontes, configurações ou arquivos de exemplo do repositório. O pacote fornece Core, Presentation e os subpaths `style.css` e `presentation.css`. O exemplo usa somente essas entradas públicas. `whenLayoutStable`, `PaginationPluginKey` e `preparePrintSession` também estão exportados; não são necessários para montar esta receita.
+Caso sua aplicação necessite gerenciar diretamente os ciclos de vida e instâncias independentes de Editor e Presentation, a composição manual permanece totalmente suportada. As seções a seguir detalham essa integração.
 
 ## 1. Preparar uma aplicação independente
 
-Use uma pasta nova, fora da biblioteca. Copie o `.tgz` fornecido para `package-input/library.tgz` e confira seu SHA-256 antes de instalar. As versões abaixo foram exercitadas no consumidor de referência; não certificam toda a faixa dos peers.
+Crie um diretório para o consumidor independente, fora do repositório da biblioteca. Instale o pacote `.tgz` gerado a partir da base canônica (`npm run build && npm pack` na raiz da biblioteca). As versões abaixo foram exercitadas no consumidor de referência:
 
 Crie os arquivos apresentados neste guia. O manifesto da aplicação é:
 

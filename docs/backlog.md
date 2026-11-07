@@ -1,6 +1,6 @@
 # Backlog
 
-Base documental anterior: `feature/compose-next`, referência `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`. Atualização focal em 27/10/2026: correção de reatividade presente no commit local `4f3577446204bf7f99848394e3b48b3136df6630`; push não verificado nesta revisão. Esta lista separa implementação, evidência e trabalho futuro; não reabre automaticamente decisões encerradas.
+Base canônica vigente: branch `main`, commit `c7b5497cc58bbddbf6966f69d0409040bb3d468d` (após incorporação integral da linha `feature/compose-next` via Pull Request #3). Esta lista separa implementação, evidência e trabalho futuro; não reabre automaticamente decisões encerradas.
 
 ## Implementado
 
@@ -11,7 +11,7 @@ Base documental anterior: `feature/compose-next`, referência `1c3b5add4ec8201ff
 - Live Demo independente dos consumidores removidos, com texto linear, títulos e edição; cenários tabulares explicitamente indisponíveis. Na manutenção de 29/10/2026, imports públicos por `dist/` local e fluxos coordenado/manual foram conferidos no recorte descrito nas [notas da Demo](../examples/live-demo/NOTES.md), sem validar literalmente os exemplos completos com StarterKit.
 - Linha de desenvolvimento consolidada localmente e enviada ao remoto, preservando a proveniência canônica e experimental.
 
-- Quick Start de pacote com schema, imports públicos, montagem manual histórica, CSS e descarte. O exemplo coordenado permanece proposto: sua execução literal não foi demonstrada pelo laboratório que validou o pacote.
+- Quick Start primário com Composição Coordenada V1 (`createDocumentEditor`), validado literalmente em consumidor independente limpo com TypeScript, build Vite e execução em navegador; receita de montagem manual avançada preservada.
 - Composição Coordenada V1 implementada, revisada e homologada no escopo autorizado e nos ambientes verificados: `createDocumentEditor(options)`, `options.host`, interface mínima e entrada ESM `/compose`. Não inclui atualização dinâmica de layout.
 
 ## Observado com validação limitada

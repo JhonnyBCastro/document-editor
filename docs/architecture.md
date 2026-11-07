@@ -1,6 +1,6 @@
 # Arquitetura
 
-Referência: `dev/cons014-composed-20261022`, commit `1962cdbb3456cc989b064017137d48a8df143d3d`. Descrição estática da implementação; não transfere homologações de distribuições anteriores.
+Base canônica vigente: branch `main`, commit `c7b5497cc58bbddbf6966f69d0409040bb3d468d` (após incorporação integral da linha `feature/compose-next` via Pull Request #3). Descrição estática e formal da arquitetura Composed.
 
 ## Documento contínuo e responsabilidades
 

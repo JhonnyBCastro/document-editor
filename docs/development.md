@@ -1,6 +1,6 @@
 # Desenvolvimento
 
-Trabalhe em um checkout identificado da linha `feature/compose-next`. A referência desta atualização é `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`. Os comandos abaixo são instruções, não registros de novas execuções desta revisão.
+Trabalhe a partir da branch canônica `main` (commit de referência `c7b5497cc58bbddbf6966f69d0409040bb3d468d`, após incorporação integral da linha `feature/compose-next` via Pull Request #3). Os comandos abaixo são instruções operacionais para desenvolvimento, testes e verificação da biblioteca.
 
 Para testar consumo de pacote, use o [Quick Start](quick-start.md), em pasta separada. As instruções abaixo sobre build/testes da biblioteca são outro fluxo; não importar `src/` para contornar problemas do pacote.
 

@@ -1,10 +1,12 @@
 # Quick Start — fluxos de consumo
 
-**Identidade dos exemplos:** a receita manual histórica abaixo foi exercitada com o tarball identificado nesta seção. Não se presume que esse artefato contenha a Composição Coordenada V1. Para usar `/compose`, é necessário um pacote que efetivamente inclua essa entrada e suas declarações. A versão `0.1.0-rc.4`, isoladamente, não identifica os bytes do pacote. A validação independente do pacote foi encerrada com ressalvas no escopo autorizado e nos ambientes verificados; veja [proveniência](provenance.md#validação-do-consumidor-v1--encerramento-de-29102026). Esse fechamento não comprova a execução literal do exemplo coordenado abaixo, que permanece proposto.
+A biblioteca oferece dois caminhos principais de consumo: a **Composição Coordenada V1** (recomendada para a maioria das aplicações, via `createDocumentEditor`) e a **Composição Manual** (para controle direto e independente das instâncias de Editor e Presentation).
 
-## Composição coordenada V1 — exemplo proposto
+Branch de referência canônica: `main` (commit `c7b5497cc58bbddbf6966f69d0409040bb3d468d`).
 
-**Exemplo proposto — composição coordenada V1.** As assinaturas e os caminhos públicos abaixo foram conferidos por leitura dos tipos, exports e implementação locais. A validação do pacote no laboratório não equivale à compilação e execução literal deste trecho; essa execução específica continua não demonstrada. Pressupõe ambiente browser, pacote identificado que contenha `/compose`, resolução de imports CSS e extensões de schema compatíveis. Não reutilize automaticamente as versões do manifesto histórico.
+## Composição coordenada V1 — Quick Start primário
+
+A Composição Coordenada V1 (`createDocumentEditor`) é o caminho de consumo primário e recomendado. O exemplo literal abaixo foi verificado em consumidor independente a partir do pacote da `main`, com compilação TypeScript limpa (`tsc --noEmit`), build de produção Vite e execução interativa completa em navegador (montagem de folhas e rodapés, edição de texto e descarte da instância).
 
 HTML:
 
@@ -59,19 +61,17 @@ A composição instala a paginação: não inclua `PaginationExtension` em `exte
 
 O footer é fornecido explicitamente por callback. Os defaults de `runningContent` do Core não são convertidos automaticamente em conteúdo da Presentation.
 
-A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A execução literal deste exemplo e a instalação limpa do manifesto histórico apresentado adiante permanecem sem evidência no laboratório examinado.
+A factory configura a geometria estrutural inicial. Tipografia, estilos não conflitantes e condições de montagem continuam relevantes. A execução literal deste exemplo e a resolução limpa das dependências foram verificadas com sucesso em consumidor independente no commit homologado da `main`.
 
-O [Live Demo](../examples/live-demo/NOTES.md) oferece fluxos coordenado e manual adaptados, usando entradas públicas de `dist/` local, schema mínimo e CSS de sobreposição próprios. Não comprova a execução literal deste exemplo com StarterKit nem uma instalação independente.
+O [Live Demo](../examples/live-demo/NOTES.md) oferece fluxos coordenado e manual adaptados, usando entradas públicas de `dist/` local, schema mínimo e CSS de sobreposição próprios.
 
-## Receita manual — artefato histórico identificado
+## Composição manual avançada
 
-**Atualizado em 24/10/2026.** Guia de montagem de um consumidor Vite + TypeScript. Artefato de referência: tarball oriundo de `feature/compose-next`, commit `1c3b5add4ec8201ff176d67fd83f6677502cdd1d`, SHA-256 `fa869168a25bd9c6266188a1075fe714d2db15c3fa5fdf964ec35584e37dee14`.
-
-O manifesto declara `0.1.0-rc.4`; identifique o artefato pelo commit de origem e pelo hash, não apenas pela versão. As instruções usam um tarball local, sem presumir publicação npm. Este guia é posterior ao commit de origem do pacote.
+Caso sua aplicação necessite gerenciar diretamente os ciclos de vida e instâncias independentes de Editor e Presentation, a composição manual permanece disponível.
 
 ## 1. Preparar uma aplicação independente
 
-Use uma pasta nova, fora da biblioteca. Copie o `.tgz` fornecido para `package-input/library.tgz` e confira seu SHA-256 antes de instalar. As versões abaixo foram exercitadas no consumidor de referência; não certificam toda a faixa dos peers.
+Crie um diretório para o consumidor independente, fora do repositório da biblioteca. Instale o pacote `.tgz` gerado a partir da base canônica (`npm run build && npm pack` na raiz da biblioteca). As versões abaixo foram exercitadas no consumidor de referência:
 
 Crie os arquivos apresentados neste guia. O manifesto da aplicação é:
 
