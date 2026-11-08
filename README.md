@@ -149,7 +149,7 @@ A Presentation expõe variáveis CSS para customizar a aparência das folhas sem
 :root {
   --document-editor-page-background: #ffffff;
   --document-editor-page-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --document-editor-page-border: 1px solid #e2e8f0;
+  --document-editor-page-border-color: #e2e8f0;
 }
 ```
 
