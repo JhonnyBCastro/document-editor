@@ -157,7 +157,7 @@ A Presentation expõe variáveis CSS para customizar a aparência das folhas sem
 
 ## Fluxos de Consumo
 
-1. **Composição Coordenada (Recomendado):** A factory `createDocumentEditor` coordena criação, redimensionamento de container, apresentação e descarte.
+1. **Composição Coordenada (Recomendado):** A factory `createDocumentEditor` coordena a montagem inicial, a atualização da altura do wrapper conforme os snapshots, a apresentação e o descarte. Não observa automaticamente mudanças externas de dimensões ou CSS.
 2. **Composição Manual (Avançado):** A aplicação instancia o `Editor` com `PaginationExtension` e conecta manualmente os snapshots a `createDocumentPresentation`. Indicado para quem precisa de controle customizado de renderização e layouts especiais.
 3. **Módulos Isolados:** É possível utilizar apenas o **Core** (cálculo de quebras e decorações) ou apenas a **Presentation** (visualização de snapshots gerados externamente).
 

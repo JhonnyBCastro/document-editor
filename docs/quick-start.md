@@ -51,6 +51,8 @@ Crie um diretório isolado para o projeto consumidor e configure os arquivos fun
 }
 ```
 
+Copie o `.tgz` gerado para a raiz da aplicação consumidora, ao lado de `package.json`, para corresponder ao caminho `file:./jhonny_bcastro-document-editor-0.1.0-rc.4.tgz` acima.
+
 Instale as dependências via:
 ```bash
 npm install
@@ -88,7 +90,7 @@ npm install
 
 ## Composição coordenada V1 — Quick Start primário
 
-A Composição Coordenada V1 (`createDocumentEditor`) é o caminho de consumo primário e recomendado. A factory cria o elemento wrapper interno, gerencia os ouvintes de redimensionamento e sincroniza as projeções do Core diretamente com a Presentation.
+A Composição Coordenada V1 (`createDocumentEditor`) é o caminho de consumo primário e recomendado. A factory cria o elemento wrapper interno, atualiza sua altura conforme os snapshots e sincroniza as projeções do Core com a Presentation. Não instala observadores automáticos para mudanças externas de dimensões, CSS ou fontes.
 
 ### HTML (`index.html`)
 
@@ -398,7 +400,7 @@ if (import.meta.hot) import.meta.hot.dispose(dispose);
 
 ### Core Isolado (Cálculo sem Desenho de Folhas)
 
-Útil para aplicações que desejam obter os pontos de quebra e snapshots sem desenhar as folhas da Presentation:
+Útil para aplicações que desejam obter os pontos de quebra e snapshots sem desenhar as folhas da Presentation. A medição continua dependendo de um editor montado no DOM: configure sua largura e padding conforme `layout.page`, como na receita manual acima. O import `style.css` não configura essas dimensões:
 
 ```ts
 import { Editor } from '@tiptap/core';
