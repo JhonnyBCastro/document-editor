@@ -1,0 +1,54 @@
+name: "Relatar um bug"
+description: "Descreva um comportamento inesperado da biblioteca."
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado pelo relato. Antes de abrir uma Issue, pesquise ocorrências semelhantes.
+        Não inclua credenciais ou dados privados. Não divulgue vulnerabilidades de segurança exploráveis em Issues públicas.
+  - type: input
+    id: version
+    attributes:
+      label: "Versão ou commit"
+      description: "Informe a versão do pacote ou o SHA do commit utilizado."
+      placeholder: "Ex.: 0.1.0-rc.4 ou SHA do commit"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Descrição do problema"
+      description: "O que aconteceu? Em qual parte da biblioteca (Core, Presentation ou Compose)?"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Passos para reproduzir"
+      description: "Forneça um exemplo mínimo ou uma sequência de ações que reproduza o problema."
+      placeholder: |
+        1. Configurar...
+        2. Executar...
+        3. Observar...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Resultado esperado"
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Resultado observado"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: "Ambiente e informações adicionais"
+      description: "Node.js, navegador, versões de Tiptap/ProseMirror, CSS relevante, logs não sensíveis e capturas (se úteis)."
+    validations:
+      required: false
