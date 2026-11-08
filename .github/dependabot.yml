@@ -1,0 +1,16 @@
+# ED-GITHUB-SECURITY-002
+# O Dependabot abre PRs de atualização; não realiza merges automaticamente.
+version: 2
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 2
