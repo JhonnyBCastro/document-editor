@@ -142,7 +142,7 @@ export function getDirectionalCoords(
             while (curr && curr !== view.dom) {
                 if (curr.nodeType === Node.ELEMENT_NODE) {
                     const tag = (curr as Element).tagName.toLowerCase();
-                    if (['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'div'].includes(tag)) {
+                    if (['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'pre', 'div'].includes(tag)) {
                         root = curr;
                         break;
                     }
@@ -338,12 +338,15 @@ export function resolveBlockLinePosition(
 
     // Geometria real da linha: consulta no início horizontal da linha visual (+1px)
     // e centralização vertical no span da linha.
-    const queryX = lineRect.left + 1;
+    const queryX = lineRect.left + Math.min(2, Math.max(0.5, lineRect.width / 2));
     const queryY = lineRect.top + lineRect.height / 2;
 
     let posObj: { pos: number; inside: number } | null = null;
     try {
         posObj = view.posAtCoords({ left: queryX, top: queryY });
+        if (!posObj && lineRect.width > 6) {
+            posObj = view.posAtCoords({ left: lineRect.left + 4, top: queryY });
+        }
     } catch (_) {
         return null;
     }
@@ -369,6 +372,9 @@ export function resolveBlockLinePosition(
 
         // Requisito A2 & A3: fragmento anterior pertence à linha precedente ou é início legítimo de bloco
         if (pos <= bStartNum) {
+            return true;
+        }
+        if (view.state.doc.textBetween(pos - 1, pos) === '\n') {
             return true;
         }
         const backward = getDirectionalCoords(view, pos, 'backward', bStartNum, bEndNum, rootBlock);
@@ -453,9 +459,16 @@ export function resolveBlockLinePosition(
 export function evaluateLinearPolicies(candidate: BreakCandidate, view: EditorView, layout: LayoutConfig): BreakDecision {
     const { lines, naturalLineIndex: K, hasHeadingBefore, headingPos } = candidate;
     if (candidate.blockStart !== undefined && candidate.lastBreakPos !== undefined && candidate.blockStart <= candidate.lastBreakPos) {
+        let multiPos = candidate.exactPos;
+        if (lines && K !== undefined && K >= 0 && K < lines.length) {
+            const lineStartPos = resolveBlockLinePosition(candidate, K, view);
+            if (lineStartPos !== null && lineStartPos > candidate.lastBreakPos) {
+                multiPos = lineStartPos;
+            }
+        }
         return {
             status: 'accepted',
-            pos: candidate.exactPos,
+            pos: multiPos,
             effectiveDisplacement: 0,
             reasons: ['multi_page_block_overflow'],
             renderer: 'linear-widget'
@@ -545,11 +558,11 @@ export function evaluateLinearPolicies(candidate: BreakCandidate, view: EditorVi
         } else {
             decisionPos = candidate.blockStart!;
         }
-    } else if (targetLine !== K) {
+    } else {
         const lineStartPos = resolveBlockLinePosition(candidate, targetLine, view);
         if (lineStartPos !== null) {
             decisionPos = lineStartPos;
-        } else {
+        } else if (targetLine !== K) {
             // Tratamento explícito de falha com recuperação segura (Ajuste obrigatório C)
             if (
                 candidate.blockStart !== undefined &&
