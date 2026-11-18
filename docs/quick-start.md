@@ -13,7 +13,7 @@ A biblioteca oferece dois caminhos principais de integração:
 
 ### Geração do Pacote Local da Main
 
-A base canônica permanente do projeto é a branch `main` (commit `c7b5497cc58bbddbf6966f69d0409040bb3d468d`). Para obter o pacote validado, gere o arquivo `.tgz` na raiz da biblioteca:
+A base canônica permanente do projeto é a branch `main` (commit `a0c92d5765a9832c5c03794e196fa23552fe0cbc`, Pull Request #16). Para obter o pacote validado, gere o arquivo `.tgz` na raiz da biblioteca:
 
 ```bash
 npm run build
@@ -119,6 +119,8 @@ import {
 } from '@jhonny_bcastro/document-editor/compose';
 import '@jhonny_bcastro/document-editor/style.css';
 import '@jhonny_bcastro/document-editor/presentation.css';
+// Importar o stylesheet do consumidor DEPOIS dos CSS do pacote garante a ordem de cascata.
+import './style.css';
 
 const host = document.querySelector<HTMLElement>('#document');
 if (!host) throw new Error('Host #document não encontrado.');
@@ -162,6 +164,34 @@ export function dispose() {
   instance.destroy();
 }
 ```
+
+### Contrato CSS C-01 — Integração do Consumidor
+
+A biblioteca distribui exclusivamente os estilos estruturais do Core (`@jhonny_bcastro/document-editor/style.css`) e das folhas decorativas (`@jhonny_bcastro/document-editor/presentation.css`), cabendo à **aplicação consumidora** configurar o comportamento de quebra textual e preservação de espaços do conteúdo editável no CSS do host.
+
+Na **Composição Coordenada V1**, a factory cria os invólucros internos dentro de `#document` e gerencia sua altura estrutural; portanto, em `src/style.css`, adicione exclusivamente as regras do contrato **`CSS C-01`** escopadas ao host deste editor:
+
+```css
+/* src/style.css — Configuração CSS C-01 escopada ao host #document */
+#document .ProseMirror {
+  word-wrap: break-word;
+  white-space: pre-wrap; /* Fallback anterior a break-spaces em motores sem suporte */
+  white-space: break-spaces;
+}
+
+#document .ProseMirror pre {
+  white-space: pre-wrap;
+}
+```
+
+#### Finalidade de cada regra e alcance observado na F3
+
+- `word-wrap: break-word` em `#document .ProseMirror`: contribui, nos cenários ensaiados, para que palavras extensas sem espaços em branco quebrem dentro da área útil da folha em vez de forçar transbordamento contínuo.
+- `white-space: pre-wrap` em `#document .ProseMirror`: atua na cascata CSS como **fallback anterior a `white-space: break-spaces`**, preservando quebras `\n` e espaços caso o motor não suporte `break-spaces`.
+- `white-space: break-spaces` em `#document .ProseMirror`: sob os motores compatíveis ensaiados na F3 (`erro-1` e parágrafos após conversão de `codeBlock`), manteve caixas de linha com altura não nula onde havia múltiplos espaços, reduzindo a ocorrência de retângulos DOM `{0,0,0,0}` em `view.coordsAtPos()`. Não constitui garantia geométrica universal em todo documento, zoom, fonte ou navegador; no `Estado A` (`codeBlock` de `16` páginas) observou-se a ressalva conhecida `I-02` (`12` espaços `U+0020` finais com excedente sub-pixel de até `2,15625 px`, sem caractere visível além da faixa útil nem rolagem horizontal adicional).
+- `white-space: pre-wrap` em `#document .ProseMirror pre`: permite nos cenários ensaiados que linhas longas dentro de blocos `<pre><code>` quebrem dentro da folha e sejam paginadas pelo controlador.
+- Escopo ao contêiner do editor (`#document .ProseMirror` e `#document .ProseMirror pre`): caso a aplicação utilize outro seletor de host (em vez de `#document`), substitua `#document` pelo seletor do respectivo elemento hospedeiro.
+- A ausência dessas regras no consumidor corresponde à configuração experimental de controle conhecida como **`baseline`** (que executa exatamente a mesma implementação canônica da biblioteca, mas está sujeita a retângulos `{0,0,0,0}` em espaços colapsados e não é recomendada para integração; veja [Limitações](limitations.md) e [API](api.md#geometria-e-montagem)).
 
 ### Executar a Aplicação
 
@@ -290,6 +320,15 @@ body {
   color: #222;
   font-size: 16px;
   line-height: 1.5;
+
+  /* Contrato CSS C-01 — Responsabilidade do consumidor */
+  word-wrap: break-word;
+  white-space: pre-wrap; /* Fallback anterior a break-spaces */
+  white-space: break-spaces;
+}
+
+.qs-editor > .ProseMirror pre {
+  white-space: pre-wrap;
 }
 
 .qs-editor p {
@@ -300,7 +339,6 @@ body {
 ### TypeScript (`src/main.ts`)
 
 ```ts
-import './style.css';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import {
@@ -311,6 +349,8 @@ import {
 import '@jhonny_bcastro/document-editor/style.css';
 import { createDocumentPresentation } from '@jhonny_bcastro/document-editor/presentation';
 import '@jhonny_bcastro/document-editor/presentation.css';
+// Importe o stylesheet do consumidor APÓS os CSS do pacote para respeitar a cascata
+import './style.css';
 
 const frame = document.querySelector<HTMLElement>('#document')!;
 const editorHost = document.querySelector<HTMLElement>('#editor')!;

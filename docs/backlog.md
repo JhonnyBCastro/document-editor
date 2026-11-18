@@ -1,6 +1,6 @@
 # Backlog
 
-Base canônica vigente: branch `main`, commit `c7b5497cc58bbddbf6966f69d0409040bb3d468d` (após incorporação integral da linha `feature/compose-next` via Pull Request #3). Esta lista separa implementação, evidência e trabalho futuro; não reabre automaticamente decisões encerradas.
+Base canônica vigente: branch `main`, commit `a0c92d5765a9832c5c03794e196fa23552fe0cbc` (após incorporação integral da linha `feature/compose-next` via Pull Request #3 e das correções da iniciativa F3 via Pull Request #16). Esta lista separa implementação, evidência e trabalho futuro; não reabre automaticamente decisões encerradas.
 
 ## Implementado
 
@@ -37,6 +37,8 @@ Base canônica vigente: branch `main`, commit `c7b5497cc58bbddbf6966f69d0409040b
 6. Decidir o comportamento sem corte elegível (L1) e de overshoot sem fronteira anterior (L2), sem confundir essas escolhas com ressalvas de rodapé ou impressão.
 7. Se for autorizada uma nova etapa, verificar a execução literal das receitas documentais ainda propostas e ampliar ambientes ou condições somente com hipótese e escopo próprios. A validação do consumidor V1 está encerrada e não deve ser reaberta por este item. Instalação limpa de outros manifestos, fontes/CSS externos, multi-instância e impressão composta não recebem aprovação automática desse fechamento.
 8. Revisar runners E2E históricos antes de propô-los como fluxo atual: pré-requisitos, comparação semântica, propagação de falhas e saídas portáteis.
+9. **AUTO-CSS-C01 (Prioridade: POSTERIOR — NÃO BLOQUEANTE PARA F3):** Avaliar a incorporação automática ou disponibilização opt-in do contrato **`CSS C-01`** pelo pacote (`@jhonny_bcastro/document-editor/style.css` ou opção de composição), mediante estudo arquitetural prévio de especificidade/precedência sobre CSS existente do consumidor, compatibilidade com múltiplas instâncias no mesmo documento e testes em consumidores independentes.
+10. **Observações pós-F3 (`OBS-U05-01` e `UX-U03-01`):** Avaliar, em ciclo próprio futuro, a recuperação espontânea posterior de cenários parcialmente estabilizados (`LAYOUT_CONVERGENCE_LIMIT`, `5` ocorrências observadas em `U-05`) e investigar com instrumentação temporal a apresentação transitória relatada em carregamentos extensos (`UX-U03-01`, sem medição instrumental até o momento).
 
 ## Fora de qualquer aprovação automática
 

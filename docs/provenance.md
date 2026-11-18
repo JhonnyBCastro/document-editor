@@ -1,5 +1,13 @@
 # Proveniência
 
+## Iniciativa F3 — incorporação canônica e validação técnico-prática (`PR #16`)
+
+A iniciativa `CROSS-LAB-001/ED-PACKAGE-RUNTIME-F3` incorporou à branch `main`, via [Pull Request #16](https://github.com/JhonnyBCastro/document-editor/pull/16), o commit homologado [`a0c92d5765a9832c5c03794e196fa23552fe0cbc`](https://github.com/JhonnyBCastro/document-editor/commit/a0c92d5765a9832c5c03794e196fa23552fe0cbc) (`HEAD^{tree}: f5fb00cdff33c8b17957fd6da4a01d72118f18b8`), contemplando a guarda de coordenadas degeneradas e precedência manual (`C-02/R3`) e a distinção entre aborto e convergência em ciclo multi-passe com remoção pública de `getLastConvergenceState()` (`C-03/R2`).
+
+- **Pacote empacotado a partir desse commit (`M-01`):** `jhonny_bcastro-document-editor-0.1.0-rc.4.tgz` (`105.255` bytes, `26` arquivos, SHA-256 `cdce16900a7c6d3c09a827803a2367add3f495d53481a8ae86d283c7f19f99d0`, integridade `sha512-IRFvmlg2NL/YmNxdj0pZvF15DmwZV12ZrOj+y86vD52PThSTgpLJbccb3XEZ9iOyP+qvHcMK3mjNBOKu95Ldwg==`). Como a versão `0.1.0-rc.4` do manifesto repete a string anterior, a procedência binária é comprovada pelo SHA-256 do tarball e dos `26` arquivos internos, sem equivaler a publicação no registro npm.
+- **Validações associadas (com ressalvas):** suíte unitária `18/18` (`209/209` testes em `M-01`), campanha consumidora pós-merge (`M-00 a M-06` e complemento `E-00 a E-04`, aprovados com ressalvas) e validação prática pelo Autor (`U-02 a U-05`, homologada com as ressalvas `OBS-U05-01`, `OBS-U05-02`, `UX-U03-01` e `DOC-U05-01`).
+- **Reconciliação de referências históricas:** os vetores e tamanhos primários de referência são definidos diretamente pelos arquivos brutos (`cv01-state-a.json`, `cv01-state-b.json`, `cv02-erro1-c01-scroll1.json`, `m00-preflight-record.json`), nos termos do adendo `ED-PACKAGE-RUNTIME-F3-HISTORICAL-REFERENCE-RECONCILIATION-ADDENDUM-001` e do seu complemento corretivo `ED-PACKAGE-RUNTIME-F3-HISTORICAL-REFERENCE-RECONCILIATION-CORRIGENDUM-001`.
+
 ## Corte posterior — Composição Coordenada V1
 
 A implementação, a revisão independente e a homologação técnica da Composição Coordenada V1 foram concluídas no escopo autorizado e nos ambientes verificados, conforme a decisão do responsável pelo projeto e o parecer conclusivo já registrados. Este texto referencia esse fechamento; não cria nova decisão de homologação nem amplia seu alcance.
