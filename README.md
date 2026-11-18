@@ -22,7 +22,7 @@ A paginação adota uma separação rigorosa de responsabilidades entre três ca
 
 ## Estado e Distribuição
 
-- **Branch canônica permanente:** `main` (commit de referência `c7b5497cc58bbddbf6966f69d0409040bb3d468d`).
+- **Branch canônica permanente:** `main` (commit de referência `a0c92d5765a9832c5c03794e196fa23552fe0cbc`, incorporando as correções integradas da iniciativa F3 via Pull Request #16).
 - **Versão do manifesto:** `0.1.0-rc.4`. Esta declaração identifica os metadados do pacote local, mas não comprova publicação no registro público npm do estado atual da `main`.
 - **Instalação validada:** Para consumir o estado canônico homologado da biblioteca, gere o pacote a partir da raiz do repositório:
   ```bash
@@ -56,6 +56,9 @@ import {
 } from '@jhonny_bcastro/document-editor/compose';
 import '@jhonny_bcastro/document-editor/style.css';
 import '@jhonny_bcastro/document-editor/presentation.css';
+// Importe o stylesheet do consumidor após os CSS distribuídos pelo pacote
+// para garantir a ordem esperada de cascata do contrato CSS C-01.
+import './style.css';
 
 const host = document.querySelector<HTMLElement>('#document');
 if (!host) throw new Error('Elemento #document não encontrado.');
@@ -95,6 +98,25 @@ export function dispose() {
 ```
 
 > **Atenção:** A composição coordenada instala sua própria extensão de paginação. **Não** inclua `PaginationExtension` no array `extensions`.
+
+### 3. Contrato CSS do Consumidor (`CSS C-01`)
+
+Os arquivos `@jhonny_bcastro/document-editor/style.css` e `@jhonny_bcastro/document-editor/presentation.css` fornecem os estilos estruturais e decorativos da biblioteca, mas não impõem regras de quebra textual nem de preservação de espaços ao conteúdo editável. Compete à aplicação consumidora aplicar em seu stylesheet (ex.: `src/style.css`, importado após os CSS do pacote) a configuração **`CSS C-01`** validada nos cenários F3, escopada ao contêiner do editor (`#document` neste exemplo):
+
+```css
+/* Contrato CSS C-01 — Responsabilidade da aplicação consumidora */
+#document .ProseMirror {
+  word-wrap: break-word;
+  white-space: pre-wrap; /* Fallback na cascata caso break-spaces não seja suportado */
+  white-space: break-spaces;
+}
+
+#document .ProseMirror pre {
+  white-space: pre-wrap;
+}
+```
+
+Nos cenários ensaiados da F3, essas regras contribuíram para preservar caixas de linha mensuráveis em sequências de espaços e para que linhas longas de parágrafos e blocos `<pre><code>` quebrassem dentro da folha, sem configurar certificação geométrica universal nem impedir a emissão de diagnósticos contratuais quando aplicáveis. Consulte o [Quick Start Completo](docs/quick-start.md#contrato-css-c-01--integração-do-consumidor) e as [Limitações Técnicas](docs/limitations.md) para detalhes, limites da recuperação geométrica e diferenças entre `C-01` e `baseline`.
 
 ---
 

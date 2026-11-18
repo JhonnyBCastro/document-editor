@@ -1,6 +1,6 @@
 # API
 
-Base canônica vigente: branch `main`, commit `c7b5497cc58bbddbf6966f69d0409040bb3d468d` (após incorporação integral da linha `feature/compose-next` via Pull Request #3 e resolução do caso README no commit homologado `90cc59b`). As entradas declaradas no [manifesto](../package.json) identificam a versão do pacote, sem comprovar publicação npm do estado atual.
+Base canônica vigente: branch `main`, commit `a0c92d5765a9832c5c03794e196fa23552fe0cbc` (após incorporação integral da linha `feature/compose-next` via Pull Request #3, resolução do caso README no commit homologado `90cc59b` e integração das correções da iniciativa F3 via Pull Request #16). As entradas declaradas no [manifesto](../package.json) identificam a versão do pacote, sem comprovar publicação npm do estado atual.
 
 Para instalação, schema, hosts e CSS, comece pelo [Quick Start](quick-start.md). Os exemplos usam somente entradas do pacote local identificado, não fontes ou a Live Demo.
 
@@ -138,9 +138,17 @@ O consumidor também precisa derivar seus estilos geométricos do mesmo `layout.
 
 O Core usa `height - marginTop - marginBottom` como altura útil nominal e `marginBottom + pageGap + marginTop` como deslocamento básico entre áreas de conteúdo. Sua origem vertical é `editorRect.top + marginTop`, em coordenadas da viewport; os deslocamentos estruturais já instalados são descontados das medidas. A largura do texto vem do DOM efetivo: `page.width` e as margens horizontais dimensionam as projeções, mas não configuram a largura ou o padding do Editor.
 
-Na composição manual, o consumidor precisa manter largura e insets do Editor coerentes com `layout.page` e alinhar a origem dos hosts às projeções locais. O Core aplica decorações; a Presentation aplica os retângulos recebidos, sem medir ou corrigir esse alinhamento. O [Quick Start](quick-start.md#coerência-geométrica-da-montagem) deriva os estilos de uma única configuração. Esse mapeamento manual é necessário nesse fluxo, não uma exigência de duplicar números independentes nem uma garantia automática de coerência. A geometria nominal não certifica cada corte físico.
+Na composição manual, o consumidor precisa manter largura e insets do Editor coerentes com `layout.page` e alinhar a origem dos hosts às projeções locais. O Core aplica decorações; a Presentation aplica os retângulos recebidos, sem medir ou corrigir esse alinhamento. O [Quick Start](quick-start.md#coerência-geométrica-da-montagem-manual) deriva os estilos de uma única configuração. Esse mapeamento manual é necessário nesse fluxo, não uma exigência de duplicar números independentes nem uma garantia automática de coerência. A geometria nominal não certifica cada corte físico.
 
 Na composição coordenada, a factory cria seus recursos e deriva a geometria estrutural inicial de `layout.page`. A Presentation continua aplicando projeções, sem calcular paginação. As garantias da factory não são transferidas implicitamente ao Core ou à Presentation isolados. Estilos métricos e mudanças externas continuam sujeitos aos limites documentados.
+
+#### Responsabilidades CSS do consumidor (Contrato C-01) e diagnósticos de medição
+
+Os arquivos `@jhonny_bcastro/document-editor/style.css` e `@jhonny_bcastro/document-editor/presentation.css` não aplicam `white-space: pre-wrap`, `white-space: break-spaces` nem `word-wrap: break-word` sobre `.ProseMirror` ou `.ProseMirror pre`. Compete à aplicação consumidora declarar as regras do contrato **`CSS C-01`** em seu próprio stylesheet (importado após os CSS do pacote e escopado ao host do editor, conforme o [Quick Start](quick-start.md#contrato-css-c-01--integração-do-consumidor)).
+
+Quando o consumidor omite essas regras (configuração experimental `baseline`, sobre a mesma implementação canônica do motor), sequências de espaços ou quebras podem colapsar no navegador gerando retângulos `{ top: 0, right: 0, bottom: 0, left: 0 }` em `coordsAtPos()` e blocos `<pre>` podem exceder a largura útil sem quebra automática de linha. Nas faixas degeneradas, o controlador aplica `findEquivalentValidCoords()` dentro de limites estritos de bloco, raio (`SCAN_STRIDE`) e tolerância de linha visual (`1 px` difuso quando há `visualLines` ou `<= 4 px` verticais, e recuperação unilateral restrita a bordas de espaços colapsados); quando não há vizinho equivalente seguro, rejeita quebras falsas, aplica paginação parcial na sub-região degenerada e emite `LAYOUT_DEGENERATE_COORDS` no `LayoutSnapshot`.
+
+Mesmo quando o `CSS C-01` é aplicado e decisões conhecidas de quebra são preservadas, diagnósticos previstos pelo contrato podem ser emitidos conforme o estado encontrado no DOM ou nas iterações de cálculo: `LAYOUT_DEGENERATE_COORDS`, `LAYOUT_CONVERGENCE_LIMIT` (quando alterações geométricas persistem após `MAX_CONVERGENCE_PASSES = 3`, emitindo snapshot com estabilização parcial) e `LAYOUT_ITERATION_LIMIT` (quando o orçamento linear de iterações é atingido). Valores não finitos em `coordsAtPos()` (`NaN` ou `Infinity`) provocam aborto seguro do passe sem publicação de snapshot corrompido.
 
 ### Conteúdo e schema reconhecidos
 

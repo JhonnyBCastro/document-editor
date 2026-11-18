@@ -1,6 +1,6 @@
 # Limitações
 
-Base canônica vigente: branch `main`, commit `c7b5497cc58bbddbf6966f69d0409040bb3d468d` (após incorporação integral da linha `feature/compose-next` via Pull Request #3 e consolidação da correção de widow prevention no commit `90cc59b`). As ressalvas abaixo descrevem limites reais de arquitetura e contratos conhecidos da biblioteca.
+Base canônica vigente: branch `main`, commit `a0c92d5765a9832c5c03794e196fa23552fe0cbc` (após incorporação integral da linha `feature/compose-next` via Pull Request #3, consolidação da correção de widow prevention no commit `90cc59b` e integração das correções da iniciativa F3 via Pull Request #16). As ressalvas abaixo descrevem limites reais de arquitetura e contratos conhecidos da biblioteca.
 
 ## Implementação e contratos
 
@@ -13,6 +13,8 @@ Base canônica vigente: branch `main`, commit `c7b5497cc58bbddbf6966f69d0409040b
 - **Impressão/multi-instância:** `preparePrintSession` usa classe global no body e lock de sessão. Não é geração de PDF nem certificação de impressão composta, coexistência de editores ou equivalência com renderizadores externos.
 - **Browser:** medição depende de DOM, CSS e fontes. SSR não substitui paginação visual. Não há certificação geral de navegadores.
 - **Dependências:** peers declaram Tiptap 2/3, mas isso não certifica toda a faixa nem uma única instância de cada módulo ProseMirror. As versões utilizadas e os limites dos ambientes estão em [desenvolvimento](development.md#ambiente-e-instalação); uma declaração de compatibilidade não equivale a uma matriz testada.
+- **Contrato CSS do consumidor (`CSS C-01`) e recuperação geométrica limitada:** a biblioteca não injeta `word-wrap: break-word`, `white-space: pre-wrap` ou `white-space: break-spaces` em `.ProseMirror`, nem `white-space: pre-wrap` em `.ProseMirror pre`; essas regras integram a responsabilidade do consumidor. Sem elas (braço de controle `baseline`), blocos `<pre>` não quebram automaticamente na largura útil e espaços colapsados podem retornar `{0,0,0,0}` ao DOM. Mesmo sob `CSS C-01`, permanecem os limites contratuais de recuperação em `findEquivalentValidCoords()` (faixas `{0,0,0,0}` irrecuperáveis produzem paginação parcial local com `LAYOUT_DEGENERATE_COORDS`), não havendo certificação geométrica universal para documentos arbitrários, zoom ou fontes externas.
+- **Ciclos de convergência parcial (`LAYOUT_CONVERGENCE_LIMIT`) e coordenadas não finitas:** rodadas que permaneçam mutáveis ao atingir o teto fixo de `3` passes publicam snapshot parcialmente estabilizado acompanhado de `LAYOUT_CONVERGENCE_LIMIT`; na validação prática do Autor foram registrados `5` estados exportados com esse diagnóstico sem comprovação universal de recuperação posterior espontânea (`OBS-U05-01`). Coordenadas não finitas (`NaN`/`Infinity`) interrompem o passe sem publicar snapshot.
 
 ## Consumo de pacote e tipagem
 
@@ -61,6 +63,13 @@ O usuário relatou avaliação favorável com aproximadamente 49 e 472 páginas,
 Os registros de consumo descrevem montagem, edição e descarte em alcance delimitado. A remoção dos elementos observados não constitui auditoria exaustiva de memória; as contagens de páginas de conteúdos e execuções diferentes não constituem benchmark.
 
 Há registros de HTTP 404 de origem não identificada na Demo e no consumidor focal. Não há evidência para atribuí-los ao pacote, identificá-los como a mesma ocorrência ou declará-los resolvidos. O relato de console sem erros pertence a outra execução. Veja [desenvolvimento](development.md#experimento-do-pacote-tipos-bundle-e-browser) para o registro do consumidor.
+
+### Iniciativa F3 — alcance das validações técnica e prática (`a0c92d57`)
+
+As campanhas técnica (`M-00 a M-06` e `E-00 a E-04`) e prática pelo Autor (`U-02 a U-05`) sobre o commit `a0c92d5765a9832c5c03794e196fa23552fe0cbc` (tarball `0.1.0-rc.4` SHA-256 `cdce16900a...`) demonstraram correção funcional observada para os defeitos históricos de colagem (`erro-1`, `8` páginas, `7` quebras) e conversão `codeBlock -> paragraph` por `Backspace` (`TypeScript`, `16` para `18` páginas), mantendo as seguintes ressalvas rastreáveis sem constituir certificação geométrica universal:
+- **Excedente sub-pixel em espaços finais de `codeBlock` (`I-02` / `CV-07`):** `12` ocorrências de `U+0020` ultrapassaram `usefulRight = 720 px` entre `2,140625 px` e `2,15625 px`, sem caractere visível excedente e sem rolagem horizontal além de `816 px`; esse comportamento observado não configura tolerância garantida em outros ambientes.
+- **Braço de controle `baseline` (`CV-02` / `OBS-U05-02`):** embora tenha preservado as `7` decisões de quebra de `erro-1`, apresentou `LAYOUT_DEGENERATE_COORDS` em `pos = 180` e `pos = 6633` (paginação parcial local na sub-região degenerada), não comprovando ausência universal de inconsistências geométricas locais nem constituindo alternativa recomendada de integração.
+- **Observação de experiência `UX-U03-01`:** relato não instrumentado de exposição transitória ocasional (`~3 a 4 s`) durante carregamento do fixture TypeScript antes da paginação definitiva; classificada como não bloqueante no escopo atual e de causa indeterminada.
 
 ## Pendências e referências
 
