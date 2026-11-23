@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     dts({
       tsconfigPath: "tsconfig.json",
-      outDir: "dist/compose",
+      outDirs: "dist/compose",
     })
   ],
   build: {
