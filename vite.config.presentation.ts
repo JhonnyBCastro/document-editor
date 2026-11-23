@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     dts({
       tsconfigPath: 'tsconfig.presentation.json',
-      outDir: 'dist/presentation'
+      outDirs: 'dist/presentation'
     })
   ],
   build: {
