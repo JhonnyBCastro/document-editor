@@ -356,6 +356,25 @@ export function createDocumentEditor(options: DocumentEditorOptions): DocumentEd
       }
     : undefined;
 
+  function hasAcquiredEditorView(ed: unknown): boolean {
+    if (!ed || typeof ed !== "object") {
+      return false;
+    }
+    const candidate = ed as { isMounted?: unknown; view?: unknown };
+    if (typeof candidate.isMounted === "boolean" && !candidate.isMounted) {
+      return false;
+    }
+    try {
+      const view = candidate.view as { dom?: unknown } | null | undefined;
+      if (!view || typeof view !== "object") {
+        return false;
+      }
+      return Boolean(view.dom);
+    } catch {
+      return false;
+    }
+  }
+
   function buildCleanupReport(
     resourceResults: DocumentEditorCleanupResourceResult[],
     limitations: string[]
@@ -421,7 +440,7 @@ export function createDocumentEditor(options: DocumentEditorOptions): DocumentEd
     }
 
     // Inspect view state on captured editor if present
-    if (capturedEditor && (capturedEditor as any).view) {
+    if (hasAcquiredEditorView(capturedEditor)) {
       captureFacts.viewAssigned = true;
     }
 
@@ -757,7 +776,7 @@ export function createDocumentEditor(options: DocumentEditorOptions): DocumentEd
         };
         captureFacts.interceptInstalled = true;
       }
-      if ((ed as any).view) {
+      if (hasAcquiredEditorView(ed)) {
         captureFacts.viewAssigned = true;
       }
 
@@ -779,12 +798,12 @@ export function createDocumentEditor(options: DocumentEditorOptions): DocumentEd
       content: options.content,
       extensions,
       editable: options.editable,
-      autofocus: options.autofocus,
+      autofocus: options.autofocus === undefined ? false : options.autofocus,
       parseOptions: options.parseOptions,
       injectCSS: false,
       onBeforeCreate: composedOnBeforeCreate,
     });
-    if (editorInstance && (editorInstance as any).view) {
+    if (hasAcquiredEditorView(editorInstance)) {
       captureFacts.viewAssigned = true;
       // Configure ProseMirror element styles natively to fulfill contracted page geometry
       const dom = (editorInstance as any).view.dom as HTMLElement | undefined;
