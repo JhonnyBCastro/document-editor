@@ -1,6 +1,6 @@
 # API
 
-Base canônica vigente: branch `main`, commit `a0c92d5765a9832c5c03794e196fa23552fe0cbc` (após incorporação integral da linha `feature/compose-next` via Pull Request #3, resolução do caso README no commit homologado `90cc59b` e integração das correções da iniciativa F3 via Pull Request #16). As entradas declaradas no [manifesto](../package.json) identificam a versão do pacote, sem comprovar publicação npm do estado atual.
+Marco funcional pós-F3 utilizado como base desta consolidação documental (branch `main`): `977f106c2fcf46771f46ae3a40813ddbc24f1297`, tree `f961be2ebca7f675445fa9d765a1205d893b55ee` (após incorporação da linha `feature/compose-next` via Pull Request #3, correção de widow prevention no commit `90cc59b`, iniciativa F3 via Pull Request #16, consolidação documental R2 via Pull Request #20 e manutenção pós-F3 via Pull Requests #21, #19 e #22). As entradas declaradas no [manifesto](../package.json) identificam a versão do pacote, sem comprovar publicação npm do estado atual.
 
 Para instalação, schema, hosts e CSS, comece pelo [Quick Start](quick-start.md). Os exemplos usam somente entradas do pacote local identificado, não fontes ou a Live Demo.
 
@@ -29,7 +29,7 @@ O retorno expõe somente `readonly editor: Editor` e `destroy(): void`. O host �
 | Opção | Tipo e alcance |
 |---|---|
 | `host` | `HTMLElement` obrigatório; destino dos nós próprios da composição. |
-| `content`, `extensions`, `editable`, `autofocus`, `parseOptions` | Reutilizam os tipos das propriedades homônimas de `EditorOptions`. A composição instala sua própria paginação. |
+| `content`, `extensions`, `editable`, `autofocus`, `parseOptions` | Reutilizam os tipos das propriedades homônimas de `EditorOptions`. A composição instala sua própria paginação e normaliza `autofocus` omitido ou `undefined` para `false`, preservando integralmente qualquer valor explícito fornecido pelo consumidor (`false`, `null`, `true`, números, `'start'`, `'end'`, `'all'`). |
 | `layout.page` | Subconjunto parcial de `width`, `height`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft` e `pageGap`, todos numéricos opcionais. Não é DeepPartial genérico do Core. |
 | `renderHeader`, `renderFooter` | `(context: RunningContentContext, mountPoint: HTMLElement) => void \| Disposer`. |
 | `onLayoutStable` | `(snapshot: LayoutSnapshot) => void`. |
@@ -50,6 +50,8 @@ Chaves desconhecidas na raiz, em `layout` ou em `layout.page` são rejeitadas. V
 As rejeições preliminares ocorrem antes da montagem própria. A duplicação direta de paginação é verificada antes da construção; a detecção defensiva de extensões agrupadas ocorre após expansão, durante a inicialização, e pode exigir rollback. Não atribua ausência de efeitos a toda falha de inicialização.
 
 O default de `runningContent` do Core conserva footer habilitado, texto `Página {page} de {total}` e alinhamento à direita. Isso não cria automaticamente o renderer de footer da Presentation; forneça `renderFooter` para o conteúdo dessa camada.
+
+Na composição coordenada, omitir `autofocus` ou passar `undefined` resulta em `autofocus: false` repassado ao `Editor`, evitando foco e rolagem involuntários na montagem inicial. Valores explícitos permanecem preservados sem alteração. Essa normalização pertence exclusivamente à factory `createDocumentEditor` e não deve ser extrapolada automaticamente para instâncias criadas manualmente com `new Editor(...)` nos fluxos standalone ou manuais.
 
 ### Lifecycle e callbacks síncronos
 
@@ -86,7 +88,7 @@ Uma falha de inicialização permanece `operation: 'initialization'` mesmo quand
 
 A precedência é `incomplete` sobre `unconfirmed` sobre `completed` quando há limpeza exigida. `not_required` representa ausência de necessidade, não um grau dessa precedência.
 
-`cleanup.resources` distingue `released`, `failed` e `unconfirmed` por recurso conhecido. Retorno normal de `destroy()` sem view atribuída não confirma liberação de aquisições parciais do Editor. O resultado de disposer audita a execução da função entregue à composição, não recursos privados arbitrários do consumidor. Resultados já obtidos são preservados sem repetir a tentativa.
+`cleanup.resources` distingue `released`, `failed` e `unconfirmed` por recurso conhecido. A mera existência de um valor truthy retornado pelo getter `editor.view` não confirma, isoladamente, aquisição efetiva da `EditorView` (por exemplo sob proxies de acesso do Tiptap 3 antes da montagem); a verificação interna exige confirmação segura da presença do nó DOM montado. Retorno normal de `destroy()` sem view efetivamente adquirida não confirma liberação de aquisições parciais do Editor (`unconfirmed`). O resultado de disposer audita a execução da função entregue à composição, não recursos privados arbitrários do consumidor. Resultados já obtidos são preservados sem repetir a tentativa.
 
 `cleanup.limitations` explica alcance, inacessibilidade e incertezas relevantes; não substitui falhas estruturadas nem duplica desnecessariamente a lista por recurso. A agregação não oculta resultados individuais.
 
@@ -172,21 +174,22 @@ O Core não observa continuamente alterações externas de CSS, dimensões, imag
 
 `LayoutSnapshot` contém `revision`, `pages`, `breaks` e `diagnostics`. As projeções usam coordenadas locais de layout (`DocumentLayoutSpace`), em CSS px; o deslocamento por `pageGap` já está incluído.
 
-`revision` é um contador local do controller, iniciado em zero. Incrementa uma vez quando o comparador detecta diferenças entre as quebras calculadas e as decorações estruturais instaladas e a publicação termina sem erro ou destruição do controller antes do incremento. Não conta rodadas de cálculo nem todas as mudanças de geometria.
+`revision` é um contador local do controller, iniciado em zero. Após uma publicação retornar sem falha e passar pela guarda de destruição, o controller conserva `pendingCyclePublishedChanges`, inclusive quando as decorações foram processadas e depois mapeadas por invalidação documental concorrente. Passes intermediários e rodadas abortadas por essa invalidação não incrementam a revisão. Ao alcançar o trecho de aceitação do resultado, inclusive no limite histórico de estabilização parcial, uma pendência provoca um único incremento e é limpa, mesmo se o conjunto recalculado for equivalente ao instalado. O incremento precede a construção do snapshot e a chamada aos callbacks; não certifica entrega bem-sucedida aos observadores. Não conta rodadas nem todas as mudanças de geometria.
 
-`whenLayoutStable(editor)` exige o controller inicializado pela `PaginationExtension`; sem ele, a promise rejeita. Com o controller disponível, o comportamento é:
+`whenLayoutStable(editor)` exige o controller inicializado pela `PaginationExtension`; sem ele, a promise rejeita. A condição ociosa, isoladamente, não é suficiente para garantir novo agendamento: quando o orçamento de recuperação por invalidação documental (limite de três invalidações na mesma tentativa) se encontra esgotado, novas chamadas registram o aguardante sem reiniciar automaticamente o cálculo. Com o controller disponível, o comportamento é:
 
 | Estado na chamada | Comportamento |
 |---|---|
-| Ocioso: sem timer e sem cálculo ativo | Registra o aguardante e agenda cálculo; não retorna um snapshot em cache. |
+| Ocioso (sem timer, sem cálculo ativo) e orçamento de recuperação não esgotado | Registra o aguardante e agenda cálculo; não retorna um snapshot em cache. |
+| Ocioso com orçamento de recuperação por invalidação esgotado | Registra o aguardante sem agendar novo cálculo; permanece pendente até uma retomada legítima (por exemplo edição documental externa ou invocação do mecanismo interno `setLayout` do controller — que não constitui nova API pública da factory, suporte público à atualização dinâmica de layout nem ampliação dos contratos homologados) iniciar nova tentativa e emitir snapshot. |
 | Timer pendente | Aguarda uma conclusão sem garantir rodada adicional ou reiniciar o timer por essa chamada. |
 | Cálculo em curso | Aguarda uma conclusão sem garantir rodada adicional posterior à chamada ou a uma mudança externa. |
 
-Chamadas concorrentes podem receber o mesmo snapshot. Concluir uma rodada não comprova ausência de trabalho pendente, processamento integral nem geometria atual correta. Um snapshot pode representar paginação parcial acompanhada de diagnóstico, como `LAYOUT_ITERATION_LIMIT`; examine `diagnostics` antes de interpretar o resultado como completo.
+Chamadas concorrentes podem receber o mesmo snapshot. Concluir uma rodada não comprova convergência completa, ausência de trabalho pendente, processamento integral nem geometria atual correta. Um snapshot pode representar paginação parcial acompanhada de diagnóstico em `snapshot.diagnostics`, como `LAYOUT_ITERATION_LIMIT` ou `LAYOUT_CONVERGENCE_LIMIT` (este último no limite histórico de três passes de convergência por ciclo); examine `diagnostics` antes de interpretar o resultado como completo. Distintamente, o esgotamento do orçamento de invalidações concorrentes interrompe a recuperação automática emitindo advertência operacional em `console.warn` (`LAYOUT_CONVERGENCE_LIMIT`), sem publicar snapshot obsoleto nem incluir esse aviso em um snapshot emitido.
 
-Se o percurso não alcançar a emissão do snapshot, por exemplo em determinados abortos, erros ou destruição, a promise pode permanecer pendente, sem rejeição automática por esses caminhos. Isso não significa que todo aborto gere pendência permanente: uma conclusão posterior pode resolver aguardantes preservados. Não há garantia geral de resolução dentro de um prazo.
+Se o percurso não alcançar a emissão do snapshot — por exemplo em esgotamento do orçamento de invalidação documental, determinados abortos, erros ou destruição —, a promise pode permanecer pendente, sem cancelamento, timeout público ou rejeição automática por esses caminhos. Isso não significa que toda pendência seja permanente: uma retomada legítima posterior que conclua com emissão de snapshot resolve os aguardantes preservados, sem garantia universal de resolução espontânea ou dentro de determinado prazo.
 
-Agendar cálculo, concluir uma rodada e obter um resultado que reflita a geometria atual são condições distintas. O helper não certifica alinhamento físico, idempotência ou atualização após mudanças externas posteriores.
+Agendar cálculo, concluir uma rodada, atingir convergência completa e obter um resultado que reflita a geometria física atual são condições distintas. O helper não certifica alinhamento físico, idempotência ou atualização após mudanças externas posteriores.
 
 ### Preparação de impressão
 

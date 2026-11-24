@@ -22,8 +22,9 @@ A paginação adota uma separação rigorosa de responsabilidades entre três ca
 
 ## Estado e Distribuição
 
-- **Branch canônica permanente:** `main` (commit de referência `a0c92d5765a9832c5c03794e196fa23552fe0cbc`, incorporando as correções integradas da iniciativa F3 via Pull Request #16).
+- **Branch canônica permanente:** `main` (marco funcional pós-F3 utilizado como base desta consolidação documental: `977f106c2fcf46771f46ae3a40813ddbc24f1297`, tree `f961be2ebca7f675445fa9d765a1205d893b55ee`, incorporando a iniciativa F3 via Pull Request #16, a consolidação documental R2 via Pull Request #20 e a manutenção pós-F3 via Pull Requests #21, #19 e #22).
 - **Versão do manifesto:** `0.1.0-rc.4`. Esta declaração identifica os metadados do pacote local, mas não comprova publicação no registro público npm do estado atual da `main`.
+- **Compatibilidade declarada:** `peerDependencies` preservam `@tiptap/core` e `@tiptap/pm` em `^2.0.0 || ^3.0.0`; o ambiente de desenvolvimento do repositório está alinhado em `@tiptap/{core,pm,starter-kit}` `^3.35.0` (resolvidos em `3.35.0`). Veja [Desenvolvimento](docs/development.md#ambiente-e-instalação) e [Proveniência](docs/provenance.md) para os ambientes ensaiados e o alcance das validações.
 - **Instalação validada:** Para consumir o estado canônico homologado da biblioteca, gere o pacote a partir da raiz do repositório:
   ```bash
   npm run build
@@ -129,6 +130,7 @@ Nos cenários ensaiados da F3, essas regras contribuíram para preservar caixas 
 | `host` | `HTMLElement` (obrigatório) | Elemento DOM que conterá as camadas de edição e apresentação. |
 | `content` | `Content` (opcional) | Conteúdo inicial (HTML ou JSON do ProseMirror). |
 | `extensions` | `Extensions` (opcional) | Extensões do Tiptap (ex.: `StarterKit`). Não incluir paginação aqui. |
+| `autofocus` | `FocusPosition` (opcional) | Quando omitido ou `undefined`, normalizado para `false` pela composição coordenada; valores explícitos são preservados. Essa normalização não se aplica automaticamente aos fluxos standalone/manuais. |
 | `layout.page` | `DocumentEditorPageLayoutOptions` | Dimensões e margens estruturais da página (veja presets abaixo). |
 | `renderHeader` | `(context, mountPoint) => void \| Disposer` | Callback para desenhar o conteúdo do cabeçalho de cada folha. |
 | `renderFooter` | `(context, mountPoint) => void \| Disposer` | Callback para desenhar o conteúdo do rodapé de cada folha. |
@@ -190,6 +192,7 @@ Consulte o [Quick Start Completo](docs/quick-start.md) para o guia passo a passo
 ## Limitações Essenciais
 
 - **Reatividade Documental:** O recálculo de quebras é agendado automaticamente por alterações estruturais ou de texto segundo a igualdade `Node.eq` do ProseMirror. Alterações externas de CSS ou fontes após a montagem inicial não possuem observadores automáticos.
+- **Estabilidade e Orçamento de Recuperação:** Invalidações documentais concorrentes durante a publicação (por exemplo via `appendTransaction`) acionam recuperação controlada limitada a três invalidações na mesma tentativa; após esgotamento, `whenLayoutStable()` não reinicia automaticamente o cálculo e os aguardantes podem permanecer pendentes até uma alteração externa legítima. Veja [API](docs/api.md#snapshots-e-estabilidade).
 - **Fontes e Recursos Assíncronos:** O cálculo afere métricas no DOM. Recomenda-se que fontes personalizadas estejam carregadas (`document.fonts.ready`) antes da inicialização para evitar quebras em posições desatualizadas.
 - **Tabelas:** Linhas de tabelas que excedem a altura útil da página ou certos arranjos complexos com `rowspan` podem emitir diagnósticos de bloqueio (`TABLE_INTRAROW_UNSUPPORTED`), pois não há quebra arbitrária dentro de uma mesma linha/célula.
 - **Imagens e Blocos Indivisíveis:** Elementos de bloco com altura maior que a altura útil nominal não são fragmentados automaticamente.

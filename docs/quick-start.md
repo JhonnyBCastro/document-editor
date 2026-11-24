@@ -13,7 +13,7 @@ A biblioteca oferece dois caminhos principais de integração:
 
 ### Geração do Pacote Local da Main
 
-A base canônica permanente do projeto é a branch `main` (commit `a0c92d5765a9832c5c03794e196fa23552fe0cbc`, Pull Request #16). Para obter o pacote validado, gere o arquivo `.tgz` na raiz da biblioteca:
+A base canônica permanente do projeto é a branch `main` (marco funcional pós-F3 utilizado como base desta consolidação documental: `977f106c2fcf46771f46ae3a40813ddbc24f1297`, tree `f961be2ebca7f675445fa9d765a1205d893b55ee`, após a iniciativa F3 via Pull Request #16 e a manutenção pós-F3 via Pull Requests #21, #19 e #22). Para obter o pacote validado, gere o arquivo `.tgz` na raiz da biblioteca:
 
 ```bash
 npm run build
@@ -58,6 +58,8 @@ Instale as dependências via:
 npm install
 ```
 
+> **Alcance das versões exemplificadas e ambientes ensaiados:** O `package.json` acima preserva a receita histórica de exemplo (`@tiptap/*` `3.32.0`, `typescript` `7.0.2`, `vite` `8.3.5`). Na manutenção pós-F3 (`T1-R2` / PR #22), o consumo externo do tarball `0.1.0-rc.4` (`SHA-256 63da9382...`) foi validado em dois consumidores independentes com instalação congelada por `npm ci`, `typescript@5.9.3` (`strict: true`, `skipLibCheck: false`) e `vite@6.4.5`: um em Tiptap `2.27.3` e outro em Tiptap `3.35.0`. Os `peerDependencies` públicos permanecem `^2.0.0 || ^3.0.0`, sem certificação universal de todas as combinações de versões ou navegadores. Consulte [Desenvolvimento](development.md#ambiente-e-instalação) e [Limitações](limitations.md).
+
 ### Configuração TypeScript e Tipos CSS
 
 `tsconfig.json`:
@@ -90,7 +92,7 @@ npm install
 
 ## Composição coordenada V1 — Quick Start primário
 
-A Composição Coordenada V1 (`createDocumentEditor`) é o caminho de consumo primário e recomendado. A factory cria o elemento wrapper interno, atualiza sua altura conforme os snapshots e sincroniza as projeções do Core com a Presentation. Não instala observadores automáticos para mudanças externas de dimensões, CSS ou fontes.
+A Composição Coordenada V1 (`createDocumentEditor`) é o caminho de consumo primário e recomendado. A factory cria o elemento wrapper interno, atualiza sua altura conforme os snapshots, sincroniza as projeções do Core com a Presentation e normaliza `autofocus` omitido ou `undefined` para `false` (preservando valores explícitos informados pelo consumidor; nos fluxos manuais ou isolados o comportamento padrão do `Editor` não é alterado por essa normalização). Não instala observadores automáticos para mudanças externas de dimensões, CSS ou fontes.
 
 ### HTML (`index.html`)
 

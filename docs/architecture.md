@@ -1,6 +1,6 @@
 # Arquitetura
 
-Base canônica vigente: branch `main`, commit `c7b5497cc58bbddbf6966f69d0409040bb3d468d` (após incorporação integral da linha `feature/compose-next` via Pull Request #3). Descrição estática e formal da arquitetura Composed.
+Marco funcional pós-F3 utilizado como base desta consolidação documental (branch `main`): `977f106c2fcf46771f46ae3a40813ddbc24f1297`, tree `f961be2ebca7f675445fa9d765a1205d893b55ee` (após incorporação da linha `feature/compose-next` via Pull Request #3, iniciativa F3 via Pull Request #16 e manutenção pós-F3 via Pull Requests #21, #19 e #22). Descrição estática e formal da arquitetura Composed.
 
 ## Documento contínuo e responsabilidades
 
@@ -16,11 +16,24 @@ Na montagem manual, o consumidor monta o host da Presentation no mesmo espaço d
 
 Na composição coordenada, a factory cria seus recursos e deriva a geometria estrutural inicial de `layout.page`. A Presentation continua aplicando projeções, sem calcular paginação. As garantias da factory não são transferidas implicitamente ao Core ou à Presentation isolados. Estilos métricos e mudanças externas continuam sujeitos aos limites documentados.
 
-## Estado de decorações e publicação transacional
+## Estado de decorações, publicação transacional e recuperação
 
 Na integração com `PaginationExtension`, `DecorationSet` pertence ao estado do plugin `PaginationPluginKey`. `apply` remapeia as decorações nas transações comuns. O controller lê e publica por uma bridge interna; não mantém uma segunda cópia ativa independente nessa integração.
 
-A publicação usa transação sem steps e payload `replaceDecorations`, vinculado à identidade do documento. A bridge verifica a instalação síncrona e os guards de lifecycle antes de aceitar a publicação. Esses mecanismos internos não são uma API pública de composição. A construção direta do controller sem bridge conserva armazenamento local para usos internos e testes.
+A publicação usa transação sem steps e payload `replaceDecorations`, vinculado à identidade do documento e marcado por token único (`Symbol`) rastreado síncronamente durante o dispatch. A bridge distingue explicitamente três desfechos internos:
+
+1. **Instalação válida (`installed`):** a transação de publicação foi processada sobre o documento alvo, o documento final permanece idêntico, o token é confirmado no estado do plugin sem invalidação e o `DecorationSet` lido pós-dispatch corresponde à referência publicada.
+2. **Invalidação documental concorrente (`invalidated_by_doc_change`):** a transação de publicação foi comprovadamente processada pelo plugin, mas uma mutação documental legítima subsequente no mesmo dispatch (por exemplo um `appendTransaction`, como o `TrailingNode` do `StarterKit` 3) alterou o documento e remapeou as decorações sobre o novo estado. Essa invalidação legítima não é tratada como falha de instalação; o plugin suprime o reagendamento cego em `view.update()` enquanto `publish()` está ativo para evitar agendamento duplicado.
+3. **Falha efetiva de instalação ou integridade (exceção):** mantêm-se todas as guardas negativas (controller destruído, divergência de documento, payload inválido, steps na transação de publicação, rejeição por `filterTransaction`, `dispatchTransaction` descartado/no-op ou ausência de confirmação no estado final).
+
+No `PaginationController`, a recuperação de `invalidated_by_doc_change` é governada por um **orçamento contínuo de invalidações por tentativa de estabilização** (limite de três invalidações, usando a constante `MAX_CONVERGENCE_PASSES = 3`), distinto do **limite histórico de três passes de convergência por ciclo**:
+
+- Publicações intermediárias válidas (`deferStableIfChanged && changed`) e reagendamentos internos preservam o orçamento sem reinicializá-lo.
+- Cada publicação invalidada consome `1` unidade do orçamento, preserva `pendingCyclePublishedChanges = true`, aborta o ciclo corrente sem emitir snapshot obsoleto nem incrementar `revision` e agenda nova rodada enquanto o total permanecer abaixo de três.
+- Ao atingir o limite de três invalidações, o controller marca esgotamento (`publicationRecoveryExhausted`), interrompe o reagendamento automático, emite advertência operacional via `console.warn` (`LAYOUT_CONVERGENCE_LIMIT` — sem emitir snapshot nem registrar diagnóstico em snapshot publicado) e impede contorno por reagendamentos internos ou chamadas repetidas de `whenLayoutStable()`.
+- A reinicialização legítima do orçamento ocorre exclusivamente ao concluir uma estabilização (incluindo quando o limite histórico de três passes aceita um snapshot parcialmente estabilizado, sem que isso signifique convergência completa) ou diante de alteração externa legítima (`notifyExternalDocumentChange()`, disparado fora do dispatch de publicação, ou `setLayout()`). A destruição do controller (`destroy()`) bloqueia permanentemente qualquer retomada.
+
+Esses mecanismos permanecem internos à bridge e ao controller; não constituem novas APIs públicas de composição. A construção direta do controller sem bridge conserva armazenamento local para usos internos e testes.
 
 ## Reatividade e estabilidade
 
@@ -48,7 +61,7 @@ A integridade do protocolo de metadados e das decisões de quebra é garantida p
 4. **Validação pré-comparador e pré-fábrica:** ambas as coleções (`currentStructural` e `breaks`) são validadas integralmente antes da execução do comparador e antes de qualquer chamada à fábrica de decorações, inclusive quando o resultado comparativo for de ausência de alteração (`changed = false`).
 5. **Array denso de razões (B-R1):** a validação de `reasons` verifica que cada índice de `0` até `length - 1` é propriedade própria do array e contém valor do tipo `string`. Arrays vazios `[]` são válidos; lacunas (sparse arrays), índices herdados de protótipos, valores nulos, indefinidos, números ou objetos provocam rejeição imediata, sem compactação, normalização ou preenchimento silencioso. O comparador canônico acessa `reasons` diretamente sem fallbacks sintéticos (`reasons || []`), comparando estritamente tamanho e valores ordenados.
 
-A reavaliação de layout adota um comparador canônico que ordena as decorações estruturais ativas crescentemente por posição física (`from`) e compara cinco campos semânticos (`pos`, `effectiveDisplacement`, `origin`, `renderer` e `reasons`). Na ausência de alterações estruturais, a publicação transacional é suprimida e a revisão é preservada. Falhas numéricas ou corrupções de metadados acionam aborto atômico pré-publicação (`PaginationCorruptedSpecError`), mantendo as decorações ativas inalteradas e preservando aguardantes de estabilização sem corromper o estado do editor (DEC-05). O modelo algébrico e o protocolo de leitura uniforme constituem a implementação canônica interna, sem declarar comprovação física ou homologação de testes ainda não executados.
+A reavaliação de layout adota um comparador canônico que ordena as decorações estruturais ativas crescentemente por posição física (`from`) e compara cinco campos semânticos (`pos`, `effectiveDisplacement`, `origin`, `renderer` e `reasons`). Na ausência de alterações estruturais, uma nova publicação transacional é suprimida. A revisão é preservada quando também não existe publicação anterior pendente de contabilização; após recuperação com decorações equivalentes, essa pendência ainda pode produzir um único incremento no trecho de aceitação do resultado. Falhas numéricas ou corrupções de metadados acionam aborto atômico pré-publicação (`PaginationCorruptedSpecError`), mantendo as decorações ativas inalteradas e preservando aguardantes de estabilização sem corromper o estado do editor (DEC-05). O modelo algébrico e o protocolo de leitura uniforme constituem a implementação canônica interna, sem declarar comprovação física ou homologação de testes ainda não executados.
 
 
 ## Lifecycle, tabelas e impressão

@@ -1,14 +1,24 @@
 # Desenvolvimento
 
-Trabalhe a partir da branch canônica `main` (commit de referência `c7b5497cc58bbddbf6966f69d0409040bb3d468d`, após incorporação integral da linha `feature/compose-next` via Pull Request #3). Os comandos abaixo são instruções operacionais para desenvolvimento, testes e verificação da biblioteca.
+Trabalhe a partir da branch canônica `main` (marco funcional pós-F3 utilizado como base desta consolidação documental: `977f106c2fcf46771f46ae3a40813ddbc24f1297`, tree `f961be2ebca7f675445fa9d765a1205d893b55ee`, após a incorporação da linha `feature/compose-next` via Pull Request #3, a iniciativa F3 via Pull Request #16 e a manutenção pós-F3 via Pull Requests #21, #19 e #22). Os comandos abaixo são instruções operacionais para desenvolvimento, testes e verificação da biblioteca.
 
 Para testar consumo de pacote, use o [Quick Start](quick-start.md), em pasta separada. As instruções abaixo sobre build/testes da biblioteca são outro fluxo; não importar `src/` para contornar problemas do pacote.
 
 ## Ambiente e instalação
 
-O ciclo CONS-014 utilizou Node 22.23.3, Vite 6.4.3, Vitest 5.0.3 e JSDOM 30.1.1. São versões observadas, não requisitos mínimos certificados. O [manifesto](../package.json) e o [lockfile](../package-lock.json) descrevem dependências; o manifesto mistura Core/PM Tiptap 2 e StarterKit 3. Não se presume compatibilidade universal ou isolamento de todo subpath ProseMirror.
+### Grafo de desenvolvimento no marco funcional pós-F3 (`977f106c`)
 
-A validação registrada usou dependências provisionadas fisicamente de uma instalação local preservada. Não demonstrou instalação limpa. Em um ambiente novo, a resolução pelo lockfile deve ser tratada como preparação ainda não validada; não usar `--force`, alterar versões ou recuperar dependências dos consumidores removidos para ocultar incompatibilidades. Esta documentação não anuncia um pacote npm correspondente à branch.
+O [manifesto](../package.json) e o [lockfile](../package-lock.json) consolidados pela manutenção pós-F3 (PRs #21, #19 e #22) apresentam:
+
+- **Dependências de desenvolvimento Tiptap declaradas e resolvidas:** `@tiptap/core`, `@tiptap/pm` e `@tiptap/starter-kit` declarados em `^3.35.0` no manifesto, resolvidos em `3.35.0` no lockfile (`25` pacotes `@tiptap/*` resolvidos em `3.35.0`, eliminando as duplicatas anteriores de `@tiptap/core` e `@tiptap/pm`).
+- **Ferramentas de teste e tipos resolvidas:** `vitest` `5.1.1`, `vite-plugin-dts` `5.1.2` e `unplugin-dts` `1.1.2`.
+- **Remediação da Issue #15 no lockfile:** `0` entradas de `minimatch` e `0` entradas de `@microsoft/api-extractor` no grafo posterior à PR #21 (`294` entradas em `packages`, sendo `293` excluindo o pacote raiz). No lockfile histórico imediatamente anterior à PR #21 (`7d44a8a5ad45db2a16c0f98deba864daa1299087`), o inventário do grafo continha duas entradas distintas: `minimatch@10.2.3` em `node_modules/minimatch` (versão vinculada ao advisory examinado na Issue #15) e `minimatch@9.0.9` sob `node_modules/@vue/language-core/node_modules/minimatch`, sem atribuir automaticamente o mesmo advisory ou impacto concreto às duas versões. A remoção dessas entradas não constitui certificação geral de segurança: o `npm audit` de desenvolvimento ainda registra alertas residuais na cadeia de desenvolvimento (`11` alertas: `4` raízes + `7` propagados em Puppeteer/`zod`).
+- **Peers públicos preservados:** `@tiptap/core` e `@tiptap/pm` mantidos em `^2.0.0 || ^3.0.0`. Versões declaradas, versões resolvidas no lockfile e versões ensaiadas em testes não estabelecem certificação universal de toda a faixa de peers nem requisitos mínimos certificados.
+- **Instalação estrita verificada:** durante a preparação da PR #22 (Node `24.22.3` / npm `11.19.1`) e no workflow `CI/verify` do GitHub Actions (Node `24`), a instalação limpa por `npm ci` (sem `--force` ou `--legacy-peer-deps`) foi demonstrada com aprovação dos testes, builds e validação pública de tipos.
+
+### Registro histórico de ambiente (`CONS-014`)
+
+Historicamente, o ciclo `CONS-014` utilizou Node `22.23.3`, Vite `6.4.3`, Vitest `5.0.3` e JSDOM `30.1.1`, quando o manifesto ainda misturava Core/PM na geração 2 e StarterKit na geração 3 e as validações daquele corte utilizaram dependências provisionadas fisicamente sem verificar instalação limpa. Esse limite permanece preservado como registro histórico daquele ciclo. Esta documentação não anuncia publicação npm correspondente à branch.
 
 ## Experimento do pacote: tipos, bundle e browser
 
@@ -98,6 +108,14 @@ Na Rodada 3, dedicada a CON-14, o executor preservou retângulos físicos e mode
 O supervisor registrou fechamento do navegador e evento de fechamento do servidor Vite com código 143 após SIGTERM. A mensagem interna de saída 0 não substitui um registro externo, pelo processo pai, do código de saída efetivo do supervisor; tal registro não consta dos artefatos examinados. Ramos excepcionais do supervisor não foram todos exercidos. O GET 404 de `/favicon.ico` foi identificado nesse laboratório sem impacto observado no ensaio; isso não resolve os 404 históricos de outras execuções.
 
 Esses resultados não reexecutam nem substituem os registros anteriores de implementação, os negativos da Demo ou as ressalvas descritas em [limitações](limitations.md).
+
+### Manutenção pós-F3 — candidata `T1-R2` e PR #22 (24 de novembro de 2026)
+
+Na conclusão dos ciclos experimentais `T1`, `T1-R1` e `T1-R2` e na preparação da PR #22 (`a8051788...`, integrada por squash em `977f106c2fcf46771f46ae3a40813ddbc24f1297`, tree `f961be2ebca7f675445fa9d765a1205d893b55ee`):
+
+- **Gates locais e CI da PR #22:** `npm ci`, `npm test` (`223` testes aprovados em `20` arquivos, com `0` exceções assíncronas não tratadas — contagem de testes, não métrica de cobertura), `npm run build` (Core, Presentation e Compose) e `npm run test:types:public` (`.`, `./presentation` e `./compose`) aprovados localmente e no job obrigatório `CI/verify` (Run `45435569900`, Job `138592317584`, executado sobre o merge sintético `99cf8de603bfe3e56a94d28c27ef232ca8316c6b` de árvore idêntica `f961be2ebca7f675445fa9d765a1205d893b55ee`). Não houve nova execução de `CI/verify` após o merge no recorte consultado (as execuções posteriores `45471444376` e `45471444835` pertencem ao Dependabot).
+- **Consumidores independentes ensaiados na `T1-R2`:** dois consumidores externos independentes (`typescript@5.9.3` com `strict: true` e `skipLibCheck: false`, `vite@6.4.5`, instalação congelada via `npm ci`) — um em Tiptap `2.27.3` e outro em Tiptap `3.35.0` — validados em Chromium headless com `0` `pageErrors`, `0` `unexpectedConsoleErrors` e medições físicas `getBoundingClientRect()` com desvio máximo de `0 px` nas superfícies e cenários medidos.
+- **Ressalvas preservadas:** no consumidor Tiptap `2.27.3`, o `npm audit` reportou `1` advisory raiz em `@tiptap/core@2.27.3` e `24` entradas propagadas (`0` vulnerabilidades no consumidor Tiptap `3.35.0`). A identidade do tarball e dos marcos está em [proveniência](provenance.md#manutenção-pós-f3--issue-15-pr-19-e-candidata-t1-r2--pr-22).
 
 ## Contribuições e documentação
 

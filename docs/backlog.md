@@ -1,6 +1,6 @@
 # Backlog
 
-Base canônica vigente: branch `main`, commit `a0c92d5765a9832c5c03794e196fa23552fe0cbc` (após incorporação integral da linha `feature/compose-next` via Pull Request #3 e das correções da iniciativa F3 via Pull Request #16). Esta lista separa implementação, evidência e trabalho futuro; não reabre automaticamente decisões encerradas.
+Marco funcional pós-F3 utilizado como base desta consolidação documental (branch `main`): `977f106c2fcf46771f46ae3a40813ddbc24f1297`, tree `f961be2ebca7f675445fa9d765a1205d893b55ee` (após incorporação da linha `feature/compose-next` via Pull Request #3, iniciativa F3 via Pull Request #16, consolidação documental R2 via Pull Request #20 e manutenção pós-F3 via Pull Requests #21, #19 e #22). Esta lista separa implementação, evidência e trabalho futuro; não reabre automaticamente decisões encerradas.
 
 ## Implementado
 
@@ -13,6 +13,10 @@ Base canônica vigente: branch `main`, commit `a0c92d5765a9832c5c03794e196fa2355
 
 - Quick Start primário com Composição Coordenada V1 (`createDocumentEditor`), validado literalmente em consumidor independente limpo com TypeScript, build Vite e execução em navegador; receita de montagem manual avançada preservada.
 - Composição Coordenada V1 implementada, revisada e homologada no escopo autorizado e nos ambientes verificados: `createDocumentEditor(options)`, `options.host`, interface mínima e entrada ESM `/compose`. Não inclui atualização dinâmica de layout.
+- Manutenção pós-F3 integrada na `main`:
+  - **Issue #15 / PR #21 (`88aa3393a961d9c55318172fbedb993c4664810f`):** migração de `vite-plugin-dts` para `^5.1.2` (`unplugin-dts` `1.1.2`), remoção das entradas de `minimatch` e `@microsoft/api-extractor` no lockfile de desenvolvimento e ampliação de `test:types:public` para `.`, `./presentation` e `./compose` (Issue #15 encerrada como `completed`).
+  - **PR #19 (`1f689059639a3160b4fe0fd6afb440bc8d48db25`):** atualização de `vitest` para `5.1.1`.
+  - **PR #22 (`977f106c2fcf46771f46ae3a40813ddbc24f1297`):** alinhamento de `@tiptap/{core,pm,starter-kit}` em `devDependencies` para `^3.35.0` (`25` pacotes Tiptap resolvidos em `3.35.0`, mantendo peers `^2.0.0 || ^3.0.0`), verificação resiliente de aquisição da `EditorView` e normalização de `autofocus` omitido para `false` em `createDocumentEditor`, protocolo explícito de publicação em três desfechos com orçamento contínuo de três invalidações entre ciclos e 14 testes focais de regressão (`223` testes em `20` arquivos). As PRs #17 e #18 foram encerradas automaticamente pelo Dependabot sem merge individual após essa integração.
 
 ## Observado com validação limitada
 
@@ -31,7 +35,7 @@ Base canônica vigente: branch `main`, commit `a0c92d5765a9832c5c03794e196fa2355
 
 1. Investigar idempotência negativa, violações geométricas e HTTP 404 com hipótese e escopo próprios; sem atribuição causal antecipada.
 2. Ampliar evidências de reatividade somente com hipótese e escopo próprios: a correção documental está implementada e o ensaio real cobriu duas edições textuais de mesmo tamanho, não uma matriz visual geral de marcas/atributos ou desempenho. Mudanças externas de geometria e a tarefa focal C-05 permanecem independentes.
-3. Tornar instalação e execução reproduzíveis: esclarecer o grafo Tiptap/PM, versões ensaiadas, dependências da Demo e consumo externo do pacote. Não restaurar consumidores obsoletos.
+3. Consolidar reprodutibilidade da Live Demo e de eventuais matrizes adicionais de consumo externo: o grafo de desenvolvimento Tiptap/PM foi alinhado na `main` em `3.35.0` com `npm ci` verificado na PR #22 e no CI, mas dependências da Demo e matrizes amplas de consumidores continuam sujeitas a escopo próprio. Não restaurar consumidores obsoletos.
 4. Disponibilizar cenários tabulares na Demo por decisão própria, preservando os limites intralinha e de rowspan.
 5. Ampliar validação de orçamento, recuperação de `STALE_BREAK`, associação estrutural tabular e mapeamento linha visual/intervalo PM (pendências N2–N5 do CONS-013). A recorrência algébrica não fecha a integração geométrica.
 6. Decidir o comportamento sem corte elegível (L1) e de overshoot sem fronteira anterior (L2), sem confundir essas escolhas com ressalvas de rodapé ou impressão.
