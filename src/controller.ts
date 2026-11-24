@@ -8,9 +8,13 @@ import { evaluateLinearPolicies, evaluateTablePolicies, checkProgressRule } from
 import { createDecorationFromDecision } from './decorations';
 import { calculatePageProjections } from './projection';
 
+export type PaginationPublicationResult =
+    | { status: 'installed' }
+    | { status: 'invalidated_by_doc_change'; previousDoc: any; currentDoc: any };
+
 export interface PaginationDecorationBridge {
     read(view: EditorView): DecorationSet;
-    publish(view: EditorView, set: DecorationSet, doc: any): void;
+    publish(view: EditorView, set: DecorationSet, doc: any): PaginationPublicationResult | void;
 }
 
 export class PaginationCorruptedSpecError extends Error {
@@ -147,6 +151,8 @@ export class PaginationController {
     private pendingCyclePublishedChanges: boolean = false;
     private lastPassOutcome: ConvergencePassOutcome = 'aborted';
     private currentCyclePasses: number = 0;
+    private publicationInvalidationsInAttempt: number = 0;
+    private publicationRecoveryExhausted: boolean = false;
     private manualBreakNodeName: string;
     private readonly visualMode: PaginationVisualMode;
 
@@ -176,7 +182,7 @@ export class PaginationController {
         }
         return new Promise(resolve => {
             this.stableListeners.push(resolve);
-            if (!this.isCalculating && !this.renderTimeout) {
+            if (!this.isCalculating && !this.renderTimeout && !this.publicationRecoveryExhausted) {
                 this.scheduleRender();
             }
         });
@@ -184,6 +190,9 @@ export class PaginationController {
 
     public setLayout(layout: LayoutConfig) {
         this.layout = layout;
+        if (this.isDestroyed) return;
+        this.publicationInvalidationsInAttempt = 0;
+        this.publicationRecoveryExhausted = false;
         this.scheduleRender();
     }
 
@@ -213,12 +222,19 @@ export class PaginationController {
         return this.getActiveDecorations();
     }
 
-    public scheduleRender() {
+    public notifyExternalDocumentChange() {
         if (this.isDestroyed) return;
+        this.publicationInvalidationsInAttempt = 0;
+        this.publicationRecoveryExhausted = false;
+        this.scheduleRender();
+    }
+
+    public scheduleRender() {
+        if (this.isDestroyed || this.publicationRecoveryExhausted) return;
         if (this.renderTimeout) clearTimeout(this.renderTimeout);
         this.renderTimeout = setTimeout(() => {
             this.renderTimeout = null;
-            if (this.isDestroyed) return;
+            if (this.isDestroyed || this.publicationRecoveryExhausted) return;
             this.renderVirtualPages();
         }, 100);
     }
@@ -230,6 +246,8 @@ export class PaginationController {
             this.renderTimeout = null;
         }
         this.pendingCyclePublishedChanges = false;
+        this.publicationInvalidationsInAttempt = 0;
+        this.publicationRecoveryExhausted = false;
         this.currentDecorations = DecorationSet.empty;
     }
 
@@ -243,12 +261,12 @@ export class PaginationController {
     }
 
     private renderVirtualPages() {
-        if (this.isDestroyed || !this.view || this.isCalculating) return;
+        if (this.isDestroyed || !this.view || this.isCalculating || this.publicationRecoveryExhausted) return;
         this.isCalculating = true;
 
         if (document.fonts && document.fonts.status === 'loading') {
             document.fonts.ready.then(() => {
-                if (this.isDestroyed) return;
+                if (this.isDestroyed || this.publicationRecoveryExhausted) return;
                 this.isCalculating = false;
                 this.scheduleRender();
             });
@@ -256,7 +274,7 @@ export class PaginationController {
         }
 
         requestAnimationFrame(() => {
-            if (this.isDestroyed) {
+            if (this.isDestroyed || this.publicationRecoveryExhausted) {
                 this.isCalculating = false;
                 return;
             }
@@ -1417,8 +1435,9 @@ export class PaginationController {
         if (changed) {
             const decos = breaks.flatMap(b => createDecorationFromDecision(b, this.layout, totalGapSize, this.view.state.doc, this.visualMode));
             const newSet = DecorationSet.create(this.view.state.doc, decos);
+            let publicationResult: PaginationPublicationResult | void;
             if (this.decorationBridge) {
-                this.decorationBridge.publish(this.view, newSet, this.view.state.doc);
+                publicationResult = this.decorationBridge.publish(this.view, newSet, this.view.state.doc);
             } else {
                 this.currentDecorations = newSet;
                 this.view.dispatch(this.view.state.tr.setMeta('pagination', true));
@@ -1427,6 +1446,20 @@ export class PaginationController {
                 throw new Error('PaginationController: controller was destroyed during layout publication.');
             }
             this.pendingCyclePublishedChanges = true;
+
+            if (publicationResult && publicationResult.status === 'invalidated_by_doc_change') {
+                this.publicationInvalidationsInAttempt += 1;
+                this.lastPassOutcome = 'aborted';
+                if (this.publicationInvalidationsInAttempt < MAX_CONVERGENCE_PASSES) {
+                    this.scheduleRender();
+                } else {
+                    this.publicationRecoveryExhausted = true;
+                    console.warn(
+                        `${LAYOUT_CONVERGENCE_LIMIT_CODE}: publication repeatedly invalidated by concurrent document changes (${this.publicationInvalidationsInAttempt}/${MAX_CONVERGENCE_PASSES}); stopping controlled reschedule.`
+                    );
+                }
+                return;
+            }
         }
 
         if (this.isDestroyed) {
@@ -1437,6 +1470,11 @@ export class PaginationController {
         if (this.deferStableIfChanged && changed) {
             return;
         }
+
+        // Estabilização efetivamente concluída (convergência ou passe final de estabilização parcial):
+        // encerra a tentativa atual e reinicializa o orçamento de invalidações.
+        this.publicationInvalidationsInAttempt = 0;
+        this.publicationRecoveryExhausted = false;
 
         if (this.pendingCyclePublishedChanges) {
             this.revision++;

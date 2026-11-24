@@ -55,9 +55,9 @@
     "test:types:public": "tsc --noEmit --module esnext --target es2020 --lib dom,es2020 --moduleResolution bundler tests/verify-public-consumption.ts"
   },
   "devDependencies": {
-    "@tiptap/core": "^2.11.0",
-    "@tiptap/pm": "^2.11.0",
-    "@tiptap/starter-kit": "^3.31.4",
+    "@tiptap/core": "^3.35.0",
+    "@tiptap/pm": "^3.35.0",
+    "@tiptap/starter-kit": "^3.35.0",
     "jsdom": "^31.0.0",
     "puppeteer": "^25.12.0",
     "puppeteer-core": "^23.6.0",
