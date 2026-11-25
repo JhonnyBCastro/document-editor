@@ -1,6 +1,13 @@
 import type { LayoutSnapshot, PageProjection } from '../types';
 
 import './presentation.css';
+export {
+    createDocumentDebugOverlay,
+    type DocumentDebugOverlay,
+    type DocumentDebugOverlayErrorContext,
+    type DocumentDebugOverlayOptions,
+    type DocumentDebugOverlayState,
+} from './debug-overlay';
 
 export type DeepReadonly<T> = {
     readonly [P in keyof T]: T[P] extends object ? DeepReadonly<T[P]> : T[P];

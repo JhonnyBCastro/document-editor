@@ -134,8 +134,11 @@ Na integração padrão (tanto na Composição Coordenada quanto no Core manual)
 | `layout.page` | `DocumentEditorPageLayoutOptions` | Dimensões e margens estruturais da página (veja presets abaixo). |
 | `renderHeader` | `(context, mountPoint) => void \| Disposer` | Callback para desenhar o conteúdo do cabeçalho de cada folha. |
 | `renderFooter` | `(context, mountPoint) => void \| Disposer` | Callback para desenhar o conteúdo do rodapé de cada folha. |
+| `debugOverlay` | `DocumentEditorDebugOverlayOptions` (opcional) | Provisionamento opcional da camada visual diagnóstica (`Debug Overlay V1`, desabilitada por padrão quando omitida ou com `enabled: false`), controlada por `instance.debugOverlay`. |
 | `onLayoutStable` | `(snapshot: LayoutSnapshot) => void` | Notificação disparada quando o cálculo de paginação atinge estabilidade. |
 | `onError` | `(incident: DocumentEditorIncident) => void` | Tratador para incidentes operacionais da composição. |
+
+> **Camada diagnóstica opcional (`Debug Overlay V1`):** desabilitada por padrão e sem impacto no JSON semântico nem solicitações de cálculo ao Core, permite inspecionar visualmente folhas, regiões reservadas, área útil nominal e gaps a partir dos `LayoutSnapshot` publicados, tanto via `options.debugOverlay` em `createDocumentEditor` quanto de forma independente por `createDocumentDebugOverlay`. Veja o [Quick Start](docs/quick-start.md#debug-overlay-v1-opcional) e a [Referência de API](docs/api.md#debug-overlay-v1-presentation-e-composição).
 
 ### Presets de Dimensões de Página (`layout.page`)
 

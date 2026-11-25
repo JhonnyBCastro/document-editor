@@ -1,5 +1,11 @@
 # Proveniência
 
+## Preparação da integração `Debug Overlay V1` (`DEBUG-OVERLAY-001`, 25/11/2026)
+
+- **Base canônica adotada:** commit `2cb8e65c2b1a63e8aabf36f353cc49408af589a3` (tree `8014d92f47d75778e174574dec0a5d7d11eed003`) na branch `main` (após integração canônica da iniciativa `AUTO-CSS-C01 V1` via PR #24).
+- **Linha experimental homologada (`R1`):** implementada e verificada em `ed-debug-overlay-v1-r1` (`candidate-debug-overlay-v1-r1-0.1.0-rc.4.tgz`, `120.816` bytes, `38` arquivos, SHA-256 `849cf238b066478dc553fa51bf74b9771e481d6598f50bf51caffff36beb6b6f`), sucedendo o marco experimental `R0` e acompanhada de seu acervo `R1`, complemento documental (`ED-DEBUG-OVERLAY-V1-R1-DOCUMENTARY-ADDENDUM-001.md`) e regularização probatória residual (`reconciliation-record.json`), homologada pelas decisões `D-OVL-20` a `D-OVL-24`.
+- **Candidata de integração em preparação (`feat/debug-overlay-v1-ret`):** preparada localmente após as decisões `D-OVL-25` a `D-OVL-35`, incorporando os ajustes visuais `OVL-VIS-01` e `OVL-VIS-02` com fallback hierárquico e omissão controlada, bem como esta documentação canônica regularizada; encontra-se ainda em fase de preparação local e revisão pelas frentes, sem merge na `main` nem publicação no npm.
+
 ## Consolidação documental pós-F3 (PR #23) e preparação AUTO-CSS-C01 V1
 
 - **Consolidação documental pós-F3 integrada em `main`:** a [Pull Request #23](https://github.com/JhonnyBCastro/document-editor/pull/23) foi integrada por squash em `main` no commit `fa199af49d0adabbd15d1a244b919451ff2a4d27` (tree `894f8badd5bd0cb83b3ad2f9c61deae582aad196`), sucessora do marco funcional pós-F3 `977f106c2fcf46771f46ae3a40813ddbc24f1297` (PR #22) e base canônica documental adotada na preparação de `24/11/2026`.

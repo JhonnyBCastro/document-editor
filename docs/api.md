@@ -24,7 +24,7 @@ declare function createDocumentEditor(
 ): DocumentEditorInstance;
 ```
 
-O retorno expõe somente `readonly editor: Editor` e `destroy(): void`. O host é `options.host`, não um argumento posicional. Não há getter de estado/snapshot, método próprio de renderização, adoção de Editor existente ou atualização dinâmica de layout.
+O retorno expõe `readonly editor: Editor`, `readonly debugOverlay?: DocumentEditorDebugOverlayControl` (exclusivamente quando `options.debugOverlay` é fornecido) e `destroy(): void`. O host é `options.host`, não um argumento posicional. Não há getter de estado/snapshot, método próprio de renderização, adoção de Editor existente ou atualização dinâmica de layout.
 
 | Opção | Tipo e alcance |
 |---|---|
@@ -32,6 +32,7 @@ O retorno expõe somente `readonly editor: Editor` e `destroy(): void`. O host �
 | `content`, `extensions`, `editable`, `autofocus`, `parseOptions` | Reutilizam os tipos das propriedades homônimas de `EditorOptions`. A composição instala sua própria paginação e normaliza `autofocus` omitido ou `undefined` para `false`, preservando integralmente qualquer valor explícito fornecido pelo consumidor (`false`, `null`, `true`, números, `'start'`, `'end'`, `'all'`). |
 | `layout.page` | Subconjunto parcial de `width`, `height`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft` e `pageGap`, todos numéricos opcionais. Não é DeepPartial genérico do Core. |
 | `renderHeader`, `renderFooter` | `(context: RunningContentContext, mountPoint: HTMLElement) => void \| Disposer`. |
+| `debugOverlay` | `DocumentEditorDebugOverlayOptions` opcional (`enabled?: boolean`, `onError?: (context: DocumentDebugOverlayErrorContext) => void`). Quando omitido, nenhuma camada diagnóstica é criada. |
 | `onLayoutStable` | `(snapshot: LayoutSnapshot) => void`. |
 | `onError` | `(incident: DocumentEditorIncident) => void`. |
 
@@ -75,7 +76,7 @@ As tentativas de limpeza dos recursos próprios conhecidos e alcançáveis são 
 | `state` | `active` ou `closed` no momento da comunicação; não é consulta viva à composição. |
 | `cleanup` | Resultado de limpeza dos recursos próprios conhecidos e aquisições parciais relevantes, com detalhe e limitações. |
 
-As fases públicas são `composition-setup`, `editor-construction`, `presentation-render`, `running-content-render`, `frame-update`, `layout-callback`, `running-content-dispose`, `editor-destroy`, `presentation-destroy` e `wrapper-remove`. Sua existência no tipo não torna válida toda combinação com uma operação: aplicam-se os caminhos e as regras do contrato ratificado.
+As fases públicas são `composition-setup`, `editor-construction`, `presentation-render`, `running-content-render`, `frame-update`, `layout-callback`, `running-content-dispose`, `editor-destroy`, `presentation-destroy`, `debug-overlay-destroy` e `wrapper-remove`; os tipos de recurso conhecidos em `DocumentEditorResourceRef['kind']` são `'editor' | 'presentation' | 'wrapper' | 'running-content' | 'debug-overlay'`. Sua existência no tipo não torna válida toda combinação com uma operação: aplicam-se os caminhos e as regras do contrato ratificado. Consumidores TypeScript que empreguem checagens exaustivas (`switch` com verificação `never`) sobre versões anteriores dessas uniões devem tratar explicitamente `'debug-overlay-destroy'` e `'debug-overlay'`.
 
 Uma falha de inicialização permanece `operation: 'initialization'` mesmo quando as falhas adicionais surgem no rollback. Uma falha de limpeza pode ser a principal quando origina o incidente; não é necessariamente secundária. As fases dos renderers e de seus disposers são distintas.
 
@@ -231,3 +232,43 @@ Core isolado calcula e emite snapshots sem exigir Presentation. Presentation iso
 O host deve compartilhar origem e escala com DocumentLayoutSpace. O consumidor coordena insets, snapshots, Editor, Presentation e descarte. Não deve adicionar `pageGap` novamente aos retângulos recebidos. O contrato de descarte da Presentation não implica idempotência do cálculo de paginação.
 
 Veja [arquitetura](architecture.md) e o consumidor em [Live Demo](../examples/live-demo/NOTES.md).
+
+---
+
+## Debug Overlay V1 (Presentation e Composição)
+
+Camada visual diagnóstica opcional e independente do Editor, implementada em `@jhonny_bcastro/document-editor/presentation` com adaptador opcional em `@jhonny_bcastro/document-editor/compose`. Os estilos dependem da importação explícita de `@jhonny_bcastro/document-editor/presentation.css`.
+
+### Contrato Isolado (`Presentation`)
+
+```ts
+import {
+  createDocumentDebugOverlay,
+  type DocumentDebugOverlay,
+  type DocumentDebugOverlayOptions,
+  type DocumentDebugOverlayErrorContext,
+  type DocumentDebugOverlayState,
+} from '@jhonny_bcastro/document-editor/presentation';
+```
+
+- `createDocumentDebugOverlay(host: HTMLElement, options?: DocumentDebugOverlayOptions): DocumentDebugOverlay`
+  - `options.enabled?: boolean` — padrão `false`.
+  - `options.onError?: (context: DocumentDebugOverlayErrorContext) => void` — canal próprio para erros de `'render' | 'setEnabled' | 'invalidate' | 'clear' | 'destroy'`. Em caso de falha interna de pintura/contenção, transita para `'faulted'`, oculta a camada sem depender de `replaceChildren()` e impede nova pintura.
+- Métodos de `DocumentDebugOverlay`:
+  - `render(snapshot: LayoutSnapshot): void` — retém cópia defensiva da última publicação (inclusive enquanto `enabled === false`); atualiza o DOM diagnóstico apenas quando habilitada e não terminal, aplicando posicionamento expandido em `headerRect`, fallback compacto dentro de reserva nominal livre ou omissão visual controlada quando não houver capacidade sem invadir a área útil nominal. Nunca solicita cálculo ao Core e não certifica geometria física atual.
+  - `setEnabled(enabled: boolean): void` / `isEnabled(): boolean` — alterna exibição a partir da cópia retida sem chamar Core.
+  - `invalidate(reason?: string): void` — marca visualmente a cópia retida como `'invalidated'` (ex.: mudança externa de CSS).
+  - `clear(): void` — descarta a cópia retida sem destruir a instância.
+  - `destroy(): void` — **descarte independente:** pertence exclusivamente à instância isolada de `Presentation`, é idempotente, libera referências internas e tenta remover a camada DOM do host (tornando chamadas subsequentes no-ops seguros); eventual erro durante essa limpeza é comunicado apenas pelo canal próprio `options.onError` (`operation: 'destroy'`). Não participa da composição nem produz, por si, um `DocumentEditorCleanupReport`.
+
+### Adaptador Opcional na Composição (`Compose`)
+
+- `options.debugOverlay?: DocumentEditorDebugOverlayOptions`: quando omitido, nenhuma camada diagnóstica é criada e nenhum recurso `'debug-overlay'` integra o cleanup coordenado.
+- `instance.debugOverlay?: DocumentEditorDebugOverlayControl`: expõe `setEnabled(enabled)`, `isEnabled()` e `invalidate(reason?)` quando provisionado.
+- **Descarte coordenado (`instance.destroy()`):** pertence à Composição Coordenada (`Compose`) e executa a desmontagem do conjunto Editor, Presentation e camada diagnóstica sob o contrato de `DocumentEditorCleanupReport`. Quando provisionada, a camada diagnóstica integra a contabilização oficial de cleanup desse relatório (`'released' | 'failed' | 'unconfirmed'`, atribuindo `resource: { kind: 'debug-overlay' }` e `phase: 'debug-overlay-destroy'` quando ocorrer incidente no teardown).
+- **Distinção de estados:**
+  1. *Não provisionado:* `options.debugOverlay` ausente; `instance.debugOverlay` é `undefined`.
+  2. *Provisionado e desabilitado:* camada oculta (`hidden`), `data-overlay-enabled="false"`, `isEnabled() === false`; ainda retém o último snapshot recebido em `render(snapshot)`.
+  3. *Provisionado e habilitado:* camada visível (`data-overlay-enabled="true"`), exibindo folhas, regiões reservadas, área útil nominal, gaps e painel de metadados quando houver capacidade nominal (ou aplicando fallback compacto / omissão visual controlada em reservas reduzidas ou nulas, preservando os estados `'empty' | 'available' | 'diagnostics' | 'partial' | 'invalidated'`).
+  4. *Estado de falha (`faulted`):* falha isolada na overlay comunica `debugOverlay.onError`, desabilita/oculta a camada em caráter terminal e preserva Editor, Presentation e `onLayoutStable` ativos (salvo se o observador diagnóstico chamar reentrante `instance.destroy()` ou `editor.destroy()`).
+  5. *Estados terminais (`overlay.destroy()` vs. `instance.destroy()`):* após o descarte (seja pelo descarte independente `overlay.destroy()` na montagem isolada, seja pelo descarte coordenado `instance.destroy()` na composição), chamadas subsequentes não recriam o DOM diagnóstico. No descarte coordenado, o recurso `'debug-overlay'`, quando provisionado, integra a apuração de cleanup e os eventuais incidentes comunicados a `options.onError`; `instance.destroy()` retorna `void`, não um `DocumentEditorCleanupReport`.

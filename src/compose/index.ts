@@ -1,6 +1,13 @@
 import { Editor } from "@tiptap/core";
 import { PaginationExtension } from "../extension";
-import { createDocumentPresentation, type DocumentPresentation, type RunningContentContext, type Disposer } from "../presentation";
+import {
+  createDocumentPresentation,
+  createDocumentDebugOverlay,
+  type DocumentPresentation,
+  type DocumentDebugOverlay,
+  type RunningContentContext,
+  type Disposer,
+} from "../presentation";
 import type { LayoutSnapshot } from "../types";
 import type {
   DocumentEditorOptions,
@@ -13,6 +20,8 @@ import type {
   DocumentEditorCleanupReport,
   DocumentEditorCleanupResourceResult,
   DocumentEditorPageLayoutOptions,
+  DocumentEditorDebugOverlayOptions,
+  DocumentEditorDebugOverlayControl,
 } from "./types";
 
 export * from "./types";
@@ -29,7 +38,10 @@ const ALLOWED_ROOT_KEYS = new Set([
   "renderFooter",
   "onLayoutStable",
   "onError",
+  "debugOverlay",
 ]);
+
+const ALLOWED_DEBUG_OVERLAY_KEYS = new Set(["enabled", "onError"]);
 
 const ALLOWED_LAYOUT_KEYS = new Set(["page"]);
 
@@ -153,6 +165,25 @@ function validateAndNormalizeOptions(options: DocumentEditorOptions): {
     }
   }
 
+  // Validate optional debugOverlay config strictly without changing existing layout/host rules
+  const debugOverlayInput = options.debugOverlay;
+  if (debugOverlayInput !== undefined) {
+    if (!debugOverlayInput || typeof debugOverlayInput !== "object" || Array.isArray(debugOverlayInput)) {
+      throw new TypeError('Option "debugOverlay" must be an object.');
+    }
+    for (const key of Object.keys(debugOverlayInput)) {
+      if (!ALLOWED_DEBUG_OVERLAY_KEYS.has(key)) {
+        throw new TypeError(`Unknown debugOverlay property: "${key}" is not permitted.`);
+      }
+    }
+    if (debugOverlayInput.enabled !== undefined && typeof debugOverlayInput.enabled !== "boolean") {
+      throw new TypeError('Property "debugOverlay.enabled" must be a boolean.');
+    }
+    if (debugOverlayInput.onError !== undefined && typeof debugOverlayInput.onError !== "function") {
+      throw new TypeError('Property "debugOverlay.onError" must be a function.');
+    }
+  }
+
   return {
     host: options.host,
     page: {
@@ -170,6 +201,7 @@ function validateAndNormalizeOptions(options: DocumentEditorOptions): {
 export function createDocumentEditor(options: DocumentEditorOptions): DocumentEditorInstance {
   // 1. Static validation prior to any allocation or DOM mutation
   const { host, page: pageConfig } = validateAndNormalizeOptions(options);
+  const debugOverlayOptions: DocumentEditorDebugOverlayOptions | undefined = options.debugOverlay;
 
   // Logical terminality vs physical finalization separation
   let isTerminal = false;
@@ -206,6 +238,19 @@ export function createDocumentEditor(options: DocumentEditorOptions): DocumentEd
   let capturedEditor: Editor | null = null;
   let originalEditorDestroy: (() => void) | null = null;
   let presentation: DocumentPresentation | null = null;
+  let debugOverlay: DocumentDebugOverlay | null = null;
+  let debugOverlayFaulted = false;
+  let debugOverlayDestroyAttempted = false;
+  const DEBUG_OVERLAY_CLEANUP_PROBE_SYMBOL = Symbol.for(
+    "document-editor.debug-overlay.cleanup-probe"
+  );
+  let debugOverlaySetupAttempted = false;
+  let debugOverlayAcquired = false;
+  let debugOverlayPartialAcquisition = false;
+  let debugOverlayPartialLayer: Element | null = null;
+  let debugOverlaySetupFailureMessage: string | null = null;
+  let isAttemptingOverlayDestroy = false;
+  const notifiedOverlayDestroyErrors = new Set<unknown>();
   let wrapper: HTMLElement | null = null;
   let editorMount: HTMLElement | null = null;
 
@@ -487,6 +532,128 @@ export function createDocumentEditor(options: DocumentEditorOptions): DocumentEd
       }
     }
 
+    // Attempt 3B: Optional Debug Overlay (isolated diagnostic cleanup; never blocks wrapper/Editor teardown
+    // and reports release/failure/unconfirmed status via the delimited cleanup contract)
+    if (debugOverlay && !debugOverlayDestroyAttempted) {
+      debugOverlayDestroyAttempted = true;
+      isAttemptingOverlayDestroy = true;
+      let directDestroyError: unknown = null;
+      let threwDirectly = false;
+      try {
+        debugOverlay.destroy();
+      } catch (ovlErr) {
+        threwDirectly = true;
+        directDestroyError = ovlErr;
+      } finally {
+        isAttemptingOverlayDestroy = false;
+      }
+
+      if (threwDirectly) {
+        debugOverlayFaulted = true;
+        if (!notifiedOverlayDestroyErrors.has(directDestroyError)) {
+          if (debugOverlayOptions?.onError) {
+            try {
+              debugOverlayOptions.onError({ operation: "destroy", error: directDestroyError });
+            } catch (obsErr) {
+              console.error("DocumentEditor: Exception in debugOverlay.onError during teardown", obsErr, directDestroyError);
+            }
+          } else {
+            console.error("DocumentEditor: Debug overlay destroy failed", directDestroyError);
+          }
+        }
+        recordSecondaryFailure("debug-overlay-destroy", directDestroyError, { kind: "debug-overlay" });
+        resourceResults.push({ resource: { kind: "debug-overlay" }, status: "failed" });
+      } else {
+        const probe = (debugOverlay as unknown as Record<symbol, unknown>)[
+          DEBUG_OVERLAY_CLEANUP_PROBE_SYMBOL
+        ] as
+          | {
+              acquired?: boolean;
+              destroyed?: boolean;
+              status?: string;
+              errors?: ReadonlyArray<unknown>;
+              limitations?: ReadonlyArray<string>;
+            }
+          | undefined;
+        const strayLayer = wrapper?.querySelector("[data-document-editor-debug-overlay]") ?? null;
+
+        if (!probe || typeof probe !== "object" || probe.destroyed !== true) {
+          limitations.push(
+            "Debug overlay cleanup probe was missing or did not confirm destruction from destroy return alone."
+          );
+          if (strayLayer) {
+            limitations.push("Debug overlay DOM layer remained present in composition wrapper after destroy.");
+          }
+          resourceResults.push({ resource: { kind: "debug-overlay" }, status: "unconfirmed" });
+        } else if (probe.status === "failed" || (Array.isArray(probe.errors) && probe.errors.length > 0)) {
+          debugOverlayFaulted = true;
+          const errs = Array.isArray(probe.errors) && probe.errors.length > 0
+            ? probe.errors
+            : [new Error("Debug overlay destroy reported failed status.")];
+          for (const err of errs) {
+            if (!notifiedOverlayDestroyErrors.has(err)) {
+              if (debugOverlayOptions?.onError) {
+                try {
+                  debugOverlayOptions.onError({ operation: "destroy", error: err });
+                } catch (obsErr) {
+                  console.error("DocumentEditor: Exception in debugOverlay.onError during teardown", obsErr, err);
+                }
+              } else {
+                console.error("DocumentEditor: Debug overlay destroy failed", err);
+              }
+            }
+            recordSecondaryFailure("debug-overlay-destroy", err, { kind: "debug-overlay" });
+          }
+          if (Array.isArray(probe.limitations)) {
+            for (const lim of probe.limitations) {
+              limitations.push(lim);
+            }
+          }
+          resourceResults.push({ resource: { kind: "debug-overlay" }, status: "failed" });
+        } else if (probe.status === "unconfirmed" || strayLayer !== null) {
+          if (Array.isArray(probe.limitations)) {
+            for (const lim of probe.limitations) {
+              limitations.push(lim);
+            }
+          }
+          if (strayLayer !== null) {
+            limitations.push("Debug overlay DOM layer remained attached in composition wrapper after destroy.");
+          }
+          resourceResults.push({ resource: { kind: "debug-overlay" }, status: "unconfirmed" });
+        } else if (probe.status === "released") {
+          resourceResults.push({ resource: { kind: "debug-overlay" }, status: "released" });
+        } else {
+          limitations.push("Debug overlay cleanup probe returned an unrecognized status.");
+          resourceResults.push({ resource: { kind: "debug-overlay" }, status: "unconfirmed" });
+        }
+      }
+    } else if (debugOverlayOptions !== undefined && !debugOverlayDestroyAttempted) {
+      debugOverlayDestroyAttempted = true;
+      if (debugOverlayPartialAcquisition) {
+        if (debugOverlayPartialLayer && debugOverlayPartialLayer.parentNode) {
+          try {
+            debugOverlayPartialLayer.parentNode.removeChild(debugOverlayPartialLayer);
+            if (debugOverlayPartialLayer.parentNode) {
+              limitations.push("Partially acquired debug overlay layer remained attached after cleanup removal.");
+              resourceResults.push({ resource: { kind: "debug-overlay" }, status: "unconfirmed" });
+            } else {
+              limitations.push("Debug overlay failed after partial DOM acquisition; residual DOM element was removed without confirmed handle release.");
+              resourceResults.push({ resource: { kind: "debug-overlay" }, status: "unconfirmed" });
+            }
+          } catch (partialErr) {
+            recordSecondaryFailure("debug-overlay-destroy", partialErr, { kind: "debug-overlay" });
+            resourceResults.push({ resource: { kind: "debug-overlay" }, status: "failed" });
+          }
+        } else {
+          limitations.push("Debug overlay setup failed after partial acquisition.");
+          resourceResults.push({ resource: { kind: "debug-overlay" }, status: "unconfirmed" });
+        }
+      } else if (debugOverlaySetupAttempted && !debugOverlayAcquired && debugOverlaySetupFailureMessage) {
+        // Acquisition failed before mount: do not artificially claim an acquired diagnostic resource.
+        limitations.push(debugOverlaySetupFailureMessage);
+      }
+    }
+
     // Attempt 4: Wrapper DOM (independent cleanup continues regardless of Editor/Presentation result)
     if (wrapper && !wrapperDestroyAttempted) {
       wrapperDestroyAttempted = true;
@@ -623,6 +790,52 @@ export function createDocumentEditor(options: DocumentEditorOptions): DocumentEd
       renderHeader: wrappedRenderHeader,
       renderFooter: wrappedRenderFooter,
     });
+
+    if (debugOverlayOptions !== undefined) {
+      debugOverlaySetupAttempted = true;
+      try {
+        debugOverlay = createDocumentDebugOverlay(wrapper, {
+          enabled: debugOverlayOptions.enabled === true,
+          onError: (ctx) => {
+            debugOverlayFaulted = true;
+            if (ctx.operation === "destroy" && isAttemptingOverlayDestroy) {
+              notifiedOverlayDestroyErrors.add(ctx.error);
+            }
+            if (debugOverlayOptions.onError) {
+              try {
+                debugOverlayOptions.onError(ctx);
+              } catch (obsErr) {
+                console.error("DocumentEditor: Exception in debugOverlay.onError observer", obsErr, ctx);
+              }
+            } else {
+              console.error("DocumentEditor: Debug overlay error", ctx);
+            }
+          },
+        });
+        debugOverlayAcquired = true;
+      } catch (ovlSetupErr) {
+        debugOverlayFaulted = true;
+        debugOverlay = null;
+        debugOverlayAcquired = false;
+        const strayLayer = wrapper.querySelector("[data-document-editor-debug-overlay]");
+        if (strayLayer) {
+          debugOverlayPartialAcquisition = true;
+          debugOverlayPartialLayer = strayLayer;
+        } else {
+          debugOverlaySetupFailureMessage =
+            "Debug overlay setup failed prior to mounting; no diagnostic resource was acquired.";
+        }
+        if (debugOverlayOptions.onError) {
+          try {
+            debugOverlayOptions.onError({ operation: "setEnabled", error: ovlSetupErr });
+          } catch (obsErr) {
+            console.error("DocumentEditor: Exception in debugOverlay.onError during setup", obsErr, ovlSetupErr);
+          }
+        } else {
+          console.error("DocumentEditor: Debug overlay setup failed (ignored for essential composition)", ovlSetupErr);
+        }
+      }
+    }
   } catch (setupErr) {
     isTerminal = true;
     forwardingsBlocked = true;
@@ -699,7 +912,29 @@ export function createDocumentEditor(options: DocumentEditorOptions): DocumentEd
           return;
         }
 
-        // Re-evaluate terminality before Step 3 (consumer callback)
+        // Re-evaluate terminality before Step 3 (overlay + consumer callback)
+        if (forwardingsBlocked || isTerminal) return;
+
+        // Step 2B: Optional Debug Overlay update (isolated fault boundary; never suppresses consumer callback)
+        if (debugOverlay && !debugOverlayFaulted) {
+          try {
+            debugOverlay.render(snapshot);
+          } catch (ovlRenderErr) {
+            debugOverlayFaulted = true;
+            if (debugOverlayOptions?.onError) {
+              try {
+                debugOverlayOptions.onError({ operation: "render", error: ovlRenderErr });
+              } catch (obsErr) {
+                console.error("DocumentEditor: Exception in debugOverlay.onError during render", obsErr, ovlRenderErr);
+              }
+            } else {
+              console.error("DocumentEditor: Debug overlay render failed", ovlRenderErr);
+            }
+          }
+        }
+
+        // Re-evaluate terminality after Step 2B (e.g., reentrant destroy requested from debugOverlay.onError)
+        // and before forwarding to the consumer layout callback.
         if (forwardingsBlocked || isTerminal) return;
 
         // Step 3: Consumer callback
@@ -825,9 +1060,54 @@ export function createDocumentEditor(options: DocumentEditorOptions): DocumentEd
     throw initErr;
   }
 
-  // 5. Return minimal public interface
+  // 5. Return minimal public interface (+ optional debugOverlay control when provisioned)
+  const debugOverlayControl: DocumentEditorDebugOverlayControl | undefined =
+    debugOverlayOptions !== undefined
+      ? {
+          setEnabled(nextEnabled: boolean): void {
+            if (isTerminal || forwardingsBlocked || debugOverlayFaulted || !debugOverlay) return;
+            try {
+              debugOverlay.setEnabled(nextEnabled);
+            } catch (err) {
+              debugOverlayFaulted = true;
+              if (debugOverlayOptions.onError) {
+                try {
+                  debugOverlayOptions.onError({ operation: "setEnabled", error: err });
+                } catch (obsErr) {
+                  console.error("DocumentEditor: Exception in debugOverlay.onError during setEnabled", obsErr, err);
+                }
+              } else {
+                console.error("DocumentEditor: Debug overlay setEnabled failed", err);
+              }
+            }
+          },
+          isEnabled(): boolean {
+            if (isTerminal || forwardingsBlocked || debugOverlayFaulted || !debugOverlay) return false;
+            return debugOverlay.isEnabled();
+          },
+          invalidate(reason?: string): void {
+            if (isTerminal || forwardingsBlocked || debugOverlayFaulted || !debugOverlay) return;
+            try {
+              debugOverlay.invalidate(reason);
+            } catch (err) {
+              debugOverlayFaulted = true;
+              if (debugOverlayOptions.onError) {
+                try {
+                  debugOverlayOptions.onError({ operation: "invalidate", error: err });
+                } catch (obsErr) {
+                  console.error("DocumentEditor: Exception in debugOverlay.onError during invalidate", obsErr, err);
+                }
+              } else {
+                console.error("DocumentEditor: Debug overlay invalidate failed", err);
+              }
+            }
+          },
+        }
+      : undefined;
+
   return {
     editor: editorInstance,
+    ...(debugOverlayControl !== undefined ? { debugOverlay: debugOverlayControl } : {}),
     destroy() {
       handleCoordinatedDestroy("instance");
     },
