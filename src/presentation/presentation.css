@@ -34,3 +34,210 @@
     /* Running content confinado aos rects reservados */
     overflow: hidden;
 }
+
+/* ============================================================================
+ * Debug Overlay V1 (Experimental) — camada diagnóstica isolada e scroll-neutral
+ * ============================================================================ */
+.document-debug-overlay-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    user-select: none;
+    overflow: hidden;
+    box-sizing: border-box;
+    z-index: 10;
+    background: transparent;
+}
+
+.document-debug-overlay-layer[hidden] {
+    display: none !important;
+}
+
+.document-debug-overlay-sheet {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1.5px dashed rgba(74, 85, 104, 0.85);
+    background: rgba(113, 128, 150, 0.03);
+    pointer-events: none;
+}
+
+.document-debug-overlay-header {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px dashed rgba(37, 99, 235, 0.85);
+    background: rgba(59, 130, 246, 0.08);
+    pointer-events: none;
+}
+
+.document-debug-overlay-footer {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px dashed rgba(124, 58, 237, 0.85);
+    background: rgba(139, 92, 246, 0.08);
+    pointer-events: none;
+}
+
+.document-debug-overlay-useful {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid rgba(5, 150, 105, 0.75);
+    background: rgba(16, 185, 129, 0.06);
+    pointer-events: none;
+}
+
+.document-debug-overlay-gap {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px dashed rgba(217, 119, 6, 0.85);
+    background: rgba(245, 158, 11, 0.14);
+    pointer-events: none;
+}
+
+.document-debug-overlay-gap-zero {
+    border-top: 1px solid rgba(217, 119, 6, 0.9);
+    border-bottom: none;
+    border-left: none;
+    border-right: none;
+    background: transparent;
+}
+
+.document-debug-overlay-label {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    line-height: 1.2;
+    padding: 1px 4px;
+    border-radius: 2px;
+    white-space: nowrap;
+    max-width: calc(100% - 8px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+.document-debug-overlay-label-sheet {
+    top: 2px;
+    right: 4px;
+    left: auto;
+    color: #1f2937;
+    background: rgba(226, 232, 240, 0.88);
+}
+
+.document-debug-overlay-label-header {
+    color: #1e40af;
+    background: rgba(219, 234, 254, 0.88);
+}
+
+.document-debug-overlay-label-footer {
+    color: #5b21b6;
+    background: rgba(237, 233, 254, 0.88);
+}
+
+.document-debug-overlay-label-useful {
+    top: auto;
+    bottom: 2px;
+    left: 4px;
+    color: #065f46;
+    background: rgba(209, 250, 229, 0.88);
+}
+
+.document-debug-overlay-label-useful-lateral {
+    bottom: auto;
+    white-space: pre-line;
+    text-align: center;
+    line-height: 1.15;
+    padding: 2px 4px;
+    max-width: none;
+    box-sizing: border-box;
+    border: 1px solid rgba(5, 150, 105, 0.35);
+}
+
+.document-debug-overlay-label-useful-footer {
+    top: auto;
+    bottom: 2px;
+    left: 4px;
+}
+
+.document-debug-overlay-label-gap {
+    color: #92400e;
+    background: rgba(254, 243, 199, 0.9);
+}
+
+.document-debug-overlay-summary {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    max-width: calc(100% - 4px);
+    overflow: hidden;
+    padding: 4px 6px;
+    box-sizing: border-box;
+    border: 1px solid rgba(51, 65, 85, 0.55);
+    border-radius: 3px;
+    background: rgba(15, 23, 42, 0.84);
+    color: #f8fafc;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    line-height: 1.3;
+    pointer-events: none;
+}
+
+.document-debug-overlay-summary-expanded {
+    padding: 4px 7px;
+}
+
+.document-debug-overlay-compact-line,
+.document-debug-overlay-summary-compact {
+    max-height: 22px;
+    padding: 2px 6px;
+    line-height: 1.2;
+}
+
+.document-debug-overlay-summary-compact .document-debug-overlay-summary-status,
+.document-debug-overlay-summary-compact .document-debug-overlay-summary-warning,
+.document-debug-overlay-summary-compact .document-debug-overlay-summary-diagnostics {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.document-debug-overlay-summary-compact .document-debug-overlay-summary-breaks {
+    display: none;
+}
+
+.document-debug-overlay-summary-warning {
+    color: #fde68a;
+    margin-top: 2px;
+}
+
+.document-debug-overlay-summary-diagnostics {
+    color: #fca5a5;
+    margin-top: 2px;
+}
+
+.document-debug-overlay-summary-breaks {
+    color: #cbd5e1;
+    margin-top: 2px;
+    white-space: normal;
+    word-break: break-word;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+body.print-mode .document-debug-overlay-layer {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+@media print {
+    .document-debug-overlay-layer {
+        display: none !important;
+        visibility: hidden !important;
+    }
+}

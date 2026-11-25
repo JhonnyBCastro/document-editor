@@ -479,6 +479,88 @@ presentation.render(externalSnapshot);
 
 ---
 
+## Debug Overlay V1 (Opcional)
+
+A camada diagnóstica visual opcional (`Debug Overlay V1`) permanece desabilitada por padrão e permite inspecionar visualmente folhas projetadas, regiões reservadas (`header`/`footer`), área útil nominal, gaps e metadados da última publicação recebida (aplicando fallback compacto ou omissão visual controlada quando não houver reserva nominal livre sem invadir a área útil), sem solicitar recálculo ao Core nem modificar o documento JSON.
+
+### 1. Provisionamento na Composição Coordenada (`createDocumentEditor`)
+
+Importe explicitamente `@jhonny_bcastro/document-editor/style.css` e `@jhonny_bcastro/document-editor/presentation.css`:
+
+```ts
+import StarterKit from '@tiptap/starter-kit';
+import {
+  createDocumentEditor,
+  type DocumentEditorOptions,
+} from '@jhonny_bcastro/document-editor/compose';
+import '@jhonny_bcastro/document-editor/style.css';
+import '@jhonny_bcastro/document-editor/presentation.css';
+
+const host = document.querySelector<HTMLElement>('#document')!;
+
+const options: DocumentEditorOptions = {
+  host,
+  extensions: [StarterKit],
+  content: '<p>Documento sob inspeção diagnóstica.</p>',
+  debugOverlay: {
+    enabled: false, // Provisionada e inicialmente desabilitada (retém o último snapshot)
+    onError(context) {
+      console.warn('Falha diagnóstica isolada:', context.operation, context.error);
+    },
+  },
+};
+
+const instance = createDocumentEditor(options);
+
+// Habilitação e desabilitação dinâmicas sem acionar recálculo do Core:
+instance.debugOverlay?.setEnabled(true);
+const ativo = instance.debugOverlay?.isEnabled() ?? false;
+
+// Marcação explícita da cópia retida após mudança externa fora do editor:
+instance.debugOverlay?.invalidate('external_css_change');
+
+// Desabilitação preservando a retenção da última publicação:
+instance.debugOverlay?.setEnabled(false);
+
+// O descarte coordenado também limpa e remove a camada diagnóstica:
+instance.destroy();
+```
+
+### 2. Montagem Independente (`createDocumentDebugOverlay`)
+
+Em montagens manuais ou isoladas, o host da overlay deve compartilhar origem e escala com `DocumentLayoutSpace` (sem somar novamente `pageGap`):
+
+```ts
+import {
+  createDocumentDebugOverlay,
+  type DocumentDebugOverlayOptions,
+} from '@jhonny_bcastro/document-editor/presentation';
+import '@jhonny_bcastro/document-editor/presentation.css';
+import type { LayoutSnapshot } from '@jhonny_bcastro/document-editor';
+
+const overlayHost = document.querySelector<HTMLElement>('#overlay-host')!;
+const overlayOptions: DocumentDebugOverlayOptions = {
+  enabled: true,
+  onError(context) {
+    console.warn('Erro diagnóstico:', context.operation, context.error);
+  },
+};
+
+const overlay = createDocumentDebugOverlay(overlayHost, overlayOptions);
+
+// Encaminha cada LayoutSnapshot publicado pelo Core/Editor sem alterar geometria:
+export function updateOverlay(snapshot: LayoutSnapshot) {
+  overlay.render(snapshot);
+}
+
+// Descarte independente da overlay isolada (não produz DocumentEditorCleanupReport):
+export function disposeOverlay() {
+  overlay.destroy();
+}
+```
+
+---
+
 ## 4. Próximos Passos e Referências
 
 - **[Referência Completa de API](api.md):** Tipagem detalhada de `DocumentEditorOptions`, tratamento de incidentes e métodos auxiliares como `whenLayoutStable`.

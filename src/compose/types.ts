@@ -1,6 +1,10 @@
 import type { Editor, EditorOptions } from "@tiptap/core";
 import type { LayoutSnapshot } from "../types";
-import type { RunningContentContext, Disposer } from "../presentation";
+import type {
+  RunningContentContext,
+  Disposer,
+  DocumentDebugOverlayErrorContext,
+} from "../presentation";
 
 /**
  * Operação principal que identifica o contexto originador do incidente.
@@ -21,13 +25,14 @@ export type DocumentEditorPhase =
   | "running-content-dispose"
   | "editor-destroy"
   | "presentation-destroy"
+  | "debug-overlay-destroy"
   | "wrapper-remove";
 
 /**
  * Referência a um recurso sob responsabilidade ou gerenciamento da composição.
  */
 export interface DocumentEditorResourceRef {
-  readonly kind: "editor" | "presentation" | "wrapper" | "running-content";
+  readonly kind: "editor" | "presentation" | "wrapper" | "running-content" | "debug-overlay";
   readonly detail?: string;
 }
 
@@ -107,6 +112,20 @@ export interface DocumentEditorOptions {
   // Notificações síncronas
   readonly onLayoutStable?: (snapshot: LayoutSnapshot) => void;
   readonly onError?: (incident: DocumentEditorIncident) => void;
+
+  // Diagnóstico visual opcional (experimental DEBUG-OVERLAY-001)
+  readonly debugOverlay?: DocumentEditorDebugOverlayOptions;
+}
+
+export interface DocumentEditorDebugOverlayOptions {
+  readonly enabled?: boolean;
+  readonly onError?: (context: DocumentDebugOverlayErrorContext) => void;
+}
+
+export interface DocumentEditorDebugOverlayControl {
+  setEnabled(enabled: boolean): void;
+  isEnabled(): boolean;
+  invalidate(reason?: string): void;
 }
 
 /**
@@ -114,5 +133,6 @@ export interface DocumentEditorOptions {
  */
 export interface DocumentEditorInstance {
   readonly editor: Editor;
+  readonly debugOverlay?: DocumentEditorDebugOverlayControl;
   destroy(): void;
 }

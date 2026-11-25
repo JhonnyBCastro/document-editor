@@ -14,7 +14,7 @@ Core mede DOM e coordenadas, avalia políticas, calcula quebras e produz snapsho
 
 Na montagem manual, o consumidor monta o host da Presentation no mesmo espaço de coordenadas das projeções, sem somar novamente o gap. A Presentation cria e remove seus próprios elementos e disposers. A coordenação do Editor e de seus hosts continua a cargo do consumidor na montagem manual. Veja o [ADR-004 retrospectivo](decisions/ADR-004-composed-only.md).
 
-Na composição coordenada, a factory cria seus recursos e deriva a geometria estrutural inicial de `layout.page`. A Presentation continua aplicando projeções, sem calcular paginação. As garantias da factory não são transferidas implicitamente ao Core ou à Presentation isolados. Estilos métricos e mudanças externas continuam sujeitos aos limites documentados.
+Na composição coordenada, a factory cria seus recursos e deriva a geometria estrutural inicial de `layout.page`. A Presentation continua aplicando projeções, sem calcular paginação. Quando provisionada opcionalmente via `options.debugOverlay`, a camada diagnóstica (`Debug Overlay V1`) consome exclusivamente os `LayoutSnapshot` publicados pelo Core dentro do mesmo `DocumentLayoutSpace` (via `render(snapshot)` síncrono sem retroalimentação ao Core), mantendo isolamento operacional e tratamento de falhas próprio sem constituir outro motor de paginação. As garantias da factory não são transferidas implicitamente ao Core ou à Presentation isolados. Estilos métricos e mudanças externas continuam sujeitos aos limites documentados.
 
 ## Estado de decorações, publicação transacional e recuperação
 
