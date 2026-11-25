@@ -30,6 +30,8 @@ interface ActivePublishAttempt {
 
 export const PaginationPluginKey = new PluginKey<PaginationPluginState>('paginationPlugin');
 
+const PAGINATED_ROOT_CLASS = 'document-editor-paginated';
+
 export const PaginationExtension = Extension.create<PaginationOptions, { controller: PaginationController | null }>({
     name: 'pagination',
 
@@ -248,6 +250,9 @@ export const PaginationExtension = Extension.create<PaginationOptions, { control
                     };
                 },
                 props: {
+                    attributes: {
+                        class: PAGINATED_ROOT_CLASS
+                    },
                     decorations(state) {
                         if (!state) return null;
                         return PaginationPluginKey.getState(state)?.decorations ?? null;

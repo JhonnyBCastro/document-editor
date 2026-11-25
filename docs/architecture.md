@@ -1,6 +1,6 @@
 # Arquitetura
 
-Marco funcional pós-F3 utilizado como base desta consolidação documental (branch `main`): `977f106c2fcf46771f46ae3a40813ddbc24f1297`, tree `f961be2ebca7f675445fa9d765a1205d893b55ee` (após incorporação da linha `feature/compose-next` via Pull Request #3, iniciativa F3 via Pull Request #16 e manutenção pós-F3 via Pull Requests #21, #19 e #22). Descrição estática e formal da arquitetura Composed.
+Descrição estática e formal da arquitetura Composed, incorporando o modelo nativo `AUTO-CSS-C01 V1` (elaborado na preparação de `24/11/2026` sobre a base canônica documental `fa199af49d0adabbd15d1a244b919451ff2a4d27`, tree `894f8badd5bd0cb83b3ad2f9c61deae582aad196`, sucessora do marco funcional pós-F3 `977f106c2fcf46771f46ae3a40813ddbc24f1297` após as Pull Requests #3, #16, #21, #19, #22 e #23). Naquela preparação de `24/11/2026`, a candidata encontrava-se pendente de revisão e integração, registro histórico que não estabelece o estado remoto de versões posteriores.
 
 ## Documento contínuo e responsabilidades
 
@@ -19,6 +19,10 @@ Na composição coordenada, a factory cria seus recursos e deriva a geometria es
 ## Estado de decorações, publicação transacional e recuperação
 
 Na integração com `PaginationExtension`, `DecorationSet` pertence ao estado do plugin `PaginationPluginKey`. `apply` remapeia as decorações nas transações comuns. O controller lê e publica por uma bridge interna; não mantém uma segunda cópia ativa independente nessa integração.
+
+No modelo nativo `AUTO-CSS-C01 V1`, esse mesmo `Plugin` gerado em `PaginationExtension` expõe `props.attributes` com `{ class: 'document-editor-paginated' }` na raiz editável `.ProseMirror` associada à extensão (sem alterar schema nem JSON do documento; na factory `createDocumentEditor` o Editor utiliza `injectCSS: false`, enquanto na montagem manual a opção `injectCSS` pertence ao Editor consumidor, não sendo imposta pela extensão e permanecendo distinta da importação explícita de `@jhonny_bcastro/document-editor/style.css`). Esse marcador permite que `@jhonny_bcastro/document-editor/style.css` aplique nativamente as regras `CSS C-01` em `.ProseMirror.document-editor-paginated` e `.ProseMirror.document-editor-paginated pre` (especificidades `(0,2,0)` e `(0,2,1)`).
+
+Em relação ao isolamento visual entre instâncias: observou-se isolamento CSS em relação a editores externos independentes fora da subárvore de um editor paginado; entretanto, não se afirma ausência de interferência em qualquer editor sem `PaginationExtension`. Em editores externos fisicamente aninhados na raiz de um editor paginado (e.g. via `NodeView`), a raiz interna não recebe o marcador `document-editor-paginated`, porém pode herdar `white-space` e `overflow-wrap` da raiz envolvente quando não os redefine, e elementos `<pre>` internos recebem diretamente o seletor descendente `.ProseMirror.document-editor-paginated pre`. A interferência CSS foi demonstrada nessa topologia aninhada (sem falha funcional ou corrupção documental demonstradas), constituindo aceitação delimitada na decisão `D-01` — e não correção técnica nem isolamento completo.
 
 A publicação usa transação sem steps e payload `replaceDecorations`, vinculado à identidade do documento e marcado por token único (`Symbol`) rastreado síncronamente durante o dispatch. A bridge distingue explicitamente três desfechos internos:
 
