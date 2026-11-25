@@ -7,6 +7,17 @@
   padding-top: calc(var(--page-break-gap, 0px) + var(--tiptap-cell-padding, 8px)) !important;
 }
 
+/* Incorporação experimental nativa do contrato CSS C-01 (AUTO-CSS-C01) */
+.ProseMirror.document-editor-paginated {
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  white-space: break-spaces;
+}
+
+.ProseMirror.document-editor-paginated pre {
+  white-space: pre-wrap;
+}
+
 /* Impressão e PDF */
 @media print {
   @page { 

@@ -11,9 +11,9 @@ A biblioteca oferece dois caminhos principais de integração:
 
 ## 1. Preparação do Ambiente e Instalação
 
-### Geração do Pacote Local da Main
+### Geração do Pacote Local
 
-A base canônica permanente do projeto é a branch `main` (marco funcional pós-F3 utilizado como base desta consolidação documental: `977f106c2fcf46771f46ae3a40813ddbc24f1297`, tree `f961be2ebca7f675445fa9d765a1205d893b55ee`, após a iniciativa F3 via Pull Request #16 e a manutenção pós-F3 via Pull Requests #21, #19 e #22). Para obter o pacote validado, gere o arquivo `.tgz` na raiz da biblioteca:
+A base canônica documental anterior à incorporação do `AUTO-CSS-C01 V1` na branch `main` é `fa199af49d0adabbd15d1a244b919451ff2a4d27` (tree `894f8badd5bd0cb83b3ad2f9c61deae582aad196`, após PR #16, PR #21, PR #19, PR #22 — marco funcional pós-F3 `977f106c2fcf46771f46ae3a40813ddbc24f1297` — e PR #23; na preparação local de `24/11/2026` sobre essa base, a candidata encontrava-se pendente de revisão e integração, registro histórico que não estabelece o estado remoto de versões posteriores). Para gerar o pacote localmente a partir da raiz do repositório:
 
 ```bash
 npm run build
@@ -121,7 +121,8 @@ import {
 } from '@jhonny_bcastro/document-editor/compose';
 import '@jhonny_bcastro/document-editor/style.css';
 import '@jhonny_bcastro/document-editor/presentation.css';
-// Importar o stylesheet do consumidor DEPOIS dos CSS do pacote garante a ordem de cascata.
+// Opcional na Composição Coordenada: importe o stylesheet do consumidor após os CSS do pacote
+// caso deseje personalizar aparência ou regras pela cascata CSS.
 import './style.css';
 
 const host = document.querySelector<HTMLElement>('#document');
@@ -167,33 +168,29 @@ export function dispose() {
 }
 ```
 
-### Contrato CSS C-01 — Integração do Consumidor
+### Comportamento CSS C-01 Nativo (`AUTO-CSS-C01 V1`) e Personalização Opcional
 
-A biblioteca distribui exclusivamente os estilos estruturais do Core (`@jhonny_bcastro/document-editor/style.css`) e das folhas decorativas (`@jhonny_bcastro/document-editor/presentation.css`), cabendo à **aplicação consumidora** configurar o comportamento de quebra textual e preservação de espaços do conteúdo editável no CSS do host.
+A biblioteca distribui os estilos do Core (`@jhonny_bcastro/document-editor/style.css`) e das folhas decorativas (`@jhonny_bcastro/document-editor/presentation.css`). **O import explícito de `@jhonny_bcastro/document-editor/style.css` continua obrigatório** tanto na **Composição Coordenada V1** quanto no **Core manual**. Na factory `createDocumentEditor`, o Tiptap é instanciado com `injectCSS: false`; já no consumo manual com `new Editor(...)`, a opção `injectCSS` pertence à configuração do `Editor` consumidor (`PaginationExtension` não impõe esse valor, e a campanha experimental contemplou consumo manual com `injectCSS` habilitado e desabilitado). Em qualquer modo, a eventual injeção de CSS do Tiptap não substitui a importação explícita de `@jhonny_bcastro/document-editor/style.css`.
 
-Na **Composição Coordenada V1**, a factory cria os invólucros internos dentro de `#document` e gerencia sua altura estrutural; portanto, em `src/style.css`, adicione exclusivamente as regras do contrato **`CSS C-01`** escopadas ao host deste editor:
+Quando `@jhonny_bcastro/document-editor/style.css` está carregado, o comportamento **`CSS C-01`** passa a ser aplicado **nativamente por padrão** a todo editor que utilize `PaginationExtension`, por meio da classe interna `document-editor-paginated` adicionada pelo plugin à raiz editável:
+
+- `.ProseMirror.document-editor-paginated` (`(0,2,0)`): aplica `word-wrap: break-word; white-space: pre-wrap; white-space: break-spaces;` em ordem de fallback, contribuindo para que palavras longas sem espaços quebrem na largura útil da folha e sequências de espaços mantenham caixas mensuráveis em `view.coordsAtPos()`.
+- `.ProseMirror.document-editor-paginated pre` (`(0,2,1)`): aplica `white-space: pre-wrap;` para quebra de linhas longas em blocos `<pre><code>`.
+
+Na integração padrão **não é necessário** declarar manualmente essas regras em `src/style.css`.
+
+#### Personalização opcional pela cascata CSS
+
+Não existe opção pública de desativação (`autoCSS` ou equivalente). Caso sua aplicação precise sobrescrever alguma dessas propriedades para um editor específico, importe seu stylesheet **após** `@jhonny_bcastro/document-editor/style.css` e utilize seletor escopado ao host (`>= (0,2,0)` para raiz ou `>= (0,2,1)` para `pre`, pois seletores simples `.ProseMirror` de `(0,1,0)` têm especificidade inferior):
 
 ```css
-/* src/style.css — Configuração CSS C-01 escopada ao host #document */
+/* Opcional: sobrescrita pontual pela cascata CSS escopada ao host #document */
 #document .ProseMirror {
-  word-wrap: break-word;
-  white-space: pre-wrap; /* Fallback anterior a break-spaces em motores sem suporte */
-  white-space: break-spaces;
-}
-
-#document .ProseMirror pre {
   white-space: pre-wrap;
 }
 ```
 
-#### Finalidade de cada regra e alcance observado na F3
-
-- `word-wrap: break-word` em `#document .ProseMirror`: contribui, nos cenários ensaiados, para que palavras extensas sem espaços em branco quebrem dentro da área útil da folha em vez de forçar transbordamento contínuo.
-- `white-space: pre-wrap` em `#document .ProseMirror`: atua na cascata CSS como **fallback anterior a `white-space: break-spaces`**, preservando quebras `\n` e espaços caso o motor não suporte `break-spaces`.
-- `white-space: break-spaces` em `#document .ProseMirror`: sob os motores compatíveis ensaiados na F3 (`erro-1` e parágrafos após conversão de `codeBlock`), manteve caixas de linha com altura não nula onde havia múltiplos espaços, reduzindo a ocorrência de retângulos DOM `{0,0,0,0}` em `view.coordsAtPos()`. Não constitui garantia geométrica universal em todo documento, zoom, fonte ou navegador; no `Estado A` (`codeBlock` de `16` páginas) observou-se a ressalva conhecida `I-02` (`12` espaços `U+0020` finais com excedente sub-pixel de até `2,15625 px`, sem caractere visível além da faixa útil nem rolagem horizontal adicional).
-- `white-space: pre-wrap` em `#document .ProseMirror pre`: permite nos cenários ensaiados que linhas longas dentro de blocos `<pre><code>` quebrem dentro da folha e sejam paginadas pelo controlador.
-- Escopo ao contêiner do editor (`#document .ProseMirror` e `#document .ProseMirror pre`): caso a aplicação utilize outro seletor de host (em vez de `#document`), substitua `#document` pelo seletor do respectivo elemento hospedeiro.
-- A ausência dessas regras no consumidor corresponde à configuração experimental de controle conhecida como **`baseline`** (que executa exatamente a mesma implementação canônica da biblioteca, mas está sujeita a retângulos `{0,0,0,0}` em espaços colapsados e não é recomendada para integração; veja [Limitações](limitations.md) e [API](api.md#geometria-e-montagem)).
+Substituir propriedades que alteram métricas de linha e quebra exige considerar o impacto sobre a geometria medida pelo controlador. A omissão de `@jhonny_bcastro/document-editor/style.css` ou dos seus efeitos equivalentes corresponde ao controle experimental histórico `baseline` (sujeito a `{0,0,0,0}` em espaços colapsados) e não constitui configuração suportada; veja [Limitações](limitations.md) e [API](api.md#geometria-e-montagem).
 
 ### Executar a Aplicação
 
@@ -322,15 +319,7 @@ body {
   color: #222;
   font-size: 16px;
   line-height: 1.5;
-
-  /* Contrato CSS C-01 — Responsabilidade do consumidor */
-  word-wrap: break-word;
-  white-space: pre-wrap; /* Fallback anterior a break-spaces */
-  white-space: break-spaces;
-}
-
-.qs-editor > .ProseMirror pre {
-  white-space: pre-wrap;
+  /* As regras de quebra e espaços (CSS C-01) vêm nativamente de @jhonny_bcastro/document-editor/style.css */
 }
 
 .qs-editor p {
@@ -351,7 +340,8 @@ import {
 import '@jhonny_bcastro/document-editor/style.css';
 import { createDocumentPresentation } from '@jhonny_bcastro/document-editor/presentation';
 import '@jhonny_bcastro/document-editor/presentation.css';
-// Importe o stylesheet do consumidor APÓS os CSS do pacote para respeitar a cascata
+// O CSS C-01 é fornecido nativamente via import '@jhonny_bcastro/document-editor/style.css' acima;
+// import './style.css' é necessário aqui para as dimensões e aparência da montagem manual
 import './style.css';
 
 const frame = document.querySelector<HTMLElement>('#document')!;

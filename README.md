@@ -22,10 +22,10 @@ A paginação adota uma separação rigorosa de responsabilidades entre três ca
 
 ## Estado e Distribuição
 
-- **Branch canônica permanente:** `main` (marco funcional pós-F3 utilizado como base desta consolidação documental: `977f106c2fcf46771f46ae3a40813ddbc24f1297`, tree `f961be2ebca7f675445fa9d765a1205d893b55ee`, incorporando a iniciativa F3 via Pull Request #16, a consolidação documental R2 via Pull Request #20 e a manutenção pós-F3 via Pull Requests #21, #19 e #22).
-- **Versão do manifesto:** `0.1.0-rc.4`. Esta declaração identifica os metadados do pacote local, mas não comprova publicação no registro público npm do estado atual da `main`.
+- **Branch canônica permanente:** `main` (base canônica documental após Pull Requests #16, #20, #21, #19, #22 e #23: `fa199af49d0adabbd15d1a244b919451ff2a4d27`, tree `894f8badd5bd0cb83b3ad2f9c61deae582aad196`, sucessora do marco funcional pós-F3 `977f106c2fcf46771f46ae3a40813ddbc24f1297`; na preparação local de `24/11/2026` sobre essa base, a candidata `AUTO-CSS-C01 V1` encontrava-se pendente de revisão e integração, registro histórico que não estabelece o estado remoto de versões posteriores).
+- **Versão do manifesto:** `0.1.0-rc.4`. Esta declaração identifica os metadados do pacote local, sem comprovar publicação no registro público npm.
 - **Compatibilidade declarada:** `peerDependencies` preservam `@tiptap/core` e `@tiptap/pm` em `^2.0.0 || ^3.0.0`; o ambiente de desenvolvimento do repositório está alinhado em `@tiptap/{core,pm,starter-kit}` `^3.35.0` (resolvidos em `3.35.0`). Veja [Desenvolvimento](docs/development.md#ambiente-e-instalação) e [Proveniência](docs/provenance.md) para os ambientes ensaiados e o alcance das validações.
-- **Instalação validada:** Para consumir o estado canônico homologado da biblioteca, gere o pacote a partir da raiz do repositório:
+- **Instalação local do pacote:** Para gerar e instalar o tarball a partir da raiz do repositório:
   ```bash
   npm run build
   npm pack
@@ -57,8 +57,8 @@ import {
 } from '@jhonny_bcastro/document-editor/compose';
 import '@jhonny_bcastro/document-editor/style.css';
 import '@jhonny_bcastro/document-editor/presentation.css';
-// Importe o stylesheet do consumidor após os CSS distribuídos pelo pacote
-// para garantir a ordem esperada de cascata do contrato CSS C-01.
+// Opcional: importe o stylesheet do consumidor após os CSS do pacote
+// caso deseje personalizar aparência ou regras pela cascata CSS.
 import './style.css';
 
 const host = document.querySelector<HTMLElement>('#document');
@@ -100,24 +100,24 @@ export function dispose() {
 
 > **Atenção:** A composição coordenada instala sua própria extensão de paginação. **Não** inclua `PaginationExtension` no array `extensions`.
 
-### 3. Contrato CSS do Consumidor (`CSS C-01`)
+### 3. Comportamento CSS C-01 Nativo (`AUTO-CSS-C01 V1`)
 
-Os arquivos `@jhonny_bcastro/document-editor/style.css` e `@jhonny_bcastro/document-editor/presentation.css` fornecem os estilos estruturais e decorativos da biblioteca, mas não impõem regras de quebra textual nem de preservação de espaços ao conteúdo editável. Compete à aplicação consumidora aplicar em seu stylesheet (ex.: `src/style.css`, importado após os CSS do pacote) a configuração **`CSS C-01`** validada nos cenários F3, escopada ao contêiner do editor (`#document` neste exemplo):
+A importação explícita de `@jhonny_bcastro/document-editor/style.css` e `@jhonny_bcastro/document-editor/presentation.css` continua obrigatória na integração (`createDocumentEditor` utiliza `injectCSS: false`, enquanto na montagem manual a opção `injectCSS` pertence ao `Editor` consumidor, não sendo imposta pela `PaginationExtension`). Sob o contrato **`AUTO-CSS-C01 V1`**, `@jhonny_bcastro/document-editor/style.css` passa a fornecer nativamente as regras `CSS C-01` escopadas a instâncias com `PaginationExtension` (marcadas internamente pela classe `document-editor-paginated` aplicada pelo plugin à raiz editável, sem alterar opções públicas nem introduzir injeção automática via JavaScript):
 
 ```css
-/* Contrato CSS C-01 — Responsabilidade da aplicação consumidora */
-#document .ProseMirror {
+/* Regras aplicadas nativamente por @jhonny_bcastro/document-editor/style.css */
+.ProseMirror.document-editor-paginated {
   word-wrap: break-word;
-  white-space: pre-wrap; /* Fallback na cascata caso break-spaces não seja suportado */
+  white-space: pre-wrap;
   white-space: break-spaces;
 }
 
-#document .ProseMirror pre {
+.ProseMirror.document-editor-paginated pre {
   white-space: pre-wrap;
 }
 ```
 
-Nos cenários ensaiados da F3, essas regras contribuíram para preservar caixas de linha mensuráveis em sequências de espaços e para que linhas longas de parágrafos e blocos `<pre><code>` quebrassem dentro da folha, sem configurar certificação geométrica universal nem impedir a emissão de diagnósticos contratuais quando aplicáveis. Consulte o [Quick Start Completo](docs/quick-start.md#contrato-css-c-01--integração-do-consumidor) e as [Limitações Técnicas](docs/limitations.md) para detalhes, limites da recuperação geométrica e diferenças entre `C-01` e `baseline`.
+Na integração padrão (tanto na Composição Coordenada quanto no Core manual), **não é mais necessário** que a aplicação declare essas regras em seu próprio CSS. Caso o consumidor deseje personalizar o comportamento via cascata CSS (por exemplo usando `#document .ProseMirror` após `@jhonny_bcastro/document-editor/style.css`), deve considerar o eventual efeito sobre a geometria medida pelo controlador. Consulte o [Quick Start Completo](docs/quick-start.md#comportamento-css-c-01-nativo-auto-css-c01-v1-e-personalização-opcional) e as [Limitações Técnicas](docs/limitations.md) para detalhes de especificidade, cascata e alcance das validações.
 
 ---
 
