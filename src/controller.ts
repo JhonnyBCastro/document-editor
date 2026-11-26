@@ -4,7 +4,15 @@ import { DecorationSet } from '@tiptap/pm/view';
 import { TableMap } from '@tiptap/pm/tables';
 import { BreakCandidate, BreakDecision, LayoutConfig, LayoutSnapshot, LayoutDiagnostic, PaginationVisualMode } from './types';
 import { getVisualLines } from './measurement';
-import { evaluateLinearPolicies, evaluateTablePolicies, checkProgressRule } from './policies';
+import {
+    evaluateLinearPolicies,
+    evaluateTablePolicies,
+    checkProgressRule,
+    resolveTableStructuralPosition,
+    findFirstTableCellPos,
+    isAdmissibleTableRowBreakPos,
+    findNextAdmissibleTableRowPos,
+} from './policies';
 import { createDecorationFromDecision } from './decorations';
 import { calculatePageProjections } from './projection';
 
@@ -690,6 +698,17 @@ export class PaginationController {
         let failsafe = 0;
         let blockedRegionStart = -1;
         let blockedRegionEnd = -1;
+        const blockedRegions: Array<{ start: number; end: number; targetNeutralY: number; lastBreakPos: number }> = [];
+        const getBlockedScanFloor = (target: number, lastBreak: number): number => {
+            let floor = lastBreak;
+            for (let i = 0; i < blockedRegions.length; i++) {
+                const r = blockedRegions[i];
+                if (Math.abs(r.targetNeutralY - target) < 0.01 && r.lastBreakPos === lastBreak && r.end > floor) {
+                    floor = r.end;
+                }
+            }
+            return floor;
+        };
         let inDegenerateRegion = false;
         const iterationBudget = this.getIterationBudget(docSize);
 
@@ -938,8 +957,11 @@ export class PaginationController {
             }
 
             if (neutralY > targetNeutralY) {
+                const currentLastBreakPos = breaks.length > 0 ? breaks[breaks.length - 1].pos : 0;
+                const scanMinFloor = getBlockedScanFloor(targetNeutralY, currentLastBreakPos);
                 let exactPos = coordsPos;
-                while (exactPos > 0) {
+                let exactNeutralY = neutralY;
+                while (exactPos > scanMinFloor) {
                     try {
                         const exactCoords = this.view.coordsAtPos(exactPos) as CoordsRectLike;
                         if (typeof exactCoords.top !== 'number' || !Number.isFinite(exactCoords.top)) {
@@ -951,7 +973,7 @@ export class PaginationController {
                             continue;
                         }
                         const exactDisp = getCumulativeDisplacement(exactPos);
-                        const exactNeutralY = exactCoords.top - exactDisp;
+                        exactNeutralY = exactCoords.top - exactDisp;
                         if (!Number.isFinite(exactNeutralY)) {
                             console.error(`PaginationController: exactNeutralY não-finito em exactPos=${exactPos}. Abortando.`);
                             return;
@@ -966,7 +988,77 @@ export class PaginationController {
                     }
                 }
 
-                const exactRes = this.view.state.doc.resolve(exactPos);
+                // RET-01.3: When backward scan reaches scanMinFloor, explicitly measure scanMinFloor
+                // (or the first non-degenerate position in [scanMinFloor, coordsPos]) so exactNeutralY
+                // corresponds to exactPos rather than holding a stale coordinate from scanMinFloor + 1.
+                if (exactPos <= scanMinFloor) {
+                    let floorProbePos = Math.max(0, scanMinFloor);
+                    let floorMeasured = false;
+                    while (floorProbePos <= coordsPos) {
+                        try {
+                            const floorCoords = this.view.coordsAtPos(floorProbePos) as CoordsRectLike;
+                            if (typeof floorCoords.top !== 'number' || !Number.isFinite(floorCoords.top)) {
+                                console.error(`PaginationController: floorCoords.top não-finito em floorProbePos=${floorProbePos}. Abortando.`);
+                                return;
+                            }
+                            if (isDegenerateZeroRect(floorCoords)) {
+                                floorProbePos++;
+                                continue;
+                            }
+                            const floorDisp = getCumulativeDisplacement(floorProbePos);
+                            const floorNeutralY = floorCoords.top - floorDisp;
+                            if (!Number.isFinite(floorNeutralY)) {
+                                console.error(`PaginationController: floorNeutralY não-finito em floorProbePos=${floorProbePos}. Abortando.`);
+                                return;
+                            }
+                            exactPos = floorProbePos;
+                            exactNeutralY = floorNeutralY;
+                            floorMeasured = true;
+                            break;
+                        } catch (e: any) {
+                            if (e instanceof PaginationCorruptedSpecError) {
+                                throw e;
+                            }
+                            floorProbePos++;
+                        }
+                    }
+                    if (!floorMeasured) {
+                        const unavailablePos = Math.max(0, scanMinFloor);
+                        diagnostics.push({
+                            code: LAYOUT_DEGENERATE_COORDS_CODE,
+                            pos: unavailablePos,
+                            message: `Coordenadas degeneradas ou indisponíveis no intervalo do piso [${unavailablePos}, ${coordsPos}]. Decisão ignorada sem reutilizar coordenada residual.`
+                        });
+                        if (atPendingManual) {
+                            const manualResult = emitPendingManualBreakInDegenerateRegion(unavailablePos, false);
+                            if (manualResult === 'fatal') return;
+                            continue;
+                        }
+                        pos = advanceSafelyWithoutSkippingManual(Math.max(pos, coordsPos, unavailablePos), SCAN_STRIDE);
+                        continue;
+                    }
+                }
+
+                // RET-01.1 / RET-01.2: Never inject virtual capacity (targetNeutralY += usableHeight)
+                // without a corresponding accepted break, displacement, and projected sheet.
+                // If the scan stopped at an already-blocked region floor whose measured boundary
+                // already exceeds targetNeutralY, resolve against the first admissible post-block
+                // position under the real current targetNeutralY (or emit explicit partial closure if terminal).
+                let resolvedExactPos = exactPos;
+                if (
+                    scanMinFloor > currentLastBreakPos &&
+                    exactPos <= scanMinFloor &&
+                    exactNeutralY > targetNeutralY &&
+                    !atPendingManual
+                ) {
+                    if (scanMinFloor >= docSize) {
+                        pos = docSize;
+                        continue;
+                    }
+                    resolvedExactPos = Math.min(docSize, scanMinFloor + 1);
+                }
+
+                let exactRes = this.view.state.doc.resolve(resolvedExactPos);
                 let candidate: BreakCandidate | null = null;
 
                 let insideTableAtDepth = -1;
@@ -977,20 +1069,78 @@ export class PaginationController {
                     }
                 }
 
-                const currentLastBreakPos = breaks.length > 0 ? breaks[breaks.length - 1].pos : 0;
-
                 if (insideTableAtDepth > 0) {
                     const tablePos = exactRes.before(insideTableAtDepth);
                     const tableNode = exactRes.node(insideTableAtDepth);
-                    const map = TableMap.get(tableNode);
+                    const boundary = resolveTableStructuralPosition(this.view.state.doc, tablePos, tableNode, resolvedExactPos);
 
-                    candidate = {
-                        kind: 'table', exactPos, naturalPos: exactPos, targetNeutralY,
-                        tableNode, tablePos, map,
-                        dom: this.view.nodeDOM(tablePos) as HTMLElement,
-                        lastBreakPos: currentLastBreakPos
-                    };
-                } else {
+                    if (boundary.kind === 'table_closing') {
+                        // TB-C01.2: Table itself fit at/before targetNeutralY; overflow belongs to post-table content.
+                        if (boundary.tableEnd >= docSize) {
+                            pos = advanceSafelyWithoutSkippingManual(Math.max(pos, coordsPos), SCAN_STRIDE);
+                            continue;
+                        }
+                        const postStartPos = boundary.tableEnd;
+                        const postInnerPos = Math.min(docSize, postStartPos + 1);
+                        const postRes = this.view.state.doc.resolve(postInnerPos);
+                        let postTableDepth = -1;
+                        for (let d = postRes.depth; d > 0; d--) {
+                            if (postRes.node(d).type.name === 'table') {
+                                postTableDepth = d;
+                                break;
+                            }
+                        }
+                        if (postTableDepth > 0) {
+                            const nextTablePos = postRes.before(postTableDepth);
+                            if (nextTablePos > currentLastBreakPos && nextTablePos > 0) {
+                                resolvedExactPos = nextTablePos;
+                                exactRes = this.view.state.doc.resolve(nextTablePos);
+                                insideTableAtDepth = -1;
+                            } else {
+                                const nextTableNode = postRes.node(postTableDepth);
+                                const nextMap = TableMap.get(nextTableNode);
+                                const nextBoundary = resolveTableStructuralPosition(this.view.state.doc, nextTablePos, nextTableNode, postInnerPos);
+                                const firstCellPos = findFirstTableCellPos(this.view.state.doc, nextTablePos, nextTableNode);
+                                const nextExact = nextBoundary.kind === 'row_boundary' || nextBoundary.kind === 'cell'
+                                    ? nextBoundary.cellPos
+                                    : (firstCellPos ?? postInnerPos);
+                                candidate = {
+                                    kind: 'table', exactPos: nextExact, naturalPos: nextExact, targetNeutralY,
+                                    tableNode: nextTableNode, tablePos: nextTablePos, map: nextMap,
+                                    dom: this.view.nodeDOM(nextTablePos) as HTMLElement,
+                                    lastBreakPos: currentLastBreakPos
+                                };
+                            }
+                        } else {
+                            resolvedExactPos = postInnerPos;
+                            exactRes = postRes;
+                            insideTableAtDepth = -1;
+                        }
+                    } else if (boundary.kind === 'row_boundary') {
+                        const map = TableMap.get(tableNode);
+                        candidate = {
+                            kind: 'table', exactPos: boundary.cellPos, naturalPos: resolvedExactPos, targetNeutralY,
+                            tableNode, tablePos, map,
+                            dom: this.view.nodeDOM(tablePos) as HTMLElement,
+                            lastBreakPos: currentLastBreakPos
+                        };
+                    } else if (boundary.kind === 'table_opening' && tablePos > currentLastBreakPos && tablePos > 0) {
+                        resolvedExactPos = tablePos;
+                        exactRes = this.view.state.doc.resolve(tablePos);
+                        insideTableAtDepth = -1;
+                    } else {
+                        const map = TableMap.get(tableNode);
+                        candidate = {
+                            kind: 'table', exactPos: resolvedExactPos, naturalPos: resolvedExactPos, targetNeutralY,
+                            tableNode, tablePos, map,
+                            dom: this.view.nodeDOM(tablePos) as HTMLElement,
+                            lastBreakPos: currentLastBreakPos
+                        };
+                    }
+                }
+
+                if (!candidate && insideTableAtDepth <= 0) {
+                    const exactPosForLinear = resolvedExactPos;
                     const node = exactRes.parent;
                     const blockStart = exactRes.start();
                     const blockBefore = exactRes.depth > 0 ? exactRes.before(exactRes.depth) : null;
@@ -1049,7 +1199,7 @@ export class PaginationController {
                             visualLinesCache.set(dom, lines);
                         }
 
-                        const exactProbePos = Math.max(1, exactPos);
+                        const exactProbePos = Math.max(1, exactPosForLinear);
                         let exactMeasuredPos = exactProbePos;
                         let exactCoords = this.view.coordsAtPos(exactProbePos) as CoordsRectLike;
                         if (typeof exactCoords.top !== 'number' || !Number.isFinite(exactCoords.top)) {
@@ -1116,9 +1266,9 @@ export class PaginationController {
                                     ? exactCoords.bottom - exactDisp
                                     : lineNeutralBottom;
                             const exactAtEmptyNewline =
-                                exactPos < candidateBlockEnd &&
-                                this.view.state.doc.textBetween(exactPos, exactPos + 1) === '\n' &&
-                                (exactPos === blockStart || this.view.state.doc.textBetween(exactPos - 1, exactPos) === '\n') &&
+                                exactPosForLinear < candidateBlockEnd &&
+                                this.view.state.doc.textBetween(exactPosForLinear, exactPosForLinear + 1) === '\n' &&
+                                (exactPosForLinear === blockStart || this.view.state.doc.textBetween(exactPosForLinear - 1, exactPosForLinear) === '\n') &&
                                 exactNeutralBottom > targetNeutralY;
                             if (exactAtEmptyNewline) {
                                 lines = [];
@@ -1130,14 +1280,14 @@ export class PaginationController {
                                 ) {
                                     K--;
                                 }
-                            } else if (K + 1 < lines.length && exactPos < candidateBlockEnd) {
+                            } else if (K + 1 < lines.length && exactPosForLinear < candidateBlockEnd) {
                                 K = K + 1;
                             }
                         }
                     }
 
                     candidate = {
-                        kind: 'linear', exactPos, naturalPos: exactPos, targetNeutralY,
+                        kind: 'linear', exactPos: exactPosForLinear, naturalPos: exactPosForLinear, targetNeutralY,
                         isParagraph, blockStart, blockEnd: candidateBlockEnd,
                         dom: dom || undefined, lines, naturalLineIndex: K, hasHeadingBefore, headingPos, headingNode,
                         lastBreakPos: currentLastBreakPos
@@ -1174,19 +1324,125 @@ export class PaginationController {
                         blockedRegionStart = candidate.exactPos;
                         blockedRegionEnd = candidate.exactPos + 10;
                     }
+                    blockedRegions.push({
+                        start: blockedRegionStart,
+                        end: blockedRegionEnd,
+                        targetNeutralY,
+                        lastBreakPos: currentLastBreakPos,
+                    });
                     if (atPendingManual) {
                         const manualResult = emitManualBreakAtNeutralY(neutralY, true);
                         if (manualResult === 'fatal') return;
                         continue;
                     }
-                    pos = guardManualStep(Math.max(pos + 1, blockedRegionEnd + 1));
+                    pos = guardManualStep(Math.max(pos + 1, blockedRegionEnd));
                     continue;
                 }
 
-                // ── Regra de Progresso ───────────────────────────────────────────────
+                // ── Regra de Progresso (RET-02: compatibilidade estrita posição <-> renderer) ──
                 const { isStale, lastBreakPos } = checkProgressRule(decision, breaks);
                 if (isStale) {
-                    if (candidate.exactPos > lastBreakPos) {
+                    if (candidate.kind === 'table') {
+                        // R2-02: Recover stale table decision ONLY via policy-validated tableRow > lastBreakPos
+                        // within the same table and before any pending manual break.
+                        let recoveredPolicyDecision: BreakDecision | null = null;
+                        let blockedPolicyDecision: BreakDecision | null = null;
+
+                        if (candidate.tablePos !== undefined && candidate.tableNode) {
+                            const nextCandidateRowPos = findNextAdmissibleTableRowPos(
+                                this.view.state.doc,
+                                candidate.tablePos,
+                                candidate.tableNode,
+                                lastBreakPos
+                            );
+                            if (nextCandidateRowPos !== null) {
+                                const rowNode = this.view.state.doc.nodeAt(nextCandidateRowPos);
+                                const rowFirstCell = rowNode
+                                    ? findFirstTableCellPos(this.view.state.doc, nextCandidateRowPos, rowNode)
+                                    : null;
+                                if (rowFirstCell !== null) {
+                                    const reevalCandidate: BreakCandidate = {
+                                        ...candidate,
+                                        exactPos: rowFirstCell,
+                                        naturalPos: rowFirstCell,
+                                    };
+                                    const reevalDecision = evaluateTablePolicies(reevalCandidate, this.view, this.layout);
+                                    validatePolicyDecision(reevalDecision, docSize);
+                                    const respectsManualCeiling =
+                                        nextManualPos === Infinity ||
+                                        reevalDecision.pos <= nextManualPos;
+                                    if (
+                                        reevalDecision.status === 'accepted' &&
+                                        reevalDecision.pos > lastBreakPos &&
+                                        isAdmissibleTableRowBreakPos(this.view.state.doc, reevalDecision.pos)
+                                    ) {
+                                        if (respectsManualCeiling) {
+                                            recoveredPolicyDecision = {
+                                                ...reevalDecision,
+                                                reasons: [...reevalDecision.reasons, 'stale_break_recovered_via_table_policy'],
+                                            };
+                                        } else {
+                                            // MF-P04 / MF-ACC-02: Alternative crosses pending manual break;
+                                            // abort automatic alternative and process/reach pending manual break first.
+                                            if (atPendingManual) {
+                                                const manualResult = emitManualBreakAtNeutralY(neutralY, true);
+                                                if (manualResult === 'fatal') return;
+                                                continue;
+                                            }
+                                            if (pos < nextManualPos) {
+                                                pos = Math.min(docSize, nextManualPos);
+                                                continue;
+                                            }
+                                            const manualResult = emitPendingManualBreakInDegenerateRegion(nextManualPos, false);
+                                            if (manualResult === 'fatal') return;
+                                            continue;
+                                        }
+                                    } else if (reevalDecision.status === 'blocked') {
+                                        blockedPolicyDecision = reevalDecision;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (recoveredPolicyDecision) {
+                            diagnostics.push({
+                                code: 'STALE_BREAK',
+                                pos: recoveredPolicyDecision.pos,
+                                message: `Break decision at pos=${decision.pos} não avançou além da última quebra em ${lastBreakPos}. Recuperada sob política tabular para pos=${recoveredPolicyDecision.pos}.`
+                            });
+                            decision = recoveredPolicyDecision;
+                        } else {
+                            if (blockedPolicyDecision) {
+                                diagnostics.push({
+                                    code: blockedPolicyDecision.code || 'BLOCKED',
+                                    pos: blockedPolicyDecision.pos,
+                                    message: blockedPolicyDecision.reasons.join(', ')
+                                });
+                                if (candidate.tablePos !== undefined && candidate.tableNode) {
+                                    const tableEnd = candidate.tablePos + candidate.tableNode.nodeSize;
+                                    blockedRegions.push({
+                                        start: candidate.tablePos,
+                                        end: tableEnd,
+                                        targetNeutralY,
+                                        lastBreakPos,
+                                    });
+                                }
+                            } else {
+                                diagnostics.push({
+                                    code: 'STALE_BREAK',
+                                    pos,
+                                    message: `Break decision at pos=${decision.pos} e exactPos=${candidate.exactPos} sem tableRow admissível pelas políticas além de ${lastBreakPos}. Avançando sem fabricar quebra.`
+                                });
+                            }
+                            if (atPendingManual) {
+                                const manualResult = emitManualBreakAtNeutralY(neutralY, true);
+                                if (manualResult === 'fatal') return;
+                                continue;
+                            }
+                            pos = guardManualStep(Math.max(pos + SCAN_STRIDE, lastBreakPos + 1));
+                            continue;
+                        }
+                    } else if (candidate.exactPos > lastBreakPos) {
                         diagnostics.push({
                             code: 'STALE_BREAK',
                             pos: candidate.exactPos,
@@ -1197,7 +1453,7 @@ export class PaginationController {
                             pos: candidate.exactPos,
                             effectiveDisplacement: 0,
                             reasons: [...decision.reasons, 'stale_break_recovered_to_exact_pos'],
-                            renderer: candidate.kind === 'table' ? 'table-row-spacer' : 'linear-widget',
+                            renderer: 'linear-widget',
                             origin: 'automatic'
                         };
                     } else {
@@ -1214,6 +1470,21 @@ export class PaginationController {
                         pos = guardManualStep(Math.max(pos + SCAN_STRIDE, lastBreakPos + 1));
                         continue;
                     }
+                }
+
+                if (decision.renderer === 'table-row-spacer' && !isAdmissibleTableRowBreakPos(this.view.state.doc, decision.pos)) {
+                    diagnostics.push({
+                        code: 'STALE_BREAK',
+                        pos: decision.pos,
+                        message: `Decisão table-row-spacer em pos=${decision.pos} rejeitada por incompatibilidade estrutural com nó tableRow.`
+                    });
+                    if (atPendingManual) {
+                        const manualResult = emitManualBreakAtNeutralY(neutralY, true);
+                        if (manualResult === 'fatal') return;
+                        continue;
+                    }
+                    pos = guardManualStep(Math.max(pos + SCAN_STRIDE, decision.pos + 1));
+                    continue;
                 }
 
                 if (!decision.origin) {
@@ -1276,9 +1547,19 @@ export class PaginationController {
                     }
                 }
 
-                // Não permitir que uma decisão automática pendente ultrapasse a próxima quebra manual antes da varredura alcançá-la
-                if (nextManualPos !== Infinity && pos < nextManualPos && decision.pos > nextManualPos) {
-                    pos = Math.min(docSize, nextManualPos);
+                // Não permitir que uma decisão automática pendente ultrapasse uma obrigação manual ainda pendente
+                if (nextManualPos !== Infinity && decision.pos > nextManualPos) {
+                    if (atPendingManual) {
+                        const manualResult = emitManualBreakAtNeutralY(neutralY, true);
+                        if (manualResult === 'fatal') return;
+                        continue;
+                    }
+                    if (pos < nextManualPos) {
+                        pos = Math.min(docSize, nextManualPos);
+                        continue;
+                    }
+                    const manualResult = emitPendingManualBreakInDegenerateRegion(nextManualPos, false);
+                    if (manualResult === 'fatal') return;
                     continue;
                 }
 
@@ -1364,7 +1645,12 @@ export class PaginationController {
                 breaks.push(decision);
 
                 targetNeutralY = nextTarget;
-                pos = guardManualStep(decision.pos + 1);
+                // MF-P03: If automatic break landed exactly at nextManualPos (coincident boundary),
+                // keep pos at nextManualPos so the next iteration processes the pending manual break
+                // instead of advancing pos past [nextManualPos, nextManualPos + manualNodeSize - 1].
+                pos = (nextManualPos !== Infinity && decision.pos === nextManualPos)
+                    ? Math.min(docSize, nextManualPos)
+                    : guardManualStep(decision.pos + 1);
                 continue;
             }
 
