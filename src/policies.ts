@@ -588,6 +588,92 @@ export function evaluateLinearPolicies(candidate: BreakCandidate, view: EditorVi
     };
 }
 
+export type TableStructuralPosition =
+    | { kind: 'cell'; cellPos: number }
+    | { kind: 'row_boundary'; cellPos: number; rowStart: number }
+    | { kind: 'table_closing'; tableEnd: number }
+    | { kind: 'table_opening'; firstRowStart: number }
+    | { kind: 'unresolvable' };
+
+export function resolveTableStructuralPosition(
+    doc: any,
+    tablePos: number,
+    tableNode: any,
+    exactPos: number
+): TableStructuralPosition {
+    const tableEnd = tablePos + tableNode.nodeSize;
+    let cellPos = -1;
+    doc.nodesBetween(tablePos, tableEnd, (n: any, p: number) => {
+        if (n.type.name === 'tableCell' || n.type.name === 'tableHeader') {
+            if (exactPos >= p && exactPos < p + n.nodeSize) {
+                cellPos = p;
+                return false;
+            }
+        }
+    });
+    if (cellPos !== -1) {
+        return { kind: 'cell', cellPos };
+    }
+    if (!tableNode || tableNode.childCount === 0) {
+        return { kind: 'unresolvable' };
+    }
+    const firstRowStart = tablePos + 1;
+    const lastRowEnd = tableEnd - 1;
+    if (exactPos >= lastRowEnd && exactPos < tableEnd) {
+        return { kind: 'table_closing', tableEnd };
+    }
+    if (exactPos <= firstRowStart) {
+        return { kind: 'table_opening', firstRowStart };
+    }
+    const res = doc.resolve(exactPos);
+    if (res.nodeAfter && res.nodeAfter.type.name === 'tableRow' && res.nodeAfter.childCount > 0) {
+        const firstChild = res.nodeAfter.firstChild;
+        if (firstChild && (firstChild.type.name === 'tableCell' || firstChild.type.name === 'tableHeader')) {
+            return { kind: 'row_boundary', cellPos: exactPos + 1, rowStart: exactPos };
+        }
+    }
+    return { kind: 'unresolvable' };
+}
+
+export function findFirstTableCellPos(doc: any, tablePos: number, tableNode: any): number | null {
+    if (!tableNode) return null;
+    let firstCellPos: number | null = null;
+    doc.nodesBetween(tablePos, tablePos + tableNode.nodeSize, (n: any, p: number) => {
+        if (firstCellPos !== null) return false;
+        if (n.type.name === 'tableCell' || n.type.name === 'tableHeader') {
+            firstCellPos = p;
+            return false;
+        }
+    });
+    return firstCellPos;
+}
+
+export function isAdmissibleTableRowBreakPos(doc: any, pos: number): boolean {
+    if (!doc || typeof pos !== 'number' || !Number.isInteger(pos) || pos < 0 || pos >= doc.content.size) {
+        return false;
+    }
+    const node = doc.nodeAt(pos);
+    return Boolean(node && node.type.name === 'tableRow');
+}
+
+export function findNextAdmissibleTableRowPos(
+    doc: any,
+    tablePos: number,
+    tableNode: any,
+    minExclusivePos: number
+): number | null {
+    if (!doc || !tableNode || typeof tablePos !== 'number') return null;
+    let offset = tablePos + 1;
+    for (let i = 0; i < tableNode.childCount; i++) {
+        const child = tableNode.child(i);
+        if (child.type.name === 'tableRow' && offset > minExclusivePos && isAdmissibleTableRowBreakPos(doc, offset)) {
+            return offset;
+        }
+        offset += child.nodeSize;
+    }
+    return null;
+}
+
 export function evaluateTablePolicies(candidate: BreakCandidate, view: EditorView, layout: LayoutConfig): BreakDecision {
     const { tableNode, tablePos, exactPos, map } = candidate;
     const usableHeight = layout.page.height - layout.page.marginTop - layout.page.marginBottom;
